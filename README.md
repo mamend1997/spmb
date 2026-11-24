@@ -1,4 +1,4 @@
-# SPMB SMK PGRI Cikoneng 2026/2027
+# SPMB SMK PGRI Cikoneng 2027/2028
 
 Landing page formulir pendaftaran responsif menggunakan HTML, Tailwind CSS CDN, dan Vanilla JavaScript. Data dikirim ke Google Sheets melalui Google Apps Script Web App. Situs dapat dideploy sebagai website statis di Vercel; server Node.js bawaan juga tersedia untuk menjalankan pratinjau lokal.
 
