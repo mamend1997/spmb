@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f8f9fa">
+  <meta name="description" content="Formulir Pendaftaran Calon Peserta Didik Baru SMK PGRI Cikoneng Tahun Ajaran 2026/2027.">
+  <title>Formulir SPMB 2026/2027 | SMK PGRI Cikoneng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui'] },
+          colors: { brand: { 50: '#fff7ed', 100: '#ffedd5', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' } }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .field-control { width: 100%; border: 1px solid #dfe3e8; border-radius: .65rem; background: #fff; padding: .72rem .85rem; color: #1f2937; outline: none; transition: border-color .15s, box-shadow .15s; }
+    .field-control:focus { border-color: #f97316; box-shadow: 0 0 0 3px rgb(249 115 22 / .12); }
+    .field-control::placeholder { color: #a0a7b2; }
+    .field-row { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 13fr); gap: 1.25rem; align-items: start; padding: 1.05rem 1.5rem; border-bottom: 1px solid #f0f1f3; }
+    .field-row:last-child { border-bottom: 0; }
+    .field-label { padding-top: .68rem; font-size: .875rem; font-weight: 600; color: #374151; }
+    .radio-option { display: inline-flex; align-items: center; gap: .55rem; cursor: pointer; color: #4b5563; }
+    .radio-option input { accent-color: #ea580c; width: 1rem; height: 1rem; }
+    .helper { margin-top: .4rem; font-size: .75rem; color: #8a929e; }
+    .error-text { color: #dc2626; }
+    .required-mark { color: #ea580c; }
+    @media (max-width: 640px) {
+      .field-row { grid-template-columns: 1fr; gap: .45rem; padding: 1rem; }
+      .field-label { padding-top: 0; }
+      .section-banner { margin-left: 1rem !important; margin-right: 1rem !important; }
+    }
+    @media print {
+      body { background: white !important; }
+      .no-print, header, footer, #help-card { display: none !important; }
+      main { padding: 0 !important; }
+      #form-card { box-shadow: none !important; border: 1px solid #ddd; }
+      .field-row { break-inside: avoid; }
+      input, select, textarea { color: #111 !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#F8F9FA] text-slate-800">
+  <header class="no-print border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+      <a href="#" class="flex items-center gap-3" aria-label="SMK PGRI Cikoneng">
+        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-xs font-extrabold tracking-tight text-orange-700 ring-2 ring-orange-200">PGRI</span>
+        <span class="hidden text-sm font-bold leading-tight text-slate-800 sm:block">SMK PGRI<br><span class="font-medium text-slate-500">Cikoneng</span></span>
+      </a>
+      <nav aria-label="Navigasi utama">
+        <a href="#" class="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-orange-50 hover:text-orange-700">Beranda</a>
+      </nav>
+      <span class="w-16 sm:w-24"></span>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+    <div class="no-print mb-3 grid grid-cols-1 items-center gap-2 sm:grid-cols-3 sm:gap-1" role="tablist" aria-label="Menu formulir">
+      <button type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-orange-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm" aria-current="page">
+        <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-13a1.5 1.5 0 0 1 2-1.5Z"/><path d="M14 4v4h4M9 13h6M9 16.5h6"/></svg>
+        Formulir SPMB
+      </button>
+      <button id="print-button" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-700">
+        <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8V3.75h10V8M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v6.25H7zM17.5 11.5h.01"/></svg>
+        Formulir Offline (Print)
+      </button>
+      <button id="scholarship-button" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-700" aria-haspopup="dialog">
+        <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 11.2v5.3c3.1 2.3 6.9 2.3 10 0v-5.3M21 9v6"/></svg>
+        Informasi Beasiswa
+      </button>
+    </div>
+
+    <section id="form-card" class="overflow-hidden rounded-xl border border-slate-100 border-t-2 border-t-orange-500 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+      <div class="border-b border-slate-100 px-5 py-5 sm:px-6 sm:py-6">
+        <h1 class="text-lg font-extrabold leading-snug tracking-tight text-slate-900 sm:text-xl">FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU</h1>
+        <p class="mt-2 text-sm font-extrabold tracking-wide text-orange-600 sm:text-base">SMK PGRI CIKONENG TAHUN AJARAN 2026/2027</p>
+        <p class="mt-2 border-b border-slate-100 pb-4 text-sm leading-6 text-slate-500">Silahkan isi seluruh data diri calon peserta didik baru dan data orang tua/wali dengan lengkap dan benar.</p>
+        <p class="mt-3 text-right text-xs text-slate-500"><span class="required-mark">*</span> Wajib diisi</p>
+      </div>
+
+      <form id="spmb-form" novalidate>
+        <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">BAGIAN 1: DATA CALON SISWA</div>
+        <div>
+          <div class="field-row">
+            <label class="field-label" for="studentName">Nama Lengkap Siswa <span class="required-mark">*</span></label>
+            <input class="field-control" id="studentName" name="studentName" type="text" placeholder="Masukkan nama lengkap siswa" autocomplete="name" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="schoolOrigin">Asal Sekolah <span class="required-mark">*</span></label>
+            <input class="field-control" id="schoolOrigin" name="schoolOrigin" type="text" placeholder="Contoh: SMPN 1 Cikoneng" required>
+          </div>
+          <fieldset class="field-row">
+            <legend class="field-label">Konsentrasi Keahlian <span class="required-mark">*</span></legend>
+            <div class="space-y-3 pt-2">
+              <label class="radio-option flex"><input type="radio" name="major" value="MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)" required><span>MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)</span></label>
+              <label class="radio-option flex"><input type="radio" name="major" value="AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)"><span>AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)</span></label>
+              <label class="radio-option flex"><input type="radio" name="major" value="BISNIS DIGITAL"><span>BISNIS DIGITAL</span></label>
+            </div>
+          </fieldset>
+          <div class="field-row">
+            <label class="field-label" for="nisn">NISN <span class="required-mark">*</span></label>
+            <div><input class="field-control digit-field" id="nisn" name="nisn" type="text" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10 digit angka NISN" required><p class="helper">Hanya angka (tepat 10 digit)</p></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="familyCardNumber">No. Kartu Keluarga (KK) <span class="required-mark">*</span></label>
+            <div><input class="field-control digit-field" id="familyCardNumber" name="familyCardNumber" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka No KK" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="studentNik">NIK Siswa <span class="required-mark">*</span></label>
+            <div><input class="field-control digit-field" id="studentNik" name="studentNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Siswa" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+          </div>
+          <fieldset class="field-row">
+            <legend class="field-label">Jenis Kelamin <span class="required-mark">*</span></legend>
+            <div class="flex flex-wrap gap-x-7 gap-y-3 pt-2">
+              <label class="radio-option"><input type="radio" name="gender" value="Laki-laki" required><span>Laki-laki</span></label>
+              <label class="radio-option"><input type="radio" name="gender" value="Perempuan"><span>Perempuan</span></label>
+            </div>
+          </fieldset>
+          <div class="field-row">
+            <label class="field-label" for="birthPlace">Tempat Lahir <span class="required-mark">*</span></label>
+            <input class="field-control" id="birthPlace" name="birthPlace" type="text" placeholder="Kota / Kabupaten kelahiran" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="birthDate">Tanggal Lahir <span class="required-mark">*</span></label>
+            <input class="field-control" id="birthDate" name="birthDate" type="date" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="email">Email Siswa / Orang Tua <span class="required-mark">*</span></label>
+            <div><input class="field-control" id="email" name="email" type="email" autocomplete="email" placeholder="email@contoh.com" required><p class="helper">Wajib menyertakan simbol @ dan domain yang valid</p></div>
+          </div>
+        </div>
+
+        <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">BAGIAN 2: DATA ORANG TUA / WALI</div>
+        <div>
+          <div class="field-row">
+            <label class="field-label" for="fatherNik">NIK Ayah <span class="required-mark">*</span></label>
+            <div><input class="field-control digit-field" id="fatherNik" name="fatherNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Ayah" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="fatherName">Nama Ayah <span class="required-mark">*</span></label>
+            <input class="field-control" id="fatherName" name="fatherName" type="text" placeholder="Nama lengkap Ayah" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="fatherEducation">Pendidikan Terakhir Ayah <span class="required-mark">*</span></label>
+            <select class="field-control" id="fatherEducation" name="fatherEducation" required>
+              <option value="">Pilih Jenjang Pendidikan...</option><option>SD/Sederajat</option><option>SMP/Sederajat</option><option>SMA/SMK/Sederajat</option><option>D1/D2/D3</option><option>S1/D4</option><option>S2</option><option>S3</option><option>Tidak Sekolah</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="fatherOccupation">Pekerjaan Ayah <span class="required-mark">*</span></label>
+            <input class="field-control" id="fatherOccupation" name="fatherOccupation" type="text" placeholder="Pekerjaan Ayah" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="fatherIncome">Penghasilan Ayah / bulan <span class="required-mark">*</span></label>
+            <input class="field-control" id="fatherIncome" name="fatherIncome" type="text" placeholder="Contoh: &lt; 1 Juta, 1 - 3 Juta, dll" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="fatherPhone">No. Telepon/WA Ayah <span class="required-mark">*</span></label>
+            <div><div class="flex"><span class="inline-flex items-center rounded-l-[.65rem] border border-r-0 border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">+62</span><input class="field-control rounded-l-none" id="fatherPhone" name="fatherPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="81234567890" required></div><p class="helper">Hanya angka (10 - 14 digit, tanpa angka 0 di depan)</p></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="motherNik">NIK Ibu <span class="required-mark">*</span></label>
+            <div><input class="field-control digit-field" id="motherNik" name="motherNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Ibu" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="motherName">Nama Ibu <span class="required-mark">*</span></label>
+            <input class="field-control" id="motherName" name="motherName" type="text" placeholder="Nama lengkap Ibu" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="motherEducation">Pendidikan Terakhir Ibu <span class="required-mark">*</span></label>
+            <select class="field-control" id="motherEducation" name="motherEducation" required>
+              <option value="">Pilih Jenjang Pendidikan...</option><option>SD/Sederajat</option><option>SMP/Sederajat</option><option>SMA/SMK/Sederajat</option><option>D1/D2/D3</option><option>S1/D4</option><option>S2</option><option>S3</option><option>Tidak Sekolah</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="motherOccupation">Pekerjaan Ibu <span class="required-mark">*</span></label>
+            <input class="field-control" id="motherOccupation" name="motherOccupation" type="text" placeholder="Pekerjaan Ibu" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="motherIncome">Penghasilan Ibu / bulan <span class="required-mark">*</span></label>
+            <input class="field-control" id="motherIncome" name="motherIncome" type="text" placeholder="Contoh: &lt; 1 Juta, 1 - 3 Juta, dll" required>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="motherPhone">No. Telepon/WA Ibu <span class="required-mark">*</span></label>
+            <div><div class="flex"><span class="inline-flex items-center rounded-l-[.65rem] border border-r-0 border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">+62</span><input class="field-control rounded-l-none" id="motherPhone" name="motherPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="81234567890" required></div><p class="helper">Hanya angka (10 - 14 digit, tanpa angka 0 di depan)</p></div>
+          </div>
+          <div class="field-row">
+            <label class="field-label" for="address">Alamat Lengkap <span class="required-mark">*</span></label>
+            <textarea class="field-control min-h-24 resize-y" id="address" name="address" placeholder="Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten" required></textarea>
+          </div>
+        </div>
+        <div class="no-print flex flex-col items-center px-5 py-8">
+          <p id="form-error" class="mb-3 hidden text-center text-sm text-red-600" role="alert"></p>
+          <button id="submit-button" type="submit" class="inline-flex min-w-64 items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-200 disabled:cursor-not-allowed disabled:opacity-70">
+            <span id="submit-spinner" class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+            <span id="submit-label">Kirim Formulir Pendaftaran</span>
+            <svg id="submit-icon" aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <p class="mt-3 text-xs text-slate-400">Pastikan seluruh data telah diperiksa sebelum dikirim.</p>
+        </div>
+      </form>
+    </section>
+
+    <section id="help-card" class="no-print mt-6 flex flex-col gap-5 rounded-xl border border-orange-100 border-t-4 border-t-orange-500 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div>
+        <p class="text-[11px] font-extrabold tracking-[.15em] text-orange-600">LAYANAN INFORMASI</p>
+        <h2 class="mt-1 text-lg font-bold text-slate-900">Butuh Bantuan atau Informasi SPMB?</h2>
+        <p class="mt-1 max-w-xl text-sm leading-6 text-slate-500">Hubungi panitia penerima siswa baru SMK PGRI Cikoneng melalui Contact Person / Saluran Resmi.</p>
+      </div>
+      <a href="https://wa.me/628xxxxxxxxxx" target="_blank" rel="noopener noreferrer" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700">
+        <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.52 3.48A11.82 11.82 0 0 0 12.1 0C5.55 0 .22 5.33.22 11.9c0 2.1.55 4.15 1.6 5.96L.12 24l6.3-1.65a11.87 11.87 0 0 0 5.68 1.45h.01c6.56 0 11.89-5.34 11.89-11.9 0-3.18-1.24-6.17-3.48-8.42ZM12.1 21.78a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.85 9.85 0 0 1-1.52-5.25c0-5.46 4.45-9.9 9.91-9.9a9.83 9.83 0 0 1 7.01 2.9 9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.45 9.9-9.92 9.9Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.88-.78-1.48-1.75-1.65-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.48.71.31 1.26.5 1.69.64.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg>
+        Contact Person SPMB
+      </a>
+    </section>
+  </main>
+
+  <footer class="no-print border-t border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <span>Copyright © 2026 SMK PGRI CIKONENG</span>
+      <span>SPMB Online · Tahun Ajaran 2026/2027</span>
+    </div>
+  </footer>
+
+  <div id="modal" class="no-print fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 px-4 py-6" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-7">
+      <div id="modal-symbol" class="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+        <svg aria-hidden="true" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 11.2v5.3c3.1 2.3 6.9 2.3 10 0v-5.3M21 9v6"/></svg>
+      </div>
+      <h2 id="modal-title" class="text-lg font-extrabold text-slate-900">Informasi Beasiswa</h2>
+      <div id="modal-message" class="mt-2 text-sm leading-6 text-slate-600"></div>
+      <button id="modal-close" type="button" class="mt-6 w-full rounded-lg bg-orange-600 px-4 py-3 text-sm font-bold text-white hover:bg-orange-700">Mengerti</button>
+    </div>
+  </div>
+
+  <script>
+    // Ganti URL ini dengan URL Web App hasil deployment Google Apps Script.
+    const APPS_SCRIPT_URL = 'PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI';
+    const form = document.getElementById('spmb-form');
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const modalSymbol = document.getElementById('modal-symbol');
+    const submitButton = document.getElementById('submit-button');
+    const formError = document.getElementById('form-error');
+
+    function showModal(title, message, success) {
+      modalTitle.textContent = title;
+      modalMessage.textContent = message;
+      modalSymbol.className = 'mb-4 flex h-12 w-12 items-center justify-center rounded-full ' +
+        (success ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600');
+      modalSymbol.innerHTML = success
+        ? '<svg aria-hidden="true" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>'
+        : '<svg aria-hidden="true" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4m0 4h.01M10.3 3.9 2.8 17a2 2 0 0 0 1.74 3h14.92a2 2 0 0 0 1.74-3l-7.46-13.1a2 2 0 0 0-3.48 0Z"/></svg>';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.getElementById('modal-close').focus();
+    }
+
+    function setLoading(loading) {
+      submitButton.disabled = loading;
+      document.getElementById('submit-label').textContent = loading ? 'Mengirim data...' : 'Kirim Formulir Pendaftaran';
+      document.getElementById('submit-spinner').classList.toggle('hidden', !loading);
+      document.getElementById('submit-icon').classList.toggle('hidden', loading);
+    }
+
+    document.getElementById('print-button').addEventListener('click', function () { window.print(); });
+    document.getElementById('scholarship-button').addEventListener('click', function () {
+      showModal('Informasi Beasiswa', 'Informasi mengenai program dan persyaratan beasiswa SPMB dapat ditanyakan langsung kepada panitia melalui Contact Person SPMB. Pantau saluran resmi sekolah untuk pengumuman terbaru.', false);
+    });
+    document.getElementById('modal-close').addEventListener('click', function () {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+    modal.addEventListener('click', function (event) {
+      if (event.target === modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    });
+
+    document.querySelectorAll('.digit-field').forEach(function (input) {
+      input.addEventListener('input', function () {
+        input.value = input.value.replace(/\D/g, '');
+      });
+    });
+    ['fatherPhone', 'motherPhone'].forEach(function (id) {
+      document.getElementById(id).addEventListener('input', function (event) {
+        event.target.value = event.target.value.replace(/\D/g, '');
+      });
+    });
+
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      formError.classList.add('hidden');
+      if (!form.reportValidity()) return;
+
+      if (APPS_SCRIPT_URL === 'PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI') {
+        formError.textContent = 'Integrasi belum dikonfigurasi. Tambahkan URL Web App Apps Script di index.html.';
+        formError.classList.remove('hidden');
+        return;
+      }
+
+      const payload = Object.fromEntries(new FormData(form).entries());
+      payload.fatherPhone = '+62' + payload.fatherPhone;
+      payload.motherPhone = '+62' + payload.motherPhone;
+      setLoading(true);
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('Server mengembalikan HTTP ' + response.status);
+        const result = await response.json();
+        if (result.status !== 'success') throw new Error(result.message || 'Pendaftaran tidak berhasil disimpan.');
+        showModal('Pendaftaran Berhasil', result.message || 'Pendaftaran berhasil disimpan.', true);
+        form.reset();
+      } catch (error) {
+        console.error('Gagal mengirim formulir SPMB:', error);
+        showModal('Pendaftaran Belum Terkirim', error.message || 'Periksa koneksi internet dan coba kembali. Jika masalah berlanjut, hubungi panitia SPMB.', false);
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>

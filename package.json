@@ -1,0 +1,12 @@
+{
+  "name": "spmb-smk-pgri-cikoneng",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Landing page pendaftaran SPMB SMK PGRI Cikoneng 2026/2027",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
