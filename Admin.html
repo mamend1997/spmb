@@ -66,6 +66,7 @@
     .sidebar button { width: 100%; text-align: left; color: #475467; background: transparent; }
     .sidebar button.active, .sidebar button:hover { color: #c2410c; background: #fff7ed; }
     .admin-pages { min-width: 0; }
+    .admin-pages > .admin-page.section { margin-top: 0; }
     .admin-page[hidden] { display: none !important; }
     @keyframes admin-view-enter { from { opacity: 0; transform: translateY(12px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .admin-enter { animation: admin-view-enter .32s cubic-bezier(.2,.75,.25,1) both; }
@@ -82,22 +83,40 @@
     .master-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 11px; font-weight: 700; }
     .master-row .check-control { display: flex; align-items: center; gap: 6px; min-height: 42px; font-size: 11px; }
     .master-row .check-control input { width: auto; min-height: auto; }
+    .payment-check-control { display: inline-flex; align-items: center; gap: .55em; width: fit-content; color: #475467; font-size: 13px; font-weight: 600; }
+    .payment-check-control input[type="checkbox"] { width: 1em; height: 1em; min-height: 1em; margin: 0; accent-color: #ea580c; }
     .field-config-row { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
     .field-config-row > * { min-width: 0; }
     .field-toggle-setting { display: flex; min-height: 62px; flex-direction: column; justify-content: flex-end; gap: 7px; }
     .field-control-caption { color: #475467; font-size: 11px; font-weight: 700; }
-    .field-switch { display: inline-flex; width: fit-content; min-height: 24px; align-items: center; gap: 8px; margin: 0 !important; cursor: pointer; }
+    .master-row label.field-switch { display: inline-flex; width: fit-content; min-height: 30px; align-items: center; gap: 8px; margin: 0 !important; color: #64748b; cursor: pointer; }
+    .permission-matrix label.field-switch { display: inline-flex; width: fit-content; min-height: 28px; align-items: center; gap: 8px; margin: 0 !important; color: #64748b; cursor: pointer; }
     .field-switch input { position: absolute; width: 1px; height: 1px; min-height: 1px; margin: 0; opacity: 0; }
-    .field-switch-track { position: relative; width: 36px; height: 20px; flex: 0 0 36px; border-radius: 999px; background: #cbd5e1; transition: background .18s ease; }
-    .field-switch-track::after { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 3px #0f172a30; content: ""; transition: transform .18s ease; }
-    .field-switch input:checked + .field-switch-track { background: #f97316; }
-    .field-switch input:checked + .field-switch-track::after { transform: translateX(16px); }
+    .field-switch-track { position: relative; display: block; width: 42px; height: 24px; flex: 0 0 42px; border: 1px solid #cbd5e1; border-radius: 999px; background: #cbd5e1; box-shadow: inset 0 1px 2px #0f172a18; transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+    .field-switch-track::after { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: white; box-shadow: 0 1px 4px #0f172a35; content: ""; transition: transform .2s cubic-bezier(.2,.75,.25,1); }
+    .field-switch input:checked + .field-switch-track { border-color: #ea580c; background: linear-gradient(110deg, #f97316, #ea580c); box-shadow: 0 0 0 3px #f973161f, 0 3px 9px #ea580c40; }
+    .field-switch input:checked + .field-switch-track::after { transform: translateX(18px); }
     .field-switch input:focus-visible + .field-switch-track { outline: 3px solid #f9731640; outline-offset: 2px; }
-    .field-switch-state { color: #64748b; font-size: 11px; font-weight: 600; }
+    .field-switch.is-checked .field-switch-state { color: #c2410c; }
+    .field-switch-state { color: #64748b; font-size: 11px; font-weight: 700; }
     .field-order-controls { display: flex; align-items: flex-end; gap: 6px; }
     .field-move { width: 38px; min-height: 38px; padding: 0; font-size: 18px; line-height: 1; }
     .field-move:disabled { cursor: not-allowed; }
     .field-delete { min-height: 38px; padding: 8px 11px; color: #b42318 !important; background: #fef3f2 !important; }
+    .role-permission-panel { margin: 18px 0; padding: 16px; border: 1px solid #e4e9f0; border-radius: 14px; background: #fbfcfe; }
+    .permission-matrix { margin: 14px 0; overflow-x: auto; }
+    .permission-matrix-row { display: grid; min-width: 470px; grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(80px, .42fr)); align-items: center; gap: 12px; padding: 9px 10px; border-bottom: 1px solid #edf0f4; }
+    .permission-matrix-head { color: #64748b; font-size: 11px; }
+    .permission-matrix-row > strong:first-child { color: #334155; font-size: 12px; }
+    .permission-matrix-cell { display: flex; justify-content: center; }
+    .permission-matrix-cell .field-toggle-setting { min-height: auto; align-items: center; gap: 2px; }
+    .permission-matrix-cell .field-control-caption { display: none; }
+    .permission-matrix-cell .field-switch { gap: 4px; }
+    .permission-matrix-cell .field-switch-state { min-width: 48px; font-size: 10px; }
+    .school-document-row { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
+    .school-document-row .wide { grid-column: 1 / -1; }
+    .school-document-upload { display: flex; align-items: end; gap: 8px; }
+    .school-document-upload input { min-width: 0; }
     [data-master-section][hidden] { display: none !important; }
     .review-item { margin-top: 12px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
     .review-controls { display: grid; grid-template-columns: minmax(150px,.8fr) minmax(180px,1fr); gap: 8px; margin-top: 8px; }
@@ -256,15 +275,15 @@
 
       <div class="admin-layout">
         <nav class="card sidebar" aria-label="Navigasi admin">
-          <button type="button" class="active" data-page-target="dashboard-page">
+          <button type="button" class="active" data-page-target="dashboard-page" data-permission-menu="dashboard">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
             <span>Dashboard</span>
           </button>
-          <button type="button" data-page-target="applications-page">
+          <button type="button" data-page-target="applications-page" data-permission-menu="applications">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><rect x="8" y="3" width="8" height="5" rx="2"/><path d="M8 13h8M8 17h5"/></svg>
             <span>Data Pendaftar</span>
           </button>
-          <div class="sidebar-master" data-admin-roles="owner">
+          <div class="sidebar-master" data-master-nav>
             <button id="master-nav-toggle" type="button" aria-expanded="false" aria-controls="master-submenu">
               <span class="sidebar-nav-label">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="9" cy="5" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="8" cy="19" r="2" fill="white"/></svg>
@@ -273,29 +292,33 @@
               <svg class="ui-icon master-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div id="master-submenu" class="sidebar-submenu" hidden>
-              <button type="button" data-page-target="master-page" data-master-anchor="form">
+              <button type="button" data-page-target="master-page" data-master-anchor="form" data-permission-menu="form">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 <span>Form Pendaftaran</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="waves">
+              <button type="button" data-page-target="master-page" data-master-anchor="waves" data-permission-menu="waves">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m-3 3h3"/></svg>
                 <span>Gelombang Pendaftaran</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="paths">
+              <button type="button" data-page-target="master-page" data-master-anchor="paths" data-permission-menu="paths">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3"/></svg>
                 <span>Jalur Pendaftaran</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="timeline">
+              <button type="button" data-page-target="master-page" data-master-anchor="timeline" data-permission-menu="timeline">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
                 <span>Timeline Beranda</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="payment">
+              <button type="button" data-page-target="master-page" data-master-anchor="payment" data-permission-menu="payment">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
                 <span>Metode Pembayaran Daftar Ulang</span>
               </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="documents" data-permission-menu="documents">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+                <span>Dokumen Sekolah</span>
+              </button>
             </div>
           </div>
-          <button type="button" data-page-target="accounts-page" data-admin-roles="owner">
+          <button type="button" data-page-target="accounts-page" data-permission-menu="accounts">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 11a3 3 0 1 0-1.2-5.8M18 14a5 5 0 0 1 3 4.6V20"/></svg>
             <span>Manajemen Akun</span>
           </button>
@@ -396,6 +419,12 @@
               <div id="document-list"></div>
               <button id="add-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen</button>
             </div>
+            <h2 class="wide" id="master-documents" data-master-section="documents">Dokumen Sekolah</h2>
+            <div class="wide master-group" data-master-section="documents">
+              <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
+              <div id="school-documents-list"></div>
+              <button id="add-school-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen Sekolah</button>
+            </div>
             <h2 class="wide" id="master-waves" data-master-section="waves">Gelombang Pendaftaran</h2>
             <div class="wide master-group" data-master-section="waves">
               <div id="wave-list"></div>
@@ -409,9 +438,9 @@
             <h2 class="wide" id="master-payment" data-master-section="payment">Metode Pembayaran Daftar Ulang</h2>
             <div class="wide master-group" data-master-section="payment">
               <div class="settings-grid">
-                <label><input id="bank-enabled" type="checkbox"> Aktifkan transfer bank</label>
-                <label><input id="qris-enabled" type="checkbox"> Aktifkan QRIS manual</label>
-                <label><input id="gateway-enabled" type="checkbox"> Tampilkan tautan payment gateway</label>
+                <label class="payment-check-control"><input id="bank-enabled" type="checkbox"> Aktifkan transfer bank</label>
+                <label class="payment-check-control"><input id="qris-enabled" type="checkbox"> Aktifkan QRIS manual</label>
+                <label class="payment-check-control"><input id="gateway-enabled" type="checkbox"> Tampilkan tautan payment gateway</label>
                 <div><label for="bank-name">Nama Bank</label><input id="bank-name" maxlength="80"></div>
                 <div><label for="bank-account-number">Nomor Rekening</label><input id="bank-account-number" maxlength="40"></div>
                 <div><label for="bank-account-name">Atas Nama</label><input id="bank-account-name" maxlength="100"></div>
@@ -429,9 +458,23 @@
 
       <section id="accounts-page" class="card section admin-page" hidden>
         <div class="section-heading">
-          <div><h2>Manajemen Akun</h2><p>Pemilik dapat membuat akun, mengubah peran, menonaktifkan akun, atau mengatur ulang password.</p></div>
+          <div><h2>Manajemen Akun</h2><p>Kelola akun admin dan hak akses menu berdasarkan role.</p></div>
           <button id="reload-users-button" class="secondary" type="button">Muat Ulang Akun</button>
         </div>
+        <section class="role-permission-panel" data-admin-roles="owner">
+          <div class="section-heading">
+            <div><h3>Hak Akses Role</h3><p>Pemilik selalu memiliki akses penuh. Atur hak Lihat, Edit, dan Hapus untuk Operator dan Viewer.</p></div>
+            <label for="permission-role">Role
+              <select id="permission-role"><option value="operator">Operator</option><option value="viewer">Viewer</option></select>
+            </label>
+          </div>
+          <div class="permission-matrix">
+            <div class="permission-matrix-row permission-matrix-head"><strong>Menu</strong><strong>Lihat</strong><strong>Edit</strong><strong>Hapus</strong></div>
+            <div id="role-permission-rows"></div>
+          </div>
+          <button id="save-role-permissions-button" type="button">Simpan Hak Akses</button>
+          <p id="role-permissions-status" class="status-line" role="status"></p>
+        </section>
         <form id="create-account-form">
           <div class="settings-grid">
             <div><label for="new-username">Username</label><input id="new-username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]+" autocomplete="off" required></div>
@@ -616,6 +659,7 @@
     let applicants = [];
     let editingRegistrationNumber = '';
     let currentUser = null;
+    let rolePermissionsConfig = null;
     let pendingProfileImage = '';
     let reviewingApplicant = null;
     let currentMonthly = [];
@@ -702,22 +746,60 @@
       element.classList.add('admin-enter');
     }
 
+    function canAdmin(menu, action) {
+      return Boolean(currentUser && currentUser.permissions && currentUser.permissions[menu] &&
+        currentUser.permissions[menu][action]);
+    }
+
+    function pagePermissionMenu(pageId, anchorId) {
+      if (pageId === 'dashboard-page') return 'dashboard';
+      if (pageId === 'applications-page') return 'applications';
+      if (pageId === 'accounts-page') return 'accounts';
+      if (pageId === 'master-page') return anchorId || 'form';
+      return '';
+    }
+
     function applyRolePermissions() {
       if (!currentUser) return;
       document.querySelectorAll('[data-admin-roles]').forEach(function (element) {
         const roles = element.dataset.adminRoles.split(',').map(function (role) { return role.trim(); });
         element.hidden = !roles.includes(currentUser.role);
       });
+      document.querySelectorAll('[data-permission-menu]').forEach(function (element) {
+        element.hidden = !canAdmin(element.dataset.permissionMenu, 'view');
+      });
+      document.querySelectorAll('[data-permission-action]').forEach(function (element) {
+        element.hidden = !canAdmin(element.dataset.permissionMenu || 'applications', element.dataset.permissionAction);
+      });
+      const masterMenus = ['form', 'waves', 'paths', 'timeline', 'payment', 'documents'];
+      const masterNav = document.querySelector('[data-master-nav]');
+      masterNav.hidden = !masterMenus.some(function (menu) { return canAdmin(menu, 'view'); });
       updateProfileUI();
-      if (currentUser.role === 'viewer') {
+      if (!canAdmin('applications', 'edit')) {
         document.getElementById('application-search').placeholder = 'Cari nama atau nomor pendaftaran';
       } else {
         document.getElementById('application-search').placeholder = 'Cari nama, nomor pendaftaran, NISN';
       }
-      if (currentUser.role === 'viewer' && !document.getElementById('dashboard-page').hidden) setAdminPage('dashboard-page');
+      const currentPage = document.querySelector('.admin-page:not([hidden])');
+      const activeMasterButton = document.querySelector('[data-page-target="master-page"].active');
+      const currentMenu = currentPage && pagePermissionMenu(currentPage.id,
+        currentPage.id === 'master-page' && activeMasterButton ? activeMasterButton.dataset.masterAnchor : '');
+      if (!currentMenu || !canAdmin(currentMenu, 'view')) {
+        const available = ['dashboard-page', 'applications-page'].find(function (pageId) {
+          return canAdmin(pagePermissionMenu(pageId), 'view');
+        });
+        if (available) setAdminPage(available);
+        else {
+          const masterMenu = masterMenus.find(function (menu) { return canAdmin(menu, 'view'); });
+          if (masterMenu) setAdminPage('master-page', masterMenu);
+          else if (canAdmin('accounts', 'view')) setAdminPage('accounts-page');
+        }
+      }
     }
 
     function setAdminPage(pageId, anchorId) {
+      const permissionMenu = pagePermissionMenu(pageId, anchorId);
+      if (!permissionMenu || !canAdmin(permissionMenu, 'view')) return;
       document.querySelectorAll('.admin-page').forEach(function (page) { page.hidden = page.id !== pageId; });
       document.querySelectorAll('[data-page-target]').forEach(function (button) {
         button.classList.toggle('active', button.dataset.pageTarget === pageId &&
@@ -726,8 +808,21 @@
       if (pageId === 'master-page') {
         const sectionKey = anchorId || 'form';
         document.querySelectorAll('[data-master-section]').forEach(function (section) {
-          section.hidden = section.dataset.masterSection !== sectionKey;
+          const isActiveSection = section.dataset.masterSection === sectionKey;
+          section.hidden = !isActiveSection;
+          section.querySelectorAll('input, select, textarea, button').forEach(function (control) {
+            const action = control.dataset.permissionAction;
+            const allowed = action
+              ? canAdmin(sectionKey, action)
+              : canAdmin(sectionKey, 'edit');
+            control.disabled = !allowed;
+            if (action) control.hidden = !allowed;
+          });
         });
+        const mayEdit = canAdmin(sectionKey, 'edit');
+        const saveSettingsButton = document.getElementById('save-settings-button');
+        saveSettingsButton.hidden = !mayEdit;
+        saveSettingsButton.disabled = !mayEdit;
         const activeSections = Array.from(document.querySelectorAll('[data-master-section="' + sectionKey + '"]'));
         activeSections.forEach(animateAdminElement);
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'true');
@@ -1063,7 +1158,6 @@
           type.appendChild(makeOption(value, value));
         });
         type.value = field.type;
-        type.disabled = !field.custom;
         const step = document.createElement('select');
         step.dataset.fieldStep = 'true';
         [['1', 'Tahap 1 · Pilihan'], ['2', 'Tahap 2 · Siswa'], ['3', 'Tahap 3 · Orang tua'], ['4', 'Tahap 4 · Lainnya']]
@@ -1124,7 +1218,7 @@
           makeLabeledControl('Pilihan', options),
           makeLabeledControl('Placeholder', placeholder),
           makeLabeledControl('Bantuan', helpText),
-          makeFieldToggle('Wajib', 'fieldRequired', field.required),
+          makeFieldToggle('Wajib', 'fieldRequired', field.required, 'Wajib', 'Opsional'),
           makeFieldToggle('Aktif', 'fieldActive', field.active),
           orderControls,
           remove
@@ -1134,7 +1228,9 @@
       updateFormFieldMoveButtons();
     }
 
-    function makeFieldToggle(labelText, dataKey, checked) {
+    function makeFieldToggle(labelText, dataKey, checked, checkedText, uncheckedText) {
+      checkedText = checkedText || 'Aktif';
+      uncheckedText = uncheckedText || 'Nonaktif';
       const group = document.createElement('div');
       group.className = 'field-toggle-setting';
       const label = document.createElement('span');
@@ -1146,15 +1242,18 @@
       input.type = 'checkbox';
       input.dataset[dataKey] = 'true';
       input.checked = Boolean(checked);
+      input.setAttribute('role', 'switch');
       input.setAttribute('aria-label', labelText);
       const track = document.createElement('span');
       track.className = 'field-switch-track';
       track.setAttribute('aria-hidden', 'true');
       const state = document.createElement('span');
       state.className = 'field-switch-state';
-      state.textContent = input.checked ? 'Aktif' : 'Nonaktif';
+      state.textContent = input.checked ? checkedText : uncheckedText;
+      toggle.classList.toggle('is-checked', input.checked);
       input.addEventListener('change', function () {
-        state.textContent = input.checked ? 'Aktif' : 'Nonaktif';
+        state.textContent = input.checked ? checkedText : uncheckedText;
+        toggle.classList.toggle('is-checked', input.checked);
       });
       toggle.append(input, track, state);
       group.append(label, toggle);
@@ -1213,14 +1312,6 @@
         extensions.dataset.documentExtensions = 'true';
         extensions.value = (documentConfig.extensions || []).join(', ');
         extensions.placeholder = 'pdf, jpg, png';
-        const required = document.createElement('input');
-        required.type = 'checkbox';
-        required.dataset.documentRequired = 'true';
-        required.checked = documentConfig.required;
-        const active = document.createElement('input');
-        active.type = 'checkbox';
-        active.dataset.documentActive = 'true';
-        active.checked = documentConfig.active;
         const remove = document.createElement('button');
         remove.className = 'secondary';
         remove.type = 'button';
@@ -1231,8 +1322,8 @@
           makeLabeledControl('Nama dokumen', name),
           makeLabeledControl('Maks. KB', maxKB),
           makeLabeledControl('Ekstensi', extensions),
-          makeLabeledControl('Wajib', required),
-          makeLabeledControl('Aktif', active),
+          makeFieldToggle('Wajib', 'documentRequired', documentConfig.required, 'Wajib', 'Opsional'),
+          makeFieldToggle('Aktif', 'documentActive', documentConfig.active),
           remove
         );
         list.appendChild(row);
@@ -1258,6 +1349,95 @@
       });
     }
 
+    function renderSchoolDocumentRows(documents) {
+      const list = document.getElementById('school-documents-list');
+      list.replaceChildren();
+      documents.forEach(function (documentConfig) {
+        const row = document.createElement('div');
+        row.className = 'master-row school-document-row';
+        row.dataset.schoolDocument = 'true';
+        const key = document.createElement('input');
+        key.dataset.schoolDocumentKey = 'true';
+        key.maxLength = 40;
+        key.required = true;
+        key.value = documentConfig.key;
+        const title = document.createElement('input');
+        title.dataset.schoolDocumentTitle = 'true';
+        title.maxLength = 100;
+        title.required = true;
+        title.value = documentConfig.title;
+        const description = document.createElement('input');
+        description.dataset.schoolDocumentDescription = 'true';
+        description.maxLength = 400;
+        description.value = documentConfig.description || '';
+        const url = document.createElement('input');
+        url.dataset.schoolDocumentUrl = 'true';
+        url.maxLength = 500;
+        url.required = true;
+        url.value = documentConfig.url || '';
+        url.placeholder = 'URL HTTPS atau /public-files/dokumen.pdf';
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'application/pdf,.pdf';
+        const upload = document.createElement('button');
+        upload.type = 'button';
+        upload.className = 'secondary';
+        upload.textContent = 'Unggah PDF';
+        upload.addEventListener('click', async function () {
+          const file = fileInput.files[0];
+          if (!file) return setStatus('settings-status', 'Pilih file PDF terlebih dahulu.', 'error');
+          if (file.type !== 'application/pdf' || file.size > 5 * 1024 * 1024) {
+            return setStatus('settings-status', 'Pilih dokumen PDF valid maksimal 5 MB.', 'error');
+          }
+          upload.disabled = true;
+          try {
+            const result = await api('/api/admin/documents/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ base64: await readFileBase64(file), contentType: file.type })
+            });
+            url.value = result.url;
+            fileInput.value = '';
+            setStatus('settings-status', 'PDF dokumen berhasil diunggah. Simpan pengaturan untuk menerbitkannya.', 'success');
+          } catch (error) {
+            setStatus('settings-status', error.message, 'error');
+          } finally {
+            upload.disabled = false;
+          }
+        });
+        const uploadGroup = document.createElement('div');
+        uploadGroup.className = 'school-document-upload';
+        uploadGroup.append(fileInput, upload);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'secondary field-delete';
+        remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.addEventListener('click', function () { row.remove(); });
+        row.append(
+          makeLabeledControl('Kunci (unik)', key),
+          makeLabeledControl('Nama dokumen', title),
+          makeLabeledControl('Deskripsi', description),
+          makeLabeledControl('Tautan dokumen', url),
+          makeLabeledControl('Unggah PDF (maks. 5 MB)', uploadGroup),
+          remove
+        );
+        list.appendChild(row);
+      });
+    }
+
+    function getSchoolDocumentRows() {
+      return Array.from(document.querySelectorAll('[data-school-document]')).map(function (row, index) {
+        return {
+          key: row.querySelector('[data-school-document-key]').value.trim(),
+          title: row.querySelector('[data-school-document-title]').value.trim(),
+          description: row.querySelector('[data-school-document-description]').value.trim(),
+          url: row.querySelector('[data-school-document-url]').value.trim(),
+          order: index + 1
+        };
+      });
+    }
+
     function showConfig(config) {
       siteConfig = config;
       document.getElementById('page-title').value = config.pageTitle;
@@ -1269,6 +1449,7 @@
       renderRegistrationPathsAdmin(config.registrationPaths || []);
       renderFormFieldRows(config.formFields || []);
       renderDocumentRows(config.documentRequirements || []);
+      renderSchoolDocumentRows(config.schoolDocuments || []);
       const payment = config.paymentSettings || {};
       document.getElementById('bank-enabled').checked = payment.bankEnabled !== false;
       document.getElementById('bank-name').value = payment.bankName || '';
@@ -1397,9 +1578,6 @@
             }),
             createIconAction('Cetak kartu', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
               printApplicantCard(applicant);
-            }),
-            createIconAction('Edit data pendaftar', '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>', function () {
-              openEditDialog(applicant);
             }),
             createIconAction('Atur ulang PIN', '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-3 3 3 3m-6 0 3 3"/>', async function (button) {
               if (!confirm('Buat PIN baru untuk ' + applicant.student_name + '? Sampaikan PIN tersebut secara langsung kepada siswa.')) return;
@@ -1829,13 +2007,14 @@
             registrationPaths: getRegistrationPathRows(),
             formFields: getFormFieldRows(),
             documentRequirements: getDocumentRows(),
+            schoolDocuments: getSchoolDocumentRows(),
             paymentSettings: {
               bankEnabled: document.getElementById('bank-enabled').checked,
               bankName: document.getElementById('bank-name').value.trim(),
               bankAccountNumber: document.getElementById('bank-account-number').value.trim(),
               bankAccountName: document.getElementById('bank-account-name').value.trim(),
               qrisEnabled: document.getElementById('qris-enabled').checked,
-              qrisImageUrl: siteConfig.paymentSettings.qrisImageUrl,
+              qrisImageUrl: siteConfig.paymentSettings ? siteConfig.paymentSettings.qrisImageUrl : '',
               gatewayEnabled: document.getElementById('gateway-enabled').checked,
               gatewayProvider: document.getElementById('gateway-provider').value.trim() || 'Qiospay',
               gatewayUrl: document.getElementById('gateway-url').value.trim(),
@@ -1957,6 +2136,18 @@
         order: documents.length + 1
       });
       renderDocumentRows(documents);
+    });
+    document.getElementById('add-school-document-button').addEventListener('click', function () {
+      const documents = getSchoolDocumentRows();
+      if (documents.length >= 50) return setStatus('settings-status', 'Maksimal 50 dokumen sekolah.', 'error');
+      documents.push({
+        key: 'schoolDoc' + Date.now(),
+        title: 'Dokumen Sekolah Baru',
+        description: '',
+        url: '',
+        order: documents.length + 1
+      });
+      renderSchoolDocumentRows(documents);
     });
 
     document.getElementById('edit-form').addEventListener('submit', async function (event) {

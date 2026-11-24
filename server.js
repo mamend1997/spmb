@@ -40,6 +40,10 @@ const initialConfig = {
   brochureImageUrl: '',
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
+  schoolDocuments: [
+    { key: 'offlineForm', title: 'Formulir Offline SPMB', description: 'Unduh formulir pendaftaran untuk diisi secara manual.', url: '/assets/spmb-formulir-offline.pdf', order: 1 },
+    { key: 'scholarshipInfo', title: 'Informasi Beasiswa', description: 'Informasi program beasiswa bagi calon peserta didik.', url: '/assets/informasi-beasiswa.pdf', order: 2 }
+  ],
   contactLabel: 'Contact Person SPMB',
   contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
   timelineEvents: [
@@ -334,6 +338,10 @@ function migrateApplicantStorage() {
 }
 
 migrateApplicantStorage();
+const applicantColumns = database.prepare('PRAGMA table_info(applicants)').all();
+if (!applicantColumns.some(function (column) { return column.name === 'archived_at'; })) {
+  database.exec("ALTER TABLE applicants ADD COLUMN archived_at TEXT NOT NULL DEFAULT ''");
+}
 database.exec(`
   CREATE TABLE IF NOT EXISTS portal_sessions (
     token_hash TEXT PRIMARY KEY,
@@ -378,6 +386,7 @@ function sanitizeConfig(input) {
     brochureImageUrl: String(input.brochureImageUrl || '').trim(),
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
+    schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
     timelineEvents: sanitizeTimelineEvents(input.timelineEvents),
     contactLabel: String(input.contactLabel || '').trim(),
     contactUrl: String(input.contactUrl || '').trim(),
@@ -596,6 +605,36 @@ function sanitizeDocumentRequirements(documents, waves, paths) {
   });
 }
 
+function sanitizeSchoolDocuments(documents, formPdfUrl, scholarshipPdfUrl) {
+  if (documents === undefined) {
+    documents = [
+      Object.assign({}, initialConfig.schoolDocuments[0], { url: String(formPdfUrl || initialConfig.formPdfUrl).trim() }),
+      Object.assign({}, initialConfig.schoolDocuments[1], { url: String(scholarshipPdfUrl || initialConfig.scholarshipPdfUrl).trim() })
+    ];
+  }
+  if (!Array.isArray(documents) || documents.length > 50) throw new Error('Maksimal 50 dokumen sekolah.');
+  const keys = new Set();
+  return documents.map(function (document, index) {
+    if (!document || typeof document !== 'object') throw new Error('Data dokumen sekolah tidak valid.');
+    const key = String(document.key || '').trim();
+    const title = String(document.title || '').trim();
+    const url = String(document.url || '').trim();
+    if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key) || keys.has(key)) {
+      throw new Error('Kunci dokumen sekolah tidak valid atau duplikat.');
+    }
+    if (title.length < 2 || title.length > 100) throw new Error('Judul dokumen harus terdiri dari 2–100 karakter.');
+    if (!isAllowedPublicUrl(url)) throw new Error('Tautan dokumen harus menggunakan HTTPS atau file publik situs.');
+    keys.add(key);
+    return {
+      key: key,
+      title: title,
+      description: String(document.description || '').trim().slice(0, 400),
+      url: url,
+      order: Number.isSafeInteger(Number(document.order)) && Number(document.order) > 0 ? Number(document.order) : index + 1
+    };
+  });
+}
+
 function sanitizePaymentSettings(settings) {
   if (settings === undefined) settings = initialConfig.paymentSettings;
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('Pengaturan pembayaran tidak valid.');
@@ -785,13 +824,127 @@ function validateAdminPassword(value) {
   return value;
 }
 
+const adminPermissionMenus = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'applications', label: 'Data Pendaftar' },
+  { key: 'form', label: 'Form Pendaftaran' },
+  { key: 'waves', label: 'Gelombang Pendaftaran' },
+  { key: 'paths', label: 'Jalur Pendaftaran' },
+  { key: 'timeline', label: 'Timeline Beranda' },
+  { key: 'payment', label: 'Metode Pembayaran' },
+  { key: 'documents', label: 'Dokumen Sekolah' },
+  { key: 'accounts', label: 'Manajemen Akun' }
+];
+
+function createEmptyRolePermissions() {
+  return adminPermissionMenus.reduce(function (permissions, menu) {
+    permissions[menu.key] = { view: false, edit: false, delete: false };
+    return permissions;
+  }, {});
+}
+
+function createOwnerPermissions() {
+  return adminPermissionMenus.reduce(function (permissions, menu) {
+    permissions[menu.key] = { view: true, edit: true, delete: true };
+    return permissions;
+  }, {});
+}
+
+function defaultRolePermissions() {
+  const operator = createEmptyRolePermissions();
+  operator.dashboard.view = true;
+  operator.applications = { view: true, edit: true, delete: false };
+  const viewer = createEmptyRolePermissions();
+  viewer.dashboard.view = true;
+  viewer.applications.view = true;
+  return { operator: operator, viewer: viewer };
+}
+
+const adminConfigPermissionGroups = {
+  form: ['pageTitle', 'academicYear', 'contactLabel', 'contactUrl', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  waves: ['registrationWaves'],
+  paths: ['registrationPaths'],
+  timeline: ['brochureImageUrl', 'timelineEvents'],
+  payment: ['paymentSettings'],
+  documents: ['schoolDocuments']
+};
+
+function sanitizeRolePermissions(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Pengaturan akses role tidak valid.');
+  }
+  const result = {};
+  ['operator', 'viewer'].forEach(function (role) {
+    const roleInput = input[role];
+    if (!roleInput || typeof roleInput !== 'object' || Array.isArray(roleInput)) {
+      throw new Error('Pengaturan akses ' + role + ' tidak valid.');
+    }
+    const permissions = {};
+    adminPermissionMenus.forEach(function (menu) {
+      const actions = roleInput[menu.key];
+      if (!actions || typeof actions !== 'object' || Array.isArray(actions) ||
+          ['view', 'edit', 'delete'].some(function (action) { return typeof actions[action] !== 'boolean'; })) {
+        throw new Error('Hak akses ' + menu.label + ' pada role ' + role + ' tidak valid.');
+      }
+      if ((actions.edit || actions.delete) && !actions.view) {
+        throw new Error('Akses edit atau hapus harus disertai akses lihat.');
+      }
+      if (actions.delete && !actions.edit) {
+        throw new Error('Akses hapus harus disertai akses edit.');
+      }
+      permissions[menu.key] = { view: actions.view, edit: actions.edit, delete: actions.delete };
+    });
+    result[role] = permissions;
+  });
+  return result;
+}
+
+function getStoredRolePermissions() {
+  const row = database.prepare("SELECT value FROM settings WHERE key = 'adminRolePermissions'").get();
+  if (!row) return defaultRolePermissions();
+  return sanitizeRolePermissions(JSON.parse(row.value));
+}
+
+function getAdminPermissions(role) {
+  if (role === 'owner') return createOwnerPermissions();
+  const roles = getStoredRolePermissions();
+  return roles[role] || createEmptyRolePermissions();
+}
+
+function getScopedAdminConfig(config, role) {
+  const permissions = getAdminPermissions(role);
+  const scopedConfig = {};
+  Object.keys(adminConfigPermissionGroups).forEach(function (menu) {
+    if (!permissions[menu].view) return;
+    adminConfigPermissionGroups[menu].forEach(function (key) { scopedConfig[key] = config[key]; });
+  });
+  return scopedConfig;
+}
+
+function hasAdminPermission(user, menu, action) {
+  if (!user || !adminPermissionMenus.some(function (item) { return item.key === menu; }) ||
+      !['view', 'edit', 'delete'].includes(action)) return false;
+  return getAdminPermissions(user.role)[menu][action];
+}
+
+function permissionsAreSubset(candidateRole, actorRole) {
+  const candidate = getAdminPermissions(candidateRole);
+  const actor = getAdminPermissions(actorRole);
+  return adminPermissionMenus.every(function (menu) {
+    return ['view', 'edit', 'delete'].every(function (action) {
+      return !candidate[menu.key][action] || actor[menu.key][action];
+    });
+  });
+}
+
 function publicAdminUser(user) {
   return {
     id: user.id,
     username: user.username,
     displayName: user.display_name,
     role: user.role,
-    profileImage: user.profile_image || ''
+    profileImage: user.profile_image || '',
+    permissions: getAdminPermissions(user.role)
   };
 }
 
@@ -883,7 +1036,11 @@ function requirePortal(request, response, next) {
     return response.status(401).json({ message: 'Sesi portal berakhir. Silakan masuk kembali.' });
   }
   request.portalApplicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(session.applicant_id);
-  if (!request.portalApplicant) return response.status(401).json({ message: 'Data pendaftar tidak ditemukan.' });
+  if (!request.portalApplicant || request.portalApplicant.archived_at) {
+    database.prepare('DELETE FROM portal_sessions WHERE token_hash = ?').run(tokenHash);
+    setPortalCookie(request, response, '', 0);
+    return response.status(401).json({ message: 'Data pendaftar tidak ditemukan.' });
+  }
   next();
 }
 
@@ -897,7 +1054,24 @@ function requireRoles(roles) {
 }
 
 const requireOwner = requireRoles(['owner']);
-const requireOperator = requireRoles(['owner', 'operator']);
+
+function requirePermission(menu, action) {
+  return function (request, response, next) {
+    if (!hasAdminPermission(request.adminUser, menu, action)) {
+      return response.status(403).json({ message: 'Akun Anda tidak memiliki izin ' + action + ' pada menu ini.' });
+    }
+    next();
+  };
+}
+
+function requireAnyPermission(pairs) {
+  return function (request, response, next) {
+    if (!pairs.some(function (pair) { return hasAdminPermission(request.adminUser, pair[0], pair[1]); })) {
+      return response.status(403).json({ message: 'Akun Anda tidak memiliki izin untuk membuka data ini.' });
+    }
+    next();
+  };
+}
 
 function setAdminCookie(request, response, token, maxAge) {
   const secure = request.secure ? '; Secure' : '';
@@ -1354,7 +1528,7 @@ app.post('/api/portal/login', function (request, response) {
   }
   const applicant = getApplicantByRegistration(registrationNumber);
   let validPin = false;
-  if (applicant) {
+  if (applicant && !applicant.archived_at) {
     const storedHash = Buffer.from(applicant.portal_pin_hash, 'hex');
     const suppliedHash = Buffer.from(makePinHash(pin, applicant.portal_pin_salt), 'hex');
     validPin = storedHash.length === suppliedHash.length && crypto.timingSafeEqual(storedHash, suppliedHash);
@@ -1647,7 +1821,24 @@ app.post('/api/admin/change-password', requireAdmin, function (request, response
   }
 });
 
-app.get('/api/admin/users', requireAdmin, requireOwner, function (request, response) {
+app.get('/api/admin/role-permissions', requireAdmin, requireOwner, function (request, response) {
+  response.json({ menus: adminPermissionMenus, roles: getStoredRolePermissions() });
+});
+
+app.put('/api/admin/role-permissions', requireAdmin, requireOwner, function (request, response) {
+  try {
+    const permissions = sanitizeRolePermissions(request.body && request.body.roles);
+    database.prepare(`
+      INSERT INTO settings (key, value) VALUES ('adminRolePermissions', ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run(JSON.stringify(permissions));
+    response.json({ status: 'success', roles: permissions });
+  } catch (error) {
+    response.status(400).json({ message: error.message || 'Pengaturan akses role gagal disimpan.' });
+  }
+});
+
+app.get('/api/admin/users', requireAdmin, requirePermission('accounts', 'view'), function (request, response) {
   const users = database.prepare(`
     SELECT id, username, display_name, role, is_active, created_at
     FROM admin_users ORDER BY id
@@ -1664,13 +1855,17 @@ app.get('/api/admin/users', requireAdmin, requireOwner, function (request, respo
   response.json({ users: users });
 });
 
-app.post('/api/admin/users', requireAdmin, requireOwner, function (request, response) {
+app.post('/api/admin/users', requireAdmin, requirePermission('accounts', 'edit'), function (request, response) {
   try {
     const body = request.body || {};
     const username = normalizeAdminUsername(body.username);
     const displayName = cleanText(body.displayName, 'nama akun', 80);
     const password = validateAdminPassword(body.password);
     if (!['owner', 'operator', 'viewer'].includes(body.role)) throw new Error('Peran akun tidak valid.');
+    if (request.adminUser.role !== 'owner' &&
+        (body.role === 'owner' || !permissionsAreSubset(body.role, request.adminUser.role))) {
+      return response.status(403).json({ message: 'Akun ini tidak dapat membuat role dengan akses lebih tinggi.' });
+    }
     const passwordHash = hashPassword(password);
     const now = new Date().toISOString();
     const result = database.prepare(`
@@ -1686,7 +1881,7 @@ app.post('/api/admin/users', requireAdmin, requireOwner, function (request, resp
   }
 });
 
-app.patch('/api/admin/users/:id', requireAdmin, requireOwner, function (request, response) {
+app.patch('/api/admin/users/:id', requireAdmin, requirePermission('accounts', 'edit'), function (request, response) {
   const id = Number(request.params.id);
   const body = request.body || {};
   const existing = Number.isSafeInteger(id) && id > 0
@@ -1696,6 +1891,14 @@ app.patch('/api/admin/users/:id', requireAdmin, requireOwner, function (request,
   if (typeof body.displayName !== 'string' || !['owner', 'operator', 'viewer'].includes(body.role) ||
       typeof body.isActive !== 'boolean') {
     return response.status(400).json({ message: 'Nama, peran, atau status akun tidak valid.' });
+  }
+  if (request.adminUser.role !== 'owner' &&
+      (existing.role === 'owner' ||
+       (body.role !== existing.role && (body.role === 'owner' || !permissionsAreSubset(body.role, request.adminUser.role))))) {
+    return response.status(403).json({ message: 'Akun ini tidak dapat memberikan role dengan akses lebih tinggi.' });
+  }
+  if (existing.is_active && !body.isActive && !hasAdminPermission(request.adminUser, 'accounts', 'delete')) {
+    return response.status(403).json({ message: 'Akun Anda tidak memiliki izin menonaktifkan akun.' });
   }
   let displayName;
   try {
@@ -1718,12 +1921,15 @@ app.patch('/api/admin/users/:id', requireAdmin, requireOwner, function (request,
   response.json({ status: 'success' });
 });
 
-app.post('/api/admin/users/:id/reset-password', requireAdmin, requireOwner, function (request, response) {
+app.post('/api/admin/users/:id/reset-password', requireAdmin, requirePermission('accounts', 'edit'), function (request, response) {
   const id = Number(request.params.id);
   const user = Number.isSafeInteger(id) && id > 0
-    ? database.prepare('SELECT id FROM admin_users WHERE id = ?').get(id)
+    ? database.prepare('SELECT id, role FROM admin_users WHERE id = ?').get(id)
     : null;
   if (!user) return response.status(404).json({ message: 'Akun tidak ditemukan.' });
+  if (request.adminUser.role !== 'owner' && user.role === 'owner') {
+    return response.status(403).json({ message: 'Akun ini tidak dapat mengatur password Pemilik.' });
+  }
   if (user.id === request.adminUser.id) {
     return response.status(400).json({ message: 'Gunakan fitur Ganti Password untuk mengubah password akun sendiri.' });
   }
@@ -1746,32 +1952,71 @@ app.post('/api/admin/logout', requireAdmin, function (request, response) {
   response.json({ status: 'success' });
 });
 
-app.get('/api/admin/config', requireAdmin, requireOwner, function (request, response) {
-  response.json(getConfig());
+app.get('/api/admin/config', requireAdmin, function (request, response) {
+  const permissions = getAdminPermissions(request.adminUser.role);
+  const canView = Object.keys(adminConfigPermissionGroups)
+    .some(function (menu) { return permissions[menu].view; });
+  if (!canView) return response.status(403).json({ message: 'Akun Anda tidak memiliki izin melihat Master Data.' });
+  response.json(getScopedAdminConfig(getConfig(), request.adminUser.role));
 });
 
-app.put('/api/admin/config', requireAdmin, requireOwner, function (request, response) {
+app.put('/api/admin/config', requireAdmin, function (request, response) {
   try {
-    const config = sanitizeConfig(request.body);
+    const body = request.body || {};
+    const permissions = getAdminPermissions(request.adminUser.role);
+    const previous = getConfig();
+    const merged = Object.assign({}, previous);
+    let canEdit = false;
+    Object.keys(adminConfigPermissionGroups).forEach(function (menu) {
+      if (!permissions[menu].edit) return;
+      canEdit = true;
+      adminConfigPermissionGroups[menu].forEach(function (key) {
+        if (Object.prototype.hasOwnProperty.call(body, key)) merged[key] = body[key];
+      });
+    });
+    if (!canEdit) return response.status(403).json({ message: 'Akun Anda tidak memiliki izin mengubah Master Data.' });
+    const config = sanitizeConfig(merged);
+    const deletions = {
+      form: [['formFields', 'key'], ['documentRequirements', 'key']],
+      waves: [['registrationWaves', 'name']],
+      paths: [['registrationPaths', 'name']],
+      timeline: [['timelineEvents', 'title']],
+      documents: [['schoolDocuments', 'key']]
+    };
+    Object.keys(deletions).forEach(function (menu) {
+      if (!permissions[menu].edit) return;
+      const removed = deletions[menu].some(function (entry) {
+        const key = entry[0];
+        const identity = entry[1];
+        const nextValues = new Set((config[key] || []).map(function (item) { return item[identity]; }));
+        return (previous[key] || []).some(function (item) { return !nextValues.has(item[identity]); });
+      });
+      if (removed && !permissions[menu].delete) {
+        throw new Error('Akun Anda tidak memiliki izin menghapus data pada menu ini.');
+      }
+    });
     database.prepare(`
       INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `).run(JSON.stringify(config));
-    response.json(config);
+    response.json(getScopedAdminConfig(config, request.adminUser.role));
   } catch (error) {
     response.status(400).json({ message: error.message || 'Pengaturan gagal disimpan.' });
   }
 });
 
-app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (request, response) {
+app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
   const assetTypes = {
-    formPdf: { key: 'formPdfUrl', fileName: 'formulir-offline.pdf' },
-    scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf' },
-    paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024 },
-    brochureImage: { key: 'brochureImageUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb' }
+    formPdf: { key: 'formPdfUrl', fileName: 'formulir-offline.pdf', permission: 'form' },
+    scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf', permission: 'form' },
+    paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024, permission: 'payment' },
+    brochureImage: { key: 'brochureImageUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb', permission: 'timeline' }
   };
   const asset = assetTypes[request.params.type];
   if (!asset) return response.status(400).json({ message: 'Jenis file tidak dikenali.' });
+  if (!hasAdminPermission(request.adminUser, asset.permission, 'edit')) {
+    return response.status(403).json({ message: 'Akun Anda tidak memiliki izin mengubah file pada menu ini.' });
+  }
   try {
     const base64 = String(request.body && request.body.base64 || '');
     const contentType = String(request.body && request.body.contentType || '').toLowerCase();
@@ -1798,21 +2043,56 @@ app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (reques
     const config = getConfig();
     if (asset.section) config[asset.section][asset.key] = '/public-files/' + fileName;
     else config[asset.key] = '/public-files/' + fileName;
+    const schoolDocumentKey = request.params.type === 'formPdf' ? 'offlineForm'
+      : request.params.type === 'scholarshipPdf' ? 'scholarshipInfo' : '';
+    if (schoolDocumentKey) {
+      const schoolDocument = config.schoolDocuments.find(function (item) { return item.key === schoolDocumentKey; });
+      if (schoolDocument) schoolDocument.url = '/public-files/' + fileName;
+    }
     const safeConfig = sanitizeConfig(config);
     database.prepare(`
       INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `).run(JSON.stringify(safeConfig));
-    response.json(safeConfig);
+    response.json(getScopedAdminConfig(safeConfig, request.adminUser.role));
   } catch (error) {
     response.status(400).json({ message: error.message || 'File gagal diunggah.' });
   }
 });
 
-app.get('/api/admin/applications', requireAdmin, function (request, response) {
-  const isViewer = request.adminUser.role === 'viewer';
+app.post('/api/admin/documents/upload', requireAdmin, requirePermission('documents', 'edit'), function (request, response) {
+  try {
+    const base64 = String(request.body && request.body.base64 || '');
+    const contentType = String(request.body && request.body.contentType || '').toLowerCase();
+    const maxBytes = 5 * 1024 * 1024;
+    if (contentType !== 'application/pdf' || !base64 || base64.length > Math.ceil(maxBytes * 4 / 3) + 8 ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
+      throw new Error('Pilih dokumen PDF valid maksimal 5 MB.');
+    }
+    const bytes = Buffer.from(base64, 'base64');
+    if (bytes.length < 5 || bytes.length > maxBytes || bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      throw new Error('File yang dipilih bukan PDF valid atau melebihi 5 MB.');
+    }
+    const fileName = 'dokumen-sekolah-' + crypto.randomBytes(10).toString('hex') + '.pdf';
+    fs.writeFileSync(path.join(publicFileDirectory, fileName), bytes, { mode: 0o644, flag: 'wx' });
+    response.json({ url: '/public-files/' + fileName });
+  } catch (error) {
+    response.status(400).json({ message: error.message || 'Dokumen gagal diunggah.' });
+  }
+});
+
+app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboard', 'view'], ['applications', 'view']]), function (request, response) {
+  const permissions = getAdminPermissions(request.adminUser.role);
+  const canViewApplications = permissions.applications.view;
+  const archived = request.query.archived === 'true';
+  if (archived && !canViewApplications) {
+    return response.status(403).json({ message: 'Akun Anda tidak memiliki izin melihat arsip pendaftar.' });
+  }
+  const isViewer = !permissions.applications.edit;
   const config = getConfig();
-  const applicants = database.prepare('SELECT * FROM applicants ORDER BY id DESC LIMIT 500').all();
+  const applicants = canViewApplications
+    ? database.prepare("SELECT * FROM applicants WHERE archived_at " + (archived ? "!= ''" : "= ''") + ' ORDER BY id DESC LIMIT 500').all()
+    : [];
   const getFiles = database.prepare('SELECT field_key, original_name, file_size FROM uploaded_files WHERE applicant_id = ?');
   const results = applicants.map(function (applicant) {
     const result = {
@@ -1892,12 +2172,13 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
       SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
     FROM applicants
+    WHERE archived_at = ''
   `).get();
   const academicStart = Number(config.academicYear.slice(0, 4));
   const monthly = database.prepare(`
     SELECT substr(created_at, 1, 7) AS month, COUNT(*) AS count
     FROM applicants
-    WHERE created_at >= ? AND created_at < ?
+    WHERE archived_at = '' AND created_at >= ? AND created_at < ?
     GROUP BY substr(created_at, 1, 7)
     ORDER BY month
   `).all(academicStart + '-07-01T00:00:00.000Z', (academicStart + 1) + '-07-01T00:00:00.000Z');
@@ -1906,6 +2187,8 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
     totals: totals,
     monthly: monthly,
     academicYear: config.academicYear,
+    archived: archived,
+    canViewApplications: canViewApplications,
     reviewConfig: isViewer ? null : {
       formFields: config.formFields,
       documentRequirements: config.documentRequirements,
@@ -1915,7 +2198,33 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
   });
 });
 
-app.put('/api/admin/applications/:registrationNumber', requireAdmin, requireOperator, function (request, response) {
+app.delete('/api/admin/applications/:registrationNumber', requireAdmin, requirePermission('applications', 'delete'), function (request, response) {
+  const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
+  const applicant = getApplicantByRegistration(registrationNumber);
+  if (!applicant || applicant.archived_at) {
+    return response.status(404).json({ message: 'Pendaftar aktif tidak ditemukan.' });
+  }
+  const archivedAt = new Date().toISOString();
+  withTransaction(function () {
+    database.prepare("UPDATE applicants SET archived_at = ? WHERE id = ? AND archived_at = ''")
+      .run(archivedAt, applicant.id);
+    database.prepare('DELETE FROM portal_sessions WHERE applicant_id = ?').run(applicant.id);
+    database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(registrationNumber);
+  });
+  response.json({ status: 'success', archivedAt: archivedAt });
+});
+
+app.post('/api/admin/applications/:registrationNumber/restore', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
+  const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
+  const applicant = getApplicantByRegistration(registrationNumber);
+  if (!applicant || !applicant.archived_at) {
+    return response.status(404).json({ message: 'Pendaftar arsip tidak ditemukan.' });
+  }
+  database.prepare("UPDATE applicants SET archived_at = '' WHERE id = ? AND archived_at <> ''").run(applicant.id);
+  response.json({ status: 'success' });
+});
+
+app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const existing = getApplicantByRegistration(registrationNumber);
   if (!existing) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
@@ -2106,8 +2415,8 @@ function createApplicantWorkbook(rows) {
   ]);
 }
 
-app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (request, response) {
-  const rows = database.prepare('SELECT * FROM applicants ORDER BY id').all();
+app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
+  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' ORDER BY id").all();
   function csvCell(value) {
     const text = String(value == null ? '' : value);
     const safeText = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? "'" + text : text;
@@ -2122,8 +2431,8 @@ app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (reques
   response.send(csv);
 });
 
-app.get('/api/admin/export.xlsx', requireAdmin, requireOperator, function (request, response) {
-  const rows = database.prepare('SELECT * FROM applicants ORDER BY id').all();
+app.get('/api/admin/export.xlsx', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
+  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' ORDER BY id").all();
   const workbook = createApplicantWorkbook(rows);
   response.setHeader('Content-Disposition', 'attachment; filename="rekap-pendaftar-spmb.xlsx"');
   response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2131,7 +2440,7 @@ app.get('/api/admin/export.xlsx', requireAdmin, requireOperator, function (reque
   response.send(workbook);
 });
 
-app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, requireOperator, function (request, response) {
+app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
   const key = request.params.key;
   if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key)) return response.status(404).end();
   const applicant = getApplicantByRegistration(request.params.registrationNumber);
@@ -2150,7 +2459,7 @@ app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, 
   response.sendFile(filePath);
 });
 
-app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requireOperator, function (request, response) {
+app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const statuses = request.body || {};
   const applicant = getApplicantByRegistration(registrationNumber);
@@ -2186,7 +2495,7 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requireOp
   response.json({ status: 'success' });
 });
 
-app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, requireOperator, function (request, response) {
+app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const applicant = getApplicantByRegistration(registrationNumber);
   if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
@@ -2233,7 +2542,7 @@ app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, r
   response.json({ status: 'success', documentStatus: documentStatus });
 });
 
-app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, requireOperator, function (request, response) {
+app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const applicant = getApplicantByRegistration(String(request.params.registrationNumber || '').toUpperCase());
   if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
@@ -2261,7 +2570,7 @@ app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, r
   response.json({ status: 'success', paymentStatus: paymentStatus, reenrollmentStatus: reenrollmentStatus });
 });
 
-app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, requireOperator, function (request, response) {
+app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const applicant = getApplicantByRegistration(String(request.params.registrationNumber || '').toUpperCase());
   if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
   const pin = String(crypto.randomInt(100000, 1000000));
@@ -2272,7 +2581,7 @@ app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, 
   response.json({ registrationNumber: applicant.registration_number, pin: pin });
 });
 
-app.get('/api/admin/sync-status', requireAdmin, function (request, response) {
+app.get('/api/admin/sync-status', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
   const pending = database.prepare(`
     SELECT COUNT(*) AS count FROM sheet_sync_queue WHERE synced_at IS NULL
   `).get().count;
@@ -2286,7 +2595,7 @@ app.get('/api/admin/sync-status', requireAdmin, function (request, response) {
   });
 });
 
-app.post('/api/admin/sync-retry', requireAdmin, requireOperator, function (request, response) {
+app.post('/api/admin/sync-retry', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   database.prepare('UPDATE sheet_sync_queue SET next_attempt_at = ? WHERE synced_at IS NULL')
     .run(new Date().toISOString());
   setImmediate(syncQueuedApplications);
@@ -2317,6 +2626,9 @@ app.get('/', function (request, response) {
 });
 app.get('/pendaftaran', function (request, response) {
   response.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/dokumen', function (request, response) {
+  response.sendFile(path.join(__dirname, 'documents.html'));
 });
 app.get(['/portal', '/portal.html'], function (request, response) {
   response.sendFile(path.join(__dirname, 'portal.html'));

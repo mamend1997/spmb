@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f9fa">
+  <title>Dokumen Sekolah | SMK PGRI Cikoneng</title>
+  <link rel="icon" type="image/png" href="/assets/logo-pgri-cikoneng.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125">
+  <style>
+    body { font-family: "Plus Jakarta Sans", Arial, sans-serif; }
+    .documents-main { width: min(100% - 32px, 1120px); margin: 0 auto; padding: 48px 0 64px; }
+    .documents-heading { margin-bottom: 24px; }
+    .documents-heading p { max-width: 650px; margin: 10px 0 0; color: #64748b; font-size: 14px; line-height: 1.7; }
+    .document-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 16px; }
+    .document-card { display: flex; min-height: 190px; flex-direction: column; padding: 22px; border: 1px solid #e4e9f0; border-top: 3px solid #f97316; border-radius: 18px; background: white; box-shadow: 0 10px 32px #16243a0a; }
+    .document-card h2 { margin: 0; color: #172554; font-size: 17px; }
+    .document-card p { margin: 9px 0 18px; color: #64748b; font-size: 13px; line-height: 1.65; }
+    .document-card a { display: inline-flex; width: fit-content; align-items: center; gap: 8px; margin-top: auto; padding: 10px 15px; border-radius: 999px; color: white; background: linear-gradient(110deg, #f97316, #ea580c); font-size: 12px; font-weight: 800; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease; }
+    .document-card a:hover { transform: scale(1.03); box-shadow: 0 7px 18px #ea580c38; }
+    .document-card svg { width: 17px; height: 17px; }
+    .document-status { padding: 22px; border: 1px dashed #cbd5e1; border-radius: 16px; color: #64748b; background: white; }
+    @media (max-width: 640px) { .documents-main { padding-top: 30px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header id="site-header" class="site-header">
+    <div class="site-header-inner">
+      <a href="/" class="site-brand" aria-label="SMK PGRI Cikoneng - Beranda">
+        <img src="/assets/logo-pgri-cikoneng.png" alt="" width="44" height="44">
+        <span>SMK PGRI <small>Cikoneng</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Navigasi utama">
+        <a href="/">Beranda</a>
+        <a href="/portal">Login Siswa</a>
+        <a href="/pendaftaran">Pendaftaran</a>
+      </nav>
+    </div>
+  </header>
+  <main class="documents-main">
+    <div class="documents-heading">
+      <span class="hero-eyebrow">PUSAT INFORMASI</span>
+      <h1>Dokumen Sekolah</h1>
+      <p>Unduh formulir, informasi beasiswa, dan dokumen resmi lain yang disediakan oleh SMK PGRI Cikoneng.</p>
+    </div>
+    <div id="document-status" class="document-status" role="status">Memuat daftar dokumen...</div>
+    <div id="document-list" class="document-grid" aria-live="polite"></div>
+  </main>
+  <script>
+    async function loadSchoolDocuments() {
+      const status = document.getElementById('document-status');
+      const list = document.getElementById('document-list');
+      try {
+        const response = await fetch('/api/public-config', { headers: { Accept: 'application/json' } });
+        const config = await response.json();
+        if (!response.ok) throw new Error(config.message || 'Daftar dokumen tidak dapat dimuat.');
+        const documents = Array.isArray(config.schoolDocuments) ? config.schoolDocuments : [];
+        list.replaceChildren();
+        if (!documents.length) {
+          status.textContent = 'Belum ada dokumen yang dipublikasikan.';
+          status.hidden = false;
+          return;
+        }
+        documents.slice().sort(function (a, b) { return Number(a.order) - Number(b.order); }).forEach(function (documentInfo) {
+          const card = document.createElement('article');
+          card.className = 'document-card';
+          const title = document.createElement('h2');
+          title.textContent = documentInfo.title;
+          const description = document.createElement('p');
+          description.textContent = documentInfo.description || 'Dokumen resmi dari SMK PGRI Cikoneng.';
+          const link = document.createElement('a');
+          link.href = documentInfo.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg><span>Buka / Unduh</span>';
+          card.append(title, description, link);
+          list.appendChild(card);
+        });
+        status.hidden = true;
+      } catch (error) {
+        status.textContent = error.message || 'Daftar dokumen gagal dimuat.';
+        status.hidden = false;
+      }
+    }
+    loadSchoolDocuments();
+  </script>
+</body>
+</html>
