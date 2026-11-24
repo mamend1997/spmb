@@ -13,6 +13,7 @@
 html { scroll-behavior: smooth; }
 
 body {
+  margin: 0;
   min-height: 100vh;
   color: var(--spmb-ink);
   background-color: #f6f7fb !important;
