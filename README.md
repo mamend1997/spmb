@@ -1,50 +1,55 @@
 # SPMB SMK PGRI Cikoneng 2027/2028
 
-Landing page formulir pendaftaran responsif menggunakan HTML, Tailwind CSS CDN, dan Vanilla JavaScript. Data dikirim ke Google Sheets melalui Google Apps Script Web App. Situs dapat dideploy sebagai website statis di Vercel; server Node.js bawaan juga tersedia untuk menjalankan pratinjau lokal.
-
-Tombol **Formulir Offline (Print)** dan **Informasi Beasiswa** membuka PDF terkait di tab baru agar dapat dicetak atau disimpan dari penampil PDF browser.
+Aplikasi pendaftaran SPMB dengan formulir empat tahap, portal siswa, kartu peserta, dan portal admin. Railway menjalankan aplikasi Node.js; SQLite di Persistent Volume Railway menjadi penyimpanan utama. Data pendaftar disalin satu arah ke Google Sheets melalui Google Apps Script. Jika sinkronisasi gagal, pendaftaran tetap tersimpan di SQLite dan akan dicoba kembali.
 
 ## Menjalankan lokal
 
-Gunakan Node.js 18 atau lebih baru:
+Gunakan Node.js 22.13 atau lebih baru. Aplikasi memakai modul SQLite bawaan Node.js, jadi tidak membutuhkan proses kompilasi native.
 
 ```sh
+npm install
 npm start
 ```
 
-Buka `http://localhost:3000`.
+Buka `http://localhost:3000`. Jika ingin menguji portal admin, set environment variable `ADMIN_TOKEN` dengan token acak minimal 32 karakter sebelum menjalankan server.
 
-## Deploy ke Vercel melalui GitHub
+## Deploy ke Railway
 
-1. Push repository ini ke GitHub.
-2. Di Vercel, pilih **Add New → Project**, impor repository `mamend1997/spmb`, lalu pilih **Deploy**.
-3. Vercel dapat menyajikan `index.html` sebagai situs statis; tidak perlu build command atau konfigurasi output directory.
-4. Setelah Apps Script dideploy, ganti nilai `APPS_SCRIPT_URL` di `index.html` dengan URL Web App `/exec`. Setelah setiap perubahan kode di GitHub, Vercel akan membuat deployment baru secara otomatis.
-5. Untuk pratinjau lokal, `npm start` menjalankan server di `http://localhost:3000`.
+1. Push proyek ke GitHub dan buat project Railway dari repository tersebut.
+2. Tambahkan **Persistent Volume** ke service aplikasi dan mount pada `/data`. SQLite dan file unggahan perlu berada pada volume persisten; jangan jalankan beberapa replica aplikasi yang memakai file SQLite yang sama.
+3. Tambahkan environment variables pada service:
 
-Google Apps Script dideploy terpisah sebagai Web App mengikuti langkah berikut.
+   | Variable | Nilai |
+   | --- | --- |
+   | `ADMIN_TOKEN` | Token rahasia acak minimal 32 karakter untuk masuk portal admin |
+   | `DATABASE_PATH` | `/data/spmb.sqlite` |
+   | `STORAGE_DIR` | `/data` |
+   | `APPS_SCRIPT_SYNC_URL` | URL deployment Apps Script yang berakhiran `/exec` |
+   | `SHEET_SYNC_TOKEN` | Token acak minimal 32 karakter; harus sama dengan Script Property Apps Script |
 
-## Menyiapkan Google Sheets dan Apps Script
+4. Railway menggunakan perintah start `npm start` dan mengambil versi Node dari `package.json` (`>=22.13`).
+5. Setelah deploy, portal admin ada di `/admin` dan portal siswa di `/portal` pada domain Railway Anda.
 
-1. Buat Google Spreadsheet baru untuk menyimpan pendaftaran.
-2. Dari spreadsheet, buka **Extensions → Apps Script**. Ganti isi `Code.gs` dengan kode dari proyek ini dan tambahkan file HTML bernama `Admin` dari isi `Admin.html`.
-3. Di **Project Settings → Script Properties**, tambahkan `ADMIN_TOKEN` dengan token acak minimal 32 karakter. Token ini menjadi kata sandi admin; simpan dengan aman dan jangan commit ke GitHub.
-4. Simpan project, pilih **Deploy → New deployment → Web app**, set **Execute as: Me** dan **Who has access: Anyone**, lalu tekan **Deploy** dan berikan izin akses Google Sheets dan Google Drive.
-5. Salin URL Web App yang berakhiran `/exec`. Di `index.html`, ganti nilai `APPS_SCRIPT_URL` dengan URL tersebut:
+Gunakan token berbeda untuk `ADMIN_TOKEN` dan `SHEET_SYNC_TOKEN`. Jangan memasukkan token rahasia ke GitHub, kode frontend, atau spreadsheet. Unggahan identitas pendaftar disimpan privat pada volume Railway dan tidak disinkronkan ke Google Sheets.
 
-   ```js
-   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/ID_DEPLOYMENT/exec';
-   ```
+## Menghubungkan Google Sheets
 
-6. Buka `https://script.google.com/macros/s/ID_DEPLOYMENT/exec?admin=1` untuk masuk ke panel admin. Gunakan token `ADMIN_TOKEN` untuk mengubah judul, tahun ajaran, file PDF, dan tautan Contact Person.
-7. Saat PDF diunggah, Apps Script membuat folder file publik di Google Drive dan mengatur akses **Anyone with the link — Viewer**. Unggah hanya dokumen yang memang boleh dipublikasikan.
-8. Saat pengiriman pertama, Apps Script otomatis membuat tab `Pendaftaran SPMB` dan header termasuk `Timestamp` serta `Nomor Pendaftaran`. Nomor dibuat berurutan dengan format `SPMB-2027-000001`.
+1. Buat Google Spreadsheet dan salin ID spreadsheet dari URL-nya.
+2. Dari spreadsheet, buka **Extensions → Apps Script**, lalu ganti kode pada `Code.gs` dengan isi berkas `Code.gs` proyek ini.
+3. Buka **Project Settings → Script Properties**, lalu tambahkan:
+   - `SPREADSHEET_ID`: ID spreadsheet yang dibuat pada langkah pertama.
+   - `SHEET_SYNC_TOKEN`: token acak minimal 32 karakter.
+4. Pilih **Deploy → New deployment → Web app**, set **Execute as: Me** dan **Who has access: Anyone**, lalu deploy dan berikan izin akses spreadsheet.
+5. Salin URL Web App berakhiran `/exec` ke `APPS_SCRIPT_SYNC_URL` di Railway. Masukkan nilai `SHEET_SYNC_TOKEN` yang sama pada environment variables Railway.
+6. Deploy ulang service Railway setelah mengubah environment variables.
 
-Kolom identitas dan nomor telepon ditulis sebagai teks dengan awalan apostrof agar nol di awal tidak hilang. Isian telepon dari form tidak memasukkan nol awal karena kode negara `+62` ditambahkan otomatis.
-Ringkasan pendaftaran dan nomor pendaftaran ditampilkan setelah data berhasil disimpan. Pengaturan publik dari panel admin dimuat ulang oleh halaman pendaftaran tanpa deployment Vercel.
+Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronisasi memakai nomor pendaftaran untuk memperbarui baris yang sama, sehingga retry tidak membuat baris duplikat. PIN portal dan file pribadi tidak dikirim ke Sheet. Pada portal admin, status sinkronisasi dapat diperiksa dan antrean dapat dicoba ulang.
 
-## Catatan konfigurasi
+## Portal dan penyimpanan data
 
-- Setelah mengubah `Code.gs` atau `Admin.html`, deploy **versi Web App baru** di Apps Script.
-- Tailwind CSS dan font dimuat dari CDN, sehingga halaman memerlukan koneksi internet.
-- Endpoint Apps Script perlu dideploy ulang sebagai versi baru setelah perubahan backend.
+- **Portal admin:** `/admin`. Masuk memakai `ADMIN_TOKEN`; admin dapat mengatur judul/tahun ajaran/gelombang/tautan informasi, melihat dan mengekspor rekap, mengubah data/status pendaftar, serta mereset PIN portal.
+- **Portal siswa:** `/portal`. Pendaftar masuk menggunakan nomor pendaftaran dan PIN acak yang diberikan setelah formulir berhasil disimpan.
+- **SQLite:** `DATABASE_PATH` harus berada pada Persistent Volume Railway. Seluruh unggahan pendaftar berada di subfolder `uploads` pada `STORAGE_DIR`; PDF publik yang diunggah admin berada di `public-files`.
+- **Batas berkas:** dokumen pendaftar maksimal 2 MB per berkas; PDF informasi admin maksimal 5 MB.
+
+Pengaturan situs tersimpan di SQLite dan langsung digunakan halaman pendaftaran, tanpa perlu deployment ulang. Perubahan pada `Code.gs` memerlukan deployment versi baru Apps Script.

@@ -27,6 +27,12 @@
     .field-control { width: 100%; border: 1px solid #dfe3e8; border-radius: .65rem; background: #fff; padding: .72rem .85rem; color: #1f2937; outline: none; transition: border-color .15s, box-shadow .15s; }
     .field-control:focus { border-color: #f97316; box-shadow: 0 0 0 3px rgb(249 115 22 / .12); }
     .field-control::placeholder { color: #a0a7b2; }
+    .select-wrap { position: relative; }
+    .select-wrap::after { position: absolute; top: 50%; right: 1rem; width: .55rem; height: .55rem; border-right: 1.5px solid #94a3b8; border-bottom: 1.5px solid #94a3b8; content: ""; pointer-events: none; transform: translateY(-70%) rotate(45deg); transition: border-color .2s ease; }
+    .select-wrap:focus-within::after { border-color: #ea580c; }
+    .field-select { appearance: none; cursor: pointer; padding-right: 2.75rem; }
+    .field-select:invalid { color: #a0a7b2; }
+    .field-select option { color: #1f2937; background: #fff; }
     .field-row { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 13fr); gap: 1.25rem; align-items: start; padding: 1.05rem 1.5rem; border-bottom: 1px solid #f0f1f3; }
     .field-row:last-child { border-bottom: 0; }
     .field-label { padding-top: .68rem; font-size: .875rem; font-weight: 600; color: #374151; }
@@ -42,6 +48,7 @@
     .step-item.current .step-number { background: #ea580c; color: white; }
     .step-item.complete .step-number { background: #16a34a; color: white; }
     .form-step[hidden] { display: none; }
+    .file-input { padding: .55rem; font-size: .85rem; }
     @media (max-width: 640px) {
       .field-row { grid-template-columns: 1fr; gap: .45rem; padding: 1rem; }
       .field-label { padding-top: 0; }
@@ -55,6 +62,14 @@
       #form-card { box-shadow: none !important; border: 1px solid #ddd; }
       .field-row { break-inside: avoid; }
       input, select, textarea { color: #111 !important; }
+      body * { visibility: hidden !important; }
+      #print-card, #print-card * { visibility: visible !important; }
+      #modal.no-print { display: block !important; position: static !important; padding: 0 !important; background: white !important; }
+      #modal > div { max-height: none !important; max-width: none !important; overflow: visible !important; padding: 0 !important; box-shadow: none !important; }
+      #modal > div > *:not(#success-receipt) { display: none !important; }
+      #success-receipt, #print-card { display: block !important; }
+      #success-receipt > *:not(#print-card) { display: none !important; }
+      #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
 </head>
@@ -65,8 +80,9 @@
         <img class="h-11 w-11 rounded-full object-contain" src="/assets/logo-pgri-cikoneng.png" alt="Logo SMK PGRI Cikoneng" width="44" height="44">
         <span class="hidden text-sm font-bold leading-tight text-slate-800 sm:block">SMK PGRI<br><span class="font-medium text-slate-500">Cikoneng</span></span>
       </a>
-      <nav aria-label="Navigasi utama">
+      <nav class="flex items-center gap-1" aria-label="Navigasi utama">
         <a href="https://www.smkpgricikoneng.sch.id/" class="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-orange-50 hover:text-orange-700">Beranda</a>
+        <a href="/portal.html" class="rounded-lg px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-50">Portal Siswa</a>
       </nav>
       <span class="w-16 sm:w-24"></span>
     </div>
@@ -99,152 +115,224 @@
       <form id="spmb-form" novalidate>
         <div class="no-print px-5 pt-5 sm:px-6">
           <div class="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
-            <span id="step-label">Langkah 1 dari 2: Data calon siswa</span>
-            <span id="step-count">1/2</span>
+            <span id="step-label">Tahap 1 dari 4: Pilihan</span>
+            <span id="step-count">1/4</span>
           </div>
-          <div class="mb-4 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="Progres pengisian formulir" aria-valuemin="1" aria-valuemax="2" aria-valuenow="1">
-            <div id="step-progress-bar" class="h-full rounded-full bg-orange-500 transition-all duration-300" style="width: 50%"></div>
+          <div class="mb-4 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-label="Progres pengisian formulir" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1">
+            <div id="step-progress-bar" class="h-full rounded-full bg-orange-500 transition-all duration-300" style="width: 25%"></div>
           </div>
-          <ol class="grid grid-cols-2 gap-2" aria-label="Tahapan formulir">
-            <li id="step-indicator-1" class="step-item current" aria-current="step"><span class="step-number">1</span><span>Data calon siswa</span></li>
-            <li id="step-indicator-2" class="step-item"><span class="step-number">2</span><span>Data orang tua / wali</span></li>
+          <ol class="grid grid-cols-4 gap-2" aria-label="Tahapan formulir">
+            <li id="step-indicator-1" class="step-item current" aria-current="step"><span class="step-number">1</span><span>Pilihan</span></li>
+            <li id="step-indicator-2" class="step-item"><span class="step-number">2</span><span>Data siswa</span></li>
+            <li id="step-indicator-3" class="step-item"><span class="step-number">3</span><span>Orang tua</span></li>
+            <li id="step-indicator-4" class="step-item"><span class="step-number">4</span><span>Berkas</span></li>
           </ol>
         </div>
 
         <section id="form-step-1" class="form-step">
-        <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">BAGIAN 1: DATA CALON SISWA</div>
-        <div>
-          <div class="field-row">
-            <label class="field-label" for="studentName">Nama Lengkap Siswa <span class="required-mark">*</span></label>
-            <input class="field-control" id="studentName" name="studentName" type="text" placeholder="Masukkan nama lengkap siswa" autocomplete="name" required>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="schoolOrigin">Asal Sekolah <span class="required-mark">*</span></label>
-            <input class="field-control" id="schoolOrigin" name="schoolOrigin" type="text" placeholder="Contoh: SMPN 1 Cikoneng" required>
-          </div>
-          <fieldset class="field-row">
-            <legend class="field-label">Konsentrasi Keahlian <span class="required-mark">*</span></legend>
-            <div class="space-y-3 pt-2">
-              <label class="radio-option flex"><input type="radio" name="major" value="MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)" required><span>MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)</span></label>
-              <label class="radio-option flex"><input type="radio" name="major" value="AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)"><span>AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)</span></label>
-              <label class="radio-option flex"><input type="radio" name="major" value="BISNIS DIGITAL"><span>BISNIS DIGITAL</span></label>
+          <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">TAHAP 1: PILIHAN PENDAFTARAN</div>
+          <div>
+            <div class="field-row">
+              <label class="field-label" for="wave">Gelombang Pendaftaran <span class="required-mark">*</span></label>
+              <div>
+                <select class="field-control field-select" id="wave" name="wave" required>
+                  <option value="">Pilih Gelombang Pendaftaran...</option>
+                  <option value="Gelombang 1">Gelombang 1</option>
+                </select>
+                <p id="wave-fee-label" class="helper" aria-live="polite">Biaya ditetapkan oleh panitia.</p>
+              </div>
             </div>
-          </fieldset>
-          <div class="field-row">
-            <label class="field-label" for="nisn">NISN <span class="required-mark">*</span></label>
-            <div><input class="field-control digit-field" id="nisn" name="nisn" type="text" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10 digit angka NISN" required><p class="helper">Hanya angka (tepat 10 digit)</p></div>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="familyCardNumber">No. Kartu Keluarga (KK) <span class="required-mark">*</span></label>
-            <div><input class="field-control digit-field" id="familyCardNumber" name="familyCardNumber" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka No KK" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="studentNik">NIK Siswa <span class="required-mark">*</span></label>
-            <div><input class="field-control digit-field" id="studentNik" name="studentNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Siswa" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
-          </div>
-          <fieldset class="field-row">
-            <legend class="field-label">Jenis Kelamin <span class="required-mark">*</span></legend>
-            <div class="flex flex-wrap gap-x-7 gap-y-3 pt-2">
-              <label class="radio-option"><input type="radio" name="gender" value="Laki-laki" required><span>Laki-laki</span></label>
-              <label class="radio-option"><input type="radio" name="gender" value="Perempuan"><span>Perempuan</span></label>
+            <div class="field-row">
+              <label class="field-label" for="major">Program Studi / Konsentrasi Keahlian <span class="required-mark">*</span></label>
+              <div class="select-wrap">
+                <select class="field-control field-select" id="major" name="major" required>
+                  <option value="">Pilih Program Studi...</option>
+                  <option value="MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)">MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)</option>
+                  <option value="AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)">AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)</option>
+                  <option value="BISNIS DIGITAL">BISNIS DIGITAL</option>
+                </select>
+              </div>
             </div>
-          </fieldset>
-          <div class="field-row">
-            <label class="field-label" for="birthPlace">Tempat Lahir <span class="required-mark">*</span></label>
-            <input class="field-control" id="birthPlace" name="birthPlace" type="text" placeholder="Kota / Kabupaten kelahiran" required>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="birthDate">Tanggal Lahir <span class="required-mark">*</span></label>
-            <input class="field-control" id="birthDate" name="birthDate" type="date" required>
+          <div class="no-print flex justify-end px-5 py-7">
+            <button type="button" data-step-next="1" class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-200 sm:w-auto sm:min-w-64">
+              Lanjut ke Data Siswa
+              <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="email">Email Siswa / Orang Tua <span class="required-mark">*</span></label>
-            <div><input class="field-control" id="email" name="email" type="email" autocomplete="email" placeholder="email@contoh.com" required><p class="helper">Wajib menyertakan simbol @ dan domain yang valid</p></div>
-          </div>
-        </div>
-        <div class="no-print flex justify-center px-5 py-7">
-          <button id="next-step-button" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-200 sm:w-auto sm:min-w-64">
-            Lanjut ke Data Orang Tua
-            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
-        </div>
         </section>
 
         <section id="form-step-2" class="form-step" hidden>
-        <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">BAGIAN 2: DATA ORANG TUA / WALI</div>
-        <div>
-          <div class="field-row">
-            <label class="field-label" for="fatherNik">NIK Ayah <span class="required-mark">*</span></label>
-            <div><input class="field-control digit-field" id="fatherNik" name="fatherNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Ayah" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+          <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">TAHAP 2: DATA DIRI CALON SISWA</div>
+          <p class="px-6 pt-3 text-xs text-slate-500">Lengkapi identitas sesuai dokumen resmi.</p>
+          <div>
+            <div class="field-row">
+              <label class="field-label" for="studentName">Nama Lengkap Siswa <span class="required-mark">*</span></label>
+              <input class="field-control" id="studentName" name="studentName" type="text" placeholder="Masukkan nama lengkap siswa" autocomplete="name" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="nisn">NISN <span class="required-mark">*</span></label>
+              <div><input class="field-control digit-field" id="nisn" name="nisn" type="text" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10 digit angka NISN" required><p class="helper">Hanya angka (tepat 10 digit)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="studentNik">NIK Siswa <span class="required-mark">*</span></label>
+              <div><input class="field-control digit-field" id="studentNik" name="studentNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Siswa" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="familyCardNumber">No. Kartu Keluarga (KK) <span class="required-mark">*</span></label>
+              <div><input class="field-control digit-field" id="familyCardNumber" name="familyCardNumber" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka No KK" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="gender">Jenis Kelamin <span class="required-mark">*</span></label>
+              <div class="select-wrap">
+                <select class="field-control field-select" id="gender" name="gender" required>
+                  <option value="">Pilih Jenis Kelamin...</option><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="religion">Agama <span class="required-mark">*</span></label>
+              <div class="select-wrap">
+                <select class="field-control field-select" id="religion" name="religion" required>
+                  <option value="">Pilih Agama...</option><option>Islam</option><option>Kristen Protestan</option><option>Katolik</option><option>Hindu</option><option>Buddha</option><option>Konghucu</option><option>Lainnya</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="birthPlace">Tempat Lahir <span class="required-mark">*</span></label>
+              <input class="field-control" id="birthPlace" name="birthPlace" type="text" placeholder="Kota / Kabupaten kelahiran" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="birthDate">Tanggal Lahir <span class="required-mark">*</span></label>
+              <input class="field-control" id="birthDate" name="birthDate" type="date" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="schoolOrigin">Asal Sekolah Sebelumnya <span class="required-mark">*</span></label>
+              <input class="field-control" id="schoolOrigin" name="schoolOrigin" type="text" placeholder="Contoh: SMPN 1 Cikoneng" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="studentPhone">No. WhatsApp Calon Siswa</label>
+              <div><input class="field-control digit-field" id="studentPhone" name="studentPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="Contoh: 08xxxxxxxxxx"><p class="helper">Opsional, 10–14 digit angka</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="email">Email Siswa / Orang Tua <span class="required-mark">*</span></label>
+              <div><input class="field-control" id="email" name="email" type="email" autocomplete="email" placeholder="email@contoh.com" required><p class="helper">Wajib menyertakan simbol @ dan domain yang valid</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="studentPhoto">Pas Foto Calon Siswa (3×4)</label>
+              <div><input class="field-control file-input" id="studentPhoto" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><p class="helper">Opsional · JPG/PNG · maksimal 2 MB</p></div>
+            </div>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="fatherName">Nama Ayah <span class="required-mark">*</span></label>
-            <input class="field-control" id="fatherName" name="fatherName" type="text" placeholder="Nama lengkap Ayah" required>
+          <div class="no-print flex flex-col gap-3 px-5 py-7 sm:flex-row sm:justify-between">
+            <button type="button" data-step-back="2" class="inline-flex items-center justify-center rounded-full border border-slate-200 px-7 py-3.5 text-sm font-bold text-slate-700">Kembali</button>
+            <button type="button" data-step-next="2" class="inline-flex items-center justify-center rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20">Lanjut ke Data Orang Tua</button>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="fatherEducation">Pendidikan Terakhir Ayah <span class="required-mark">*</span></label>
-            <select class="field-control" id="fatherEducation" name="fatherEducation" required>
-              <option value="">Pilih Jenjang Pendidikan...</option><option>SD/Sederajat</option><option>SMP/Sederajat</option><option>SMA/SMK/Sederajat</option><option>D1/D2/D3</option><option>S1/D4</option><option>S2</option><option>S3</option><option>Tidak Sekolah</option>
-            </select>
+        </section>
+
+        <section id="form-step-3" class="form-step" hidden>
+          <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">TAHAP 3: DATA ORANG TUA / WALI</div>
+          <p class="px-6 pt-3 text-xs text-slate-500">Lengkapi data ayah, ibu, serta alamat domisili.</p>
+          <div>
+            <div class="field-row">
+              <label class="field-label" for="fatherNik">NIK Ayah <span class="required-mark">*</span></label>
+              <div><input class="field-control digit-field" id="fatherNik" name="fatherNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Ayah" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="fatherName">Nama Ayah <span class="required-mark">*</span></label>
+              <input class="field-control" id="fatherName" name="fatherName" type="text" placeholder="Nama lengkap Ayah" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="fatherEducation">Pendidikan Terakhir Ayah <span class="required-mark">*</span></label>
+              <select class="field-control" id="fatherEducation" name="fatherEducation" required>
+                <option value="">Pilih Jenjang Pendidikan...</option><option>SD/Sederajat</option><option>SMP/Sederajat</option><option>SMA/SMK/Sederajat</option><option>D1/D2/D3</option><option>S1/D4</option><option>S2</option><option>S3</option><option>Tidak Sekolah</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="fatherOccupation">Pekerjaan Ayah <span class="required-mark">*</span></label>
+              <input class="field-control" id="fatherOccupation" name="fatherOccupation" type="text" placeholder="Pekerjaan Ayah" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="fatherIncome">Penghasilan Ayah / bulan <span class="required-mark">*</span></label>
+              <input class="field-control" id="fatherIncome" name="fatherIncome" type="text" placeholder="Contoh: &lt; 1 Juta, 1 - 3 Juta, dll" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="fatherPhone">No. Telepon/WA Ayah <span class="required-mark">*</span></label>
+              <div><div class="flex"><span class="inline-flex items-center rounded-l-[.65rem] border border-r-0 border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">+62</span><input class="field-control rounded-l-none" id="fatherPhone" name="fatherPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="081234567890" required></div><p class="helper">Hanya angka (10–14 digit, boleh diawali 0)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="motherNik">NIK Ibu <span class="required-mark">*</span></label>
+              <div><input class="field-control digit-field" id="motherNik" name="motherNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Ibu" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="motherName">Nama Ibu <span class="required-mark">*</span></label>
+              <input class="field-control" id="motherName" name="motherName" type="text" placeholder="Nama lengkap Ibu" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="motherEducation">Pendidikan Terakhir Ibu <span class="required-mark">*</span></label>
+              <select class="field-control" id="motherEducation" name="motherEducation" required>
+                <option value="">Pilih Jenjang Pendidikan...</option><option>SD/Sederajat</option><option>SMP/Sederajat</option><option>SMA/SMK/Sederajat</option><option>D1/D2/D3</option><option>S1/D4</option><option>S2</option><option>S3</option><option>Tidak Sekolah</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="motherOccupation">Pekerjaan Ibu <span class="required-mark">*</span></label>
+              <input class="field-control" id="motherOccupation" name="motherOccupation" type="text" placeholder="Pekerjaan Ibu" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="motherIncome">Penghasilan Ibu / bulan <span class="required-mark">*</span></label>
+              <input class="field-control" id="motherIncome" name="motherIncome" type="text" placeholder="Contoh: &lt; 1 Juta, 1 - 3 Juta, dll" required>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="motherPhone">No. Telepon/WA Ibu <span class="required-mark">*</span></label>
+              <div><div class="flex"><span class="inline-flex items-center rounded-l-[.65rem] border border-r-0 border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">+62</span><input class="field-control rounded-l-none" id="motherPhone" name="motherPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="081234567890" required></div><p class="helper">Hanya angka (10–14 digit, boleh diawali 0)</p></div>
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="address">Alamat Lengkap <span class="required-mark">*</span></label>
+              <textarea class="field-control min-h-24 resize-y" id="address" name="address" placeholder="Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten" required></textarea>
+            </div>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="fatherOccupation">Pekerjaan Ayah <span class="required-mark">*</span></label>
-            <input class="field-control" id="fatherOccupation" name="fatherOccupation" type="text" placeholder="Pekerjaan Ayah" required>
+          <div class="no-print flex flex-col gap-3 px-5 py-7 sm:flex-row sm:justify-between">
+            <button type="button" data-step-back="3" class="inline-flex items-center justify-center rounded-full border border-slate-200 px-7 py-3.5 text-sm font-bold text-slate-700">Kembali</button>
+            <button type="button" data-step-next="3" class="inline-flex items-center justify-center rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white">Lanjut ke Unggah Berkas</button>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="fatherIncome">Penghasilan Ayah / bulan <span class="required-mark">*</span></label>
-            <input class="field-control" id="fatherIncome" name="fatherIncome" type="text" placeholder="Contoh: &lt; 1 Juta, 1 - 3 Juta, dll" required>
+        </section>
+
+        <section id="form-step-4" class="form-step" hidden>
+          <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">TAHAP 4: UNGGAH BERKAS</div>
+          <p class="px-6 pt-3 text-xs leading-5 text-slate-500">Berkas bersifat opsional dan dapat dikosongkan. Format PDF/JPG/PNG, maksimal 2 MB per berkas. Berkas disimpan privat di penyimpanan aplikasi.</p>
+          <div>
+            <div class="field-row">
+              <label class="field-label" for="familyCardFile">Kartu Keluarga (KK)</label>
+              <input class="field-control file-input" id="familyCardFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="birthCertificate">Akta Kelahiran</label>
+              <input class="field-control file-input" id="birthCertificate" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="diploma">Ijazah / Surat Keterangan Lulus (SKL)</label>
+              <input class="field-control file-input" id="diploma" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="reportCard">Rapor Terakhir</label>
+              <input class="field-control file-input" id="reportCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+            </div>
+            <div class="field-row">
+              <label class="field-label" for="sktm">SKTM (jika diperlukan)</label>
+              <input class="field-control file-input" id="sktm" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+            </div>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="fatherPhone">No. Telepon/WA Ayah <span class="required-mark">*</span></label>
-            <div><div class="flex"><span class="inline-flex items-center rounded-l-[.65rem] border border-r-0 border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">+62</span><input class="field-control rounded-l-none" id="fatherPhone" name="fatherPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="81234567890" required></div><p class="helper">Hanya angka (10 - 14 digit, tanpa angka 0 di depan)</p></div>
+          <div class="no-print px-5 py-8">
+            <p id="form-error" class="mb-3 hidden text-center text-sm text-red-600" role="alert"></p>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" data-step-back="4" class="inline-flex items-center justify-center rounded-full border border-slate-200 px-7 py-3.5 text-sm font-bold text-slate-700">Kembali</button>
+              <button id="submit-button" type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-200 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:min-w-64">
+                <span id="submit-spinner" class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                <span id="submit-label">Kirim Formulir Pendaftaran</span>
+                <svg id="submit-icon" aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+            <p class="mt-3 text-center text-xs text-slate-400">Pastikan seluruh data telah diperiksa sebelum dikirim.</p>
           </div>
-          <div class="field-row">
-            <label class="field-label" for="motherNik">NIK Ibu <span class="required-mark">*</span></label>
-            <div><input class="field-control digit-field" id="motherNik" name="motherNik" type="text" inputmode="numeric" pattern="[0-9]{16}" maxlength="16" placeholder="16 digit angka NIK Ibu" required><p class="helper">Hanya angka (tepat 16 digit)</p></div>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="motherName">Nama Ibu <span class="required-mark">*</span></label>
-            <input class="field-control" id="motherName" name="motherName" type="text" placeholder="Nama lengkap Ibu" required>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="motherEducation">Pendidikan Terakhir Ibu <span class="required-mark">*</span></label>
-            <select class="field-control" id="motherEducation" name="motherEducation" required>
-              <option value="">Pilih Jenjang Pendidikan...</option><option>SD/Sederajat</option><option>SMP/Sederajat</option><option>SMA/SMK/Sederajat</option><option>D1/D2/D3</option><option>S1/D4</option><option>S2</option><option>S3</option><option>Tidak Sekolah</option>
-            </select>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="motherOccupation">Pekerjaan Ibu <span class="required-mark">*</span></label>
-            <input class="field-control" id="motherOccupation" name="motherOccupation" type="text" placeholder="Pekerjaan Ibu" required>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="motherIncome">Penghasilan Ibu / bulan <span class="required-mark">*</span></label>
-            <input class="field-control" id="motherIncome" name="motherIncome" type="text" placeholder="Contoh: &lt; 1 Juta, 1 - 3 Juta, dll" required>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="motherPhone">No. Telepon/WA Ibu <span class="required-mark">*</span></label>
-            <div><div class="flex"><span class="inline-flex items-center rounded-l-[.65rem] border border-r-0 border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">+62</span><input class="field-control rounded-l-none" id="motherPhone" name="motherPhone" type="tel" inputmode="numeric" pattern="[0-9]{10,14}" maxlength="14" placeholder="81234567890" required></div><p class="helper">Hanya angka (10 - 14 digit, tanpa angka 0 di depan)</p></div>
-          </div>
-          <div class="field-row">
-            <label class="field-label" for="address">Alamat Lengkap <span class="required-mark">*</span></label>
-            <textarea class="field-control min-h-24 resize-y" id="address" name="address" placeholder="Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten" required></textarea>
-          </div>
-        </div>
-        <div class="no-print px-5 py-8">
-          <p id="form-error" class="mb-3 hidden text-center text-sm text-red-600" role="alert"></p>
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
-            <button id="previous-step-button" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-7 py-3.5 text-sm font-bold text-slate-700 transition hover:border-orange-300 hover:text-orange-700 sm:w-auto">
-              <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
-              Kembali
-            </button>
-            <button id="submit-button" type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 focus:outline-none focus:ring-4 focus:ring-orange-200 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:min-w-64">
-              <span id="submit-spinner" class="hidden h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-              <span id="submit-label">Kirim Formulir Pendaftaran</span>
-              <svg id="submit-icon" aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </button>
-          </div>
-          <p class="mt-3 text-center text-xs text-slate-400">Pastikan seluruh data telah diperiksa sebelum dikirim.</p>
-        </div>
         </section>
       </form>
     </section>
@@ -277,82 +365,151 @@
       <h2 id="modal-title" class="text-lg font-extrabold text-slate-900">Informasi Beasiswa</h2>
       <div id="modal-message" class="mt-2 text-sm leading-6 text-slate-600"></div>
       <div id="modal-summary" class="mt-4 hidden rounded-lg border border-slate-100 bg-slate-50 p-4"></div>
+      <div id="success-receipt" class="hidden">
+        <div id="print-card" class="mt-4 rounded-lg border border-slate-300 bg-white p-4">
+          <div class="flex items-center gap-3 border-2 border-slate-700 p-3">
+            <img class="h-12 w-12 object-contain" src="/assets/logo-pgri-cikoneng.png" alt="">
+            <div><p class="text-xs font-extrabold uppercase tracking-wide text-slate-500">Kartu Peserta SPMB</p><p id="receipt-year" class="mt-1 text-[11px] font-semibold text-slate-600"></p></div>
+          </div>
+          <div class="mt-3 border border-slate-400 p-4">
+            <p class="text-[11px] font-bold text-slate-500">NOMOR PENDAFTARAN</p>
+            <p id="receipt-number" class="mt-1 text-lg font-extrabold tracking-wide text-orange-700"></p>
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div><p class="text-[10px] font-bold text-slate-500">NAMA SISWA</p><p id="receipt-name" class="text-sm font-bold"></p></div>
+              <div><p class="text-[10px] font-bold text-slate-500">NISN</p><p id="receipt-nisn" class="text-sm font-bold"></p></div>
+              <div><p class="text-[10px] font-bold text-slate-500">GELOMBANG</p><p id="receipt-wave" class="text-sm font-bold"></p></div>
+              <div><p class="text-[10px] font-bold text-slate-500">PROGRAM STUDI</p><p id="receipt-major" class="text-sm font-bold"></p></div>
+            </div>
+            <div class="mt-4 rounded bg-slate-50 p-3">
+              <p class="text-[10px] font-bold text-slate-500">PIN PORTAL SISWA — SIMPAN DENGAN AMAN</p>
+              <p id="receipt-pin" class="mt-1 text-xl font-extrabold tracking-[.25em]"></p>
+            </div>
+          </div>
+        </div>
+        <p class="mt-3 text-xs leading-5 text-amber-800">Simpan nomor pendaftaran dan PIN ini. PIN tidak ditampilkan kembali setelah jendela ini ditutup.</p>
+        <div class="mt-4 grid gap-2 sm:grid-cols-2">
+          <button id="download-card-button" type="button" class="rounded-lg bg-slate-900 px-4 py-3 text-sm font-bold text-white">Unduh Kartu Peserta (PDF)</button>
+          <a href="/portal.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white">Buka Portal Siswa</a>
+        </div>
+      </div>
       <button id="modal-close" type="button" class="mt-6 w-full rounded-lg bg-orange-600 px-4 py-3 text-sm font-bold text-white hover:bg-orange-700">Tutup</button>
     </div>
   </div>
 
   <script>
-    // Ganti URL ini dengan URL Web App hasil deployment Google Apps Script.
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyEV4w7PC7moA_Jsntwj37jLnKAc8GTNcKyufNmzqLZ5d-vNQbxc4VACFn0fYiYTbKW/exec';
-    const APPS_SCRIPT_URL_PLACEHOLDER = 'PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI';
     const DEFAULT_SITE_CONFIG = {
       pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
       academicYear: '2027/2028',
       formPdfUrl: '/assets/spmb-formulir-offline.pdf',
       scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
       contactLabel: 'Contact Person SPMB',
-      contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ'
+      contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
+      registrationWaves: [{ name: 'Gelombang 1', fee: '', status: 'open' }]
     };
     const form = document.getElementById('spmb-form');
-    const formSteps = [document.getElementById('form-step-1'), document.getElementById('form-step-2')];
+    const stepNames = ['Pilihan', 'Data siswa', 'Orang tua / wali', 'Unggah berkas'];
+    const stepFocusIds = ['wave', 'studentName', 'fatherNik', 'familyCardFile'];
+    const uploadInputFields = {
+      studentPhoto: 'studentPhoto',
+      familyCardFile: 'familyCardFile',
+      birthCertificate: 'birthCertificate',
+      diploma: 'diploma',
+      reportCard: 'reportCard',
+      sktm: 'sktm'
+    };
+    const maxFileSize = 2 * 1024 * 1024;
+    const formSteps = [1, 2, 3, 4].map(function (number) {
+      return document.getElementById('form-step-' + number);
+    });
     const modal = document.getElementById('modal');
     const modalTitle = document.getElementById('modal-title');
     const modalMessage = document.getElementById('modal-message');
     const modalSummary = document.getElementById('modal-summary');
     const modalSymbol = document.getElementById('modal-symbol');
+    const successReceipt = document.getElementById('success-receipt');
     const submitButton = document.getElementById('submit-button');
     const formError = document.getElementById('form-error');
     const modalCloseButton = document.getElementById('modal-close');
+    let siteConfig = DEFAULT_SITE_CONFIG;
 
-    window.applySpmbSiteConfig = function (config) {
-      if (!config || typeof config !== 'object') return;
-      const merged = Object.assign({}, DEFAULT_SITE_CONFIG, config);
-      document.getElementById('page-title').textContent = merged.pageTitle;
-      document.getElementById('academic-year').textContent = 'SMK PGRI CIKONENG TAHUN AJARAN ' + merged.academicYear;
-      document.getElementById('academic-year-footer').textContent = 'SPMB Online · Tahun Ajaran ' + merged.academicYear;
-      document.getElementById('form-pdf-link').href = merged.formPdfUrl;
-      document.getElementById('scholarship-pdf-link').href = merged.scholarshipPdfUrl;
-      document.getElementById('contact-link').href = merged.contactUrl;
-      document.getElementById('contact-label').textContent = merged.contactLabel;
-      document.title = merged.pageTitle + ' | SMK PGRI Cikoneng';
-      document.getElementById('page-description').content =
-        merged.pageTitle + ' SMK PGRI Cikoneng Tahun Ajaran ' + merged.academicYear + '.';
-    };
-
-    function loadPublicConfig() {
-      if (APPS_SCRIPT_URL === APPS_SCRIPT_URL_PLACEHOLDER) return;
-      const configScript = document.createElement('script');
-      configScript.src = APPS_SCRIPT_URL + '?config=1&v=' + Date.now();
-      configScript.onerror = function () {
-        console.error('Gagal memuat pengaturan halaman dari Google Apps Script.');
-      };
-      document.head.appendChild(configScript);
+    function renderRegistrationWaves(waves) {
+      const select = document.getElementById('wave');
+      const selectedValue = select.value;
+      select.replaceChildren(new Option('Pilih Gelombang Pendaftaran...', ''));
+      let openWaves = 0;
+      waves.forEach(function (wave) {
+        const option = new Option(wave.name + (wave.status === 'open' ? '' : ' (Ditutup)'), wave.name);
+        option.disabled = wave.status !== 'open';
+        select.appendChild(option);
+        if (wave.status === 'open') openWaves += 1;
+      });
+      if (selectedValue && waves.some(function (wave) { return wave.name === selectedValue && wave.status === 'open'; })) {
+        select.value = selectedValue;
+      }
+      if (!openWaves) {
+        select.options[0].textContent = 'Pendaftaran belum dibuka';
+        select.required = true;
+        document.getElementById('wave-fee-label').textContent = 'Belum ada gelombang yang dibuka.';
+      } else {
+        select.required = true;
+        updateWaveFee();
+      }
     }
 
-    function appendSummaryRow(label, value) {
-      const row = document.createElement('div');
-      row.className = 'flex flex-col gap-1 border-b border-slate-200 py-2 last:border-b-0 sm:flex-row sm:justify-between sm:gap-4';
-      const labelElement = document.createElement('span');
-      labelElement.className = 'text-xs font-semibold text-slate-500';
-      labelElement.textContent = label;
-      const valueElement = document.createElement('span');
-      valueElement.className = 'break-words text-sm font-semibold text-slate-800 sm:text-right';
-      valueElement.textContent = value || '-';
-      row.append(labelElement, valueElement);
-      modalSummary.appendChild(row);
+    function updateWaveFee() {
+      const wave = siteConfig.registrationWaves.find(function (item) {
+        return item.name === document.getElementById('wave').value && item.status === 'open';
+      });
+      document.getElementById('wave-fee-label').textContent = !wave
+        ? 'Pilih gelombang yang masih dibuka.'
+        : wave.fee
+          ? 'Biaya pendaftaran: Rp ' + Number(wave.fee).toLocaleString('id-ID')
+          : 'Informasi biaya ditetapkan oleh panitia.';
+    }
+
+    function applySpmbSiteConfig(config) {
+      if (!config || typeof config !== 'object') return;
+      siteConfig = Object.assign({}, DEFAULT_SITE_CONFIG, config);
+      if (!Array.isArray(siteConfig.registrationWaves)) siteConfig.registrationWaves = DEFAULT_SITE_CONFIG.registrationWaves;
+      document.getElementById('page-title').textContent = siteConfig.pageTitle;
+      document.getElementById('academic-year').textContent = 'SMK PGRI CIKONENG TAHUN AJARAN ' + siteConfig.academicYear;
+      document.getElementById('academic-year-footer').textContent = 'SPMB Online · Tahun Ajaran ' + siteConfig.academicYear;
+      document.getElementById('form-pdf-link').href = siteConfig.formPdfUrl;
+      document.getElementById('scholarship-pdf-link').href = siteConfig.scholarshipPdfUrl;
+      document.getElementById('contact-link').href = siteConfig.contactUrl;
+      document.getElementById('contact-label').textContent = siteConfig.contactLabel;
+      document.title = siteConfig.pageTitle + ' | SMK PGRI Cikoneng';
+      document.getElementById('page-description').content =
+        siteConfig.pageTitle + ' SMK PGRI Cikoneng Tahun Ajaran ' + siteConfig.academicYear + '.';
+      renderRegistrationWaves(siteConfig.registrationWaves);
+    }
+
+    async function loadPublicConfig() {
+      try {
+        const response = await fetch('/api/public-config');
+        if (!response.ok) throw new Error('Pengaturan publik gagal dimuat.');
+        applySpmbSiteConfig(await response.json());
+      } catch (error) {
+        console.error('Gagal memuat pengaturan pendaftaran:', error);
+        applySpmbSiteConfig(DEFAULT_SITE_CONFIG);
+      }
     }
 
     function showModal(title, message, success, result) {
       modalTitle.textContent = title;
       modalMessage.textContent = message;
       modalSummary.replaceChildren();
-      modalSummary.classList.toggle('hidden', !success);
+      modalSummary.classList.add('hidden');
+      successReceipt.classList.toggle('hidden', !success);
       if (success && result) {
-        appendSummaryRow('Nomor pendaftaran', result.registrationNumber);
-        appendSummaryRow('Nama siswa', result.summary.studentName);
-        appendSummaryRow('NISN', result.summary.nisn);
-        appendSummaryRow('Konsentrasi keahlian', result.summary.major);
-        appendSummaryRow('Email', result.summary.email);
+        const summary = result.summary || {};
+        document.getElementById('receipt-year').textContent = 'SMK PGRI CIKONENG · TAHUN AJARAN ' + siteConfig.academicYear;
+        document.getElementById('receipt-number').textContent = result.registrationNumber;
+        document.getElementById('receipt-name').textContent = summary.studentName || '-';
+        document.getElementById('receipt-nisn').textContent = summary.nisn || '-';
+        document.getElementById('receipt-wave').textContent = summary.wave || '-';
+        document.getElementById('receipt-major').textContent = summary.major || '-';
+        document.getElementById('receipt-pin').textContent = result.portalPin || '-';
       }
       modalSymbol.className = 'mb-4 flex h-12 w-12 items-center justify-center rounded-full ' +
         (success ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600');
@@ -375,14 +532,12 @@
         });
       });
 
-      const progressValue = stepNumber === 1 ? 1 : 2;
-      const stepDescription = stepNumber === 1 ? 'Data calon siswa' : 'Data orang tua / wali';
-      document.getElementById('step-label').textContent = 'Langkah ' + stepNumber + ' dari 2: ' + stepDescription;
-      document.getElementById('step-count').textContent = stepNumber + '/2';
-      document.querySelector('[role="progressbar"]').setAttribute('aria-valuenow', progressValue);
-      document.getElementById('step-progress-bar').style.width = stepNumber === 1 ? '50%' : '100%';
+      document.getElementById('step-label').textContent = 'Tahap ' + stepNumber + ' dari 4: ' + stepNames[stepNumber - 1];
+      document.getElementById('step-count').textContent = stepNumber + '/4';
+      document.querySelector('[role="progressbar"]').setAttribute('aria-valuenow', stepNumber);
+      document.getElementById('step-progress-bar').style.width = (stepNumber * 25) + '%';
 
-      [1, 2].forEach(function (number) {
+      [1, 2, 3, 4].forEach(function (number) {
         const indicator = document.getElementById('step-indicator-' + number);
         indicator.classList.toggle('current', number === stepNumber);
         indicator.classList.toggle('complete', number < stepNumber);
@@ -392,7 +547,7 @@
 
       if (moveFocus) {
         document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        document.getElementById(stepNumber === 1 ? 'studentName' : 'fatherNik').focus({ preventScroll: true });
+        document.getElementById(stepFocusIds[stepNumber - 1]).focus({ preventScroll: true });
       }
     }
 
@@ -403,12 +558,79 @@
       document.getElementById('submit-icon').classList.toggle('hidden', loading);
     }
 
+    function mimeFromFileName(fileName) {
+      const extension = String(fileName || '').split('.').pop().toLowerCase();
+      return extension === 'pdf' ? 'application/pdf'
+        : extension === 'png' ? 'image/png'
+          : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : '';
+    }
+
+    function validateFiles(step) {
+      for (const input of step.querySelectorAll('.file-input')) {
+        const file = input.files[0];
+        if (!file) continue;
+        const type = file.type || mimeFromFileName(file.name);
+        const allowed = input.id === 'studentPhoto'
+          ? ['image/jpeg', 'image/png']
+          : ['application/pdf', 'image/jpeg', 'image/png'];
+        if (!allowed.includes(type)) {
+          input.setCustomValidity(input.id === 'studentPhoto' ? 'Pas foto harus berformat JPG atau PNG.' : 'Berkas harus berformat PDF, JPG, atau PNG.');
+          input.reportValidity();
+          input.setCustomValidity('');
+          return false;
+        }
+        if (!file.size || file.size > maxFileSize) {
+          input.setCustomValidity('Ukuran setiap berkas maksimal 2 MB.');
+          input.reportValidity();
+          input.setCustomValidity('');
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function validateCurrentStep(stepNumber) {
+      const step = formSteps[stepNumber - 1];
+      for (const control of step.querySelectorAll('input:not([type="file"]), select, textarea')) {
+        if (!control.checkValidity()) {
+          control.reportValidity();
+          return false;
+        }
+      }
+      return validateFiles(step);
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onerror = function () { reject(new Error('File ' + file.name + ' tidak dapat dibaca.')); };
+        reader.onload = function () { resolve(String(reader.result).split(',')[1]); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function collectUploads() {
+      const uploads = {};
+      for (const key of Object.keys(uploadInputFields)) {
+        const file = document.getElementById(uploadInputFields[key]).files[0];
+        if (!file) continue;
+        uploads[key] = {
+          name: file.name,
+          contentType: file.type || mimeFromFileName(file.name),
+          base64: await readFileAsBase64(file),
+          size: file.size
+        };
+      }
+      return uploads;
+    }
+
     modalCloseButton.addEventListener('click', function () {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
       if (modalCloseButton.dataset.returnToForm === 'true') {
+        successReceipt.classList.add('hidden');
         document.getElementById('form-card').scrollIntoView({ behavior: 'smooth' });
-        document.getElementById('studentName').focus();
+        document.getElementById('wave').focus();
       }
     });
     modal.addEventListener('click', function (event) {
@@ -429,19 +651,23 @@
       });
     });
 
-    document.getElementById('next-step-button').addEventListener('click', function () {
-      const controls = formSteps[0].querySelectorAll('input, select, textarea');
-      for (const control of controls) {
-        if (!control.checkValidity()) {
-          control.reportValidity();
-          return;
-        }
-      }
-      setActiveStep(2, true);
+    document.getElementById('wave').addEventListener('change', updateWaveFee);
+    document.querySelectorAll('[data-step-next]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const stepNumber = Number(button.dataset.stepNext);
+        if (validateCurrentStep(stepNumber)) setActiveStep(stepNumber + 1, true);
+      });
     });
-
-    document.getElementById('previous-step-button').addEventListener('click', function () {
-      setActiveStep(1, true);
+    document.querySelectorAll('[data-step-back]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        setActiveStep(Number(button.dataset.stepBack) - 1, true);
+      });
+    });
+    document.getElementById('download-card-button').addEventListener('click', function () {
+      const previousTitle = document.title;
+      document.title = 'Kartu Peserta SPMB';
+      window.print();
+      document.title = previousTitle;
     });
 
     setActiveStep(1, false);
@@ -449,43 +675,44 @@
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       formError.classList.add('hidden');
-      if (!form.reportValidity()) return;
-
-      if (APPS_SCRIPT_URL === 'PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI') {
-        formError.textContent = 'Integrasi belum dikonfigurasi. Tambahkan URL Web App Apps Script di index.html.';
+      if (!validateCurrentStep(4)) return;
+      setLoading(true);
+      let payload = {};
+      try {
+        formSteps.forEach(function (step) {
+          step.querySelectorAll('input, select, textarea').forEach(function (control) { control.disabled = false; });
+        });
+        payload = Object.fromEntries(new FormData(form).entries());
+        payload.uploads = await collectUploads();
+      } catch (error) {
+        formError.textContent = error.message || 'Berkas tidak dapat dibaca.';
         formError.classList.remove('hidden');
+        setActiveStep(4, false);
+        setLoading(false);
         return;
       }
-
-      const firstStepControls = formSteps[0].querySelectorAll('input, select, textarea');
-      firstStepControls.forEach(function (control) { control.disabled = false; });
-      let payload;
+      setActiveStep(4, false);
+      payload.fatherPhone = '+62' + payload.fatherPhone.replace(/^0/, '');
+      payload.motherPhone = '+62' + payload.motherPhone.replace(/^0/, '');
       try {
-        payload = Object.fromEntries(new FormData(form).entries());
-      } finally {
-        firstStepControls.forEach(function (control) { control.disabled = true; });
-      }
-      payload.fatherPhone = '+62' + payload.fatherPhone;
-      payload.motherPhone = '+62' + payload.motherPhone;
-      setLoading(true);
-      try {
-        const response = await fetch(APPS_SCRIPT_URL, {
+        const response = await fetch('/api/registrations', {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error('Server mengembalikan HTTP ' + response.status);
         const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message || 'Pendaftaran tidak berhasil disimpan.');
-        if (!result.registrationNumber || !result.summary) {
-          throw new Error('Data berhasil dikirim, tetapi nomor pendaftaran belum diterima. Hubungi panitia sebelum mengirim ulang.');
+        if (!response.ok || result.status !== 'success') throw new Error(result.message || 'Pendaftaran tidak berhasil disimpan.');
+        if (!result.registrationNumber || !result.portalPin || !result.summary) {
+          throw new Error('Data tersimpan, tetapi kartu peserta belum dapat dibuat. Hubungi panitia.');
         }
         form.reset();
         setActiveStep(1, false);
         showModal('Pendaftaran Berhasil', result.message || 'Pendaftaran berhasil disimpan.', true, result);
       } catch (error) {
         console.error('Gagal mengirim formulir SPMB:', error);
-        showModal('Pendaftaran Belum Terkirim', error.message || 'Periksa koneksi internet dan coba kembali. Jika masalah berlanjut, hubungi panitia SPMB.', false);
+        formError.textContent = error.message || 'Periksa koneksi internet dan coba kembali.';
+        formError.classList.remove('hidden');
+        showModal('Pendaftaran Belum Terkirim', error.message || 'Periksa koneksi internet dan coba kembali.', false);
       } finally {
         setLoading(false);
       }

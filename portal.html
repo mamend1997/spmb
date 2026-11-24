@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6fa">
+  <title>Portal Calon Siswa | SMK PGRI Cikoneng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .panel { border: 1px solid #e4e9f0; border-radius: 18px; background: #fff; box-shadow: 0 10px 32px #16243a0a; }
+    .status-card { min-height: 150px; border: 1px solid #e4e9f0; border-radius: 14px; padding: 16px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px 24px; }
+    .detail-item dt { color: #64748b; font-size: 11px; }
+    .detail-item dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 700; color: #172033; }
+    .document-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e5eaf0; border-radius: 10px; padding: 11px 13px; font-size: 12px; }
+    #print-card { display: none; }
+    @media (max-width: 700px) {
+      .detail-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+    }
+    @media (max-width: 420px) {
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+    @media print {
+      @page { size: A4; margin: 16mm; }
+      body * { visibility: hidden !important; }
+      #print-card, #print-card * { visibility: visible !important; }
+      #print-card { display: block !important; position: absolute; inset: 0 auto auto 0; width: 100%; padding: 22px; border: 1px solid #cbd5e1; border-radius: 12px; background: white !important; color: #172033 !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#f3f6fa] text-slate-800">
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <section id="login-panel" class="panel mx-auto max-w-md p-6 text-center sm:p-8">
+      <img class="mx-auto h-16 w-16 rounded-full object-contain" src="/assets/logo-pgri-cikoneng.png" alt="Logo SMK PGRI Cikoneng">
+      <h1 class="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">Portal Calon Siswa</h1>
+      <p class="mt-2 text-sm leading-6 text-slate-500">Masukkan nomor pendaftaran dan PIN untuk melihat data serta status pendaftaran.</p>
+      <form id="login-form" class="mt-7 space-y-4 text-left">
+        <div>
+          <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-600" for="registration-number">Nomor Pendaftaran</label>
+          <input class="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100" id="registration-number" name="registrationNumber" placeholder="Contoh: SPMB-2027-000001" autocomplete="username" required>
+        </div>
+        <div>
+          <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-600" for="portal-pin">PIN Akses 6 Digit</label>
+          <input class="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100" id="portal-pin" name="pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Masukkan PIN pada kartu pendaftaran" autocomplete="current-password" required>
+          <p class="mt-1.5 text-xs text-slate-400">Gunakan PIN yang diberikan setelah pendaftaran berhasil.</p>
+        </div>
+        <p id="login-error" class="hidden text-sm text-red-600" role="alert"></p>
+        <button id="login-button" class="w-full rounded-xl bg-orange-600 px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 disabled:opacity-60" type="submit">Masuk ke Portal</button>
+      </form>
+      <p class="mt-6 text-xs text-slate-500">Belum mendaftar? <a class="font-bold text-orange-700 hover:underline" href="/">Daftar sekarang</a></p>
+    </section>
+
+    <section id="portal-content" class="hidden">
+      <header class="panel flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-orange-600">Calon Peserta Didik Baru</p>
+          <h1 id="portal-name" class="mt-1 text-2xl font-extrabold text-slate-900"></h1>
+          <p id="portal-registration" class="mt-1 text-sm text-slate-500"></p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span id="portal-wave" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
+            <span id="portal-major" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
+            <span id="portal-school" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="download-card-button" class="rounded-full bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-700" type="button">Unduh Kartu (PDF)</button>
+          <button id="logout-button" class="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50" type="button">Keluar</button>
+        </div>
+      </header>
+
+      <section class="panel mt-5 p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-lg font-extrabold text-slate-900">Alur & Status Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Pantau proses pendaftaran dari portal ini.</p></div>
+          <span id="overall-status" class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700"></span>
+        </div>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <article class="status-card">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 01</span>
+            <h3 class="mt-4 text-sm font-bold text-slate-800">Formulir Pendaftaran</h3>
+            <p class="mt-1 text-xs font-semibold text-emerald-700">Terkirim & tersimpan</p>
+            <p id="registered-at" class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400"></p>
+          </article>
+          <article class="status-card">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 02</span>
+            <h3 class="mt-4 text-sm font-bold text-slate-800">Verifikasi Berkas</h3>
+            <p id="document-status" class="mt-1 text-xs font-semibold text-amber-700"></p>
+            <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Diperiksa oleh panitia</p>
+          </article>
+          <article class="status-card">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 03</span>
+            <h3 class="mt-4 text-sm font-bold text-slate-800">Hasil Seleksi</h3>
+            <p id="selection-status" class="mt-1 text-xs font-semibold text-amber-700"></p>
+            <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Pengumuman resmi sekolah</p>
+          </article>
+          <article class="status-card">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 04</span>
+            <h3 class="mt-4 text-sm font-bold text-slate-800">Daftar Ulang</h3>
+            <p id="reenrollment-status" class="mt-1 text-xs font-semibold text-slate-600"></p>
+            <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Ikuti jadwal dari panitia</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel mt-5 p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-lg font-extrabold text-slate-900">Rincian Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Informasi yang Anda kirim saat mendaftar.</p></div>
+          <span id="overall-status-details" class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700"></span>
+        </div>
+        <section class="mt-5 rounded-xl border border-slate-200 p-4 sm:p-5">
+          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Identitas Pribadi & Kontak</h3>
+          <dl id="student-details" class="detail-grid"></dl>
+        </section>
+        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+          <section class="rounded-xl border border-slate-200 p-4 sm:p-5">
+            <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Data Ayah Kandung</h3>
+            <dl id="father-details" class="detail-grid"></dl>
+          </section>
+          <section class="rounded-xl border border-slate-200 p-4 sm:p-5">
+            <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Data Ibu Kandung</h3>
+            <dl id="mother-details" class="detail-grid"></dl>
+          </section>
+        </div>
+        <section class="mt-4 rounded-xl border border-slate-200 p-4 sm:p-5">
+          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Alamat & Dokumen</h3>
+          <dl class="detail-grid"><div class="detail-item"><dt>Alamat Lengkap</dt><dd id="portal-address"></dd></div></dl>
+          <div id="portal-files" class="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"></div>
+        </section>
+      </section>
+      <p class="mt-5 text-center text-xs text-slate-400">Jika ada data yang perlu diperbaiki, hubungi panitia SPMB SMK PGRI Cikoneng.</p>
+    </section>
+  </main>
+
+  <section id="print-card" aria-hidden="true">
+    <div style="display:flex;align-items:center;gap:14px;border:2px solid #334155;padding:12px">
+      <img src="/assets/logo-pgri-cikoneng.png" width="56" height="56" alt="">
+      <div><h1 style="margin:0;font-size:20px">KARTU PESERTA SPMB</h1><p style="margin:5px 0 0;font-size:13px">SMK PGRI CIKONENG · TAHUN AJARAN <span id="print-year">2027/2028</span></p></div>
+    </div>
+    <div style="margin-top:14px;border:1px solid #64748b;padding:18px">
+      <p style="margin:0;color:#64748b;font-size:11px">NOMOR PENDAFTARAN</p><strong id="print-registration" style="font-size:20px"></strong>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px">
+        <div><p style="margin:0;color:#64748b;font-size:11px">NAMA SISWA</p><strong id="print-name"></strong></div>
+        <div><p style="margin:0;color:#64748b;font-size:11px">NISN</p><strong id="print-nisn"></strong></div>
+        <div><p style="margin:0;color:#64748b;font-size:11px">PROGRAM STUDI</p><strong id="print-major"></strong></div>
+        <div><p style="margin:0;color:#64748b;font-size:11px">GELOMBANG</p><strong id="print-wave"></strong></div>
+        <div><p style="margin:0;color:#64748b;font-size:11px">PIN PORTAL</p><strong id="print-pin" style="font-size:20px;letter-spacing:3px"></strong></div>
+        <div><p style="margin:0;color:#64748b;font-size:11px">ASAL SEKOLAH</p><strong id="print-school"></strong></div>
+      </div>
+    </div>
+    <p style="margin-top:14px;font-size:11px">Simpan kartu ini. Gunakan nomor pendaftaran dan PIN untuk masuk ke Portal Calon Siswa.</p>
+  </section>
+
+  <script>
+    let activeApplication = null;
+    let activePin = '';
+
+    function showText(id, value) {
+      document.getElementById(id).textContent = value || '-';
+    }
+
+    function addDetail(container, label, value) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'detail-item';
+      const term = document.createElement('dt');
+      term.textContent = label;
+      const description = document.createElement('dd');
+      description.textContent = value || '-';
+      wrapper.append(term, description);
+      container.appendChild(wrapper);
+    }
+
+    function renderDetails(id, entries) {
+      const container = document.getElementById(id);
+      container.replaceChildren();
+      entries.forEach(function (entry) { addDetail(container, entry[0], entry[1]); });
+    }
+
+    function displayPortal(application, pin) {
+      activeApplication = application;
+      activePin = pin;
+      document.getElementById('login-panel').classList.add('hidden');
+      document.getElementById('portal-content').classList.remove('hidden');
+      showText('portal-name', application.student.name);
+      showText('portal-registration', application.registrationNumber);
+      showText('portal-wave', application.wave);
+      showText('portal-major', application.major);
+      showText('portal-school', 'Asal: ' + application.student.school);
+      showText('registered-at', application.registeredAt ? new Date(application.registeredAt).toLocaleString('id-ID') : 'Tanggal pendaftaran tersimpan');
+      showText('document-status', application.documentStatus);
+      showText('selection-status', application.selectionStatus);
+      showText('reenrollment-status', application.reenrollmentStatus);
+      showText('overall-status', application.documentStatus);
+      showText('overall-status-details', application.documentStatus);
+      showText('portal-address', application.address);
+
+      renderDetails('student-details', [
+        ['Nama Lengkap', application.student.name], ['Jenis Kelamin', application.student.gender],
+        ['NISN', application.student.nisn], ['NIK', application.student.nik],
+        ['Nomor KK', application.student.familyCardNumber], ['Agama', application.student.religion],
+        ['Tempat Lahir', application.student.birthPlace], ['Tanggal Lahir', formatDate(application.student.birthDate)],
+        ['Asal Sekolah', application.student.school], ['No. HP / WA Siswa', application.student.phone],
+        ['Email', application.student.email]
+      ]);
+      renderDetails('father-details', [
+        ['Nama Ayah', application.father.name], ['NIK Ayah', application.father.nik],
+        ['Pendidikan', application.father.education], ['Pekerjaan', application.father.occupation],
+        ['Penghasilan / bulan', application.father.income], ['No. WhatsApp', application.father.phone]
+      ]);
+      renderDetails('mother-details', [
+        ['Nama Ibu', application.mother.name], ['NIK Ibu', application.mother.nik],
+        ['Pendidikan', application.mother.education], ['Pekerjaan', application.mother.occupation],
+        ['Penghasilan / bulan', application.mother.income], ['No. WhatsApp', application.mother.phone]
+      ]);
+      const files = document.getElementById('portal-files');
+      files.replaceChildren();
+      application.files.forEach(function (file) {
+        const row = document.createElement('div');
+        row.className = 'document-chip';
+        const label = document.createElement('span');
+        label.textContent = file.label;
+        const state = document.createElement('strong');
+        state.className = file.uploaded ? 'text-emerald-700' : 'text-slate-400';
+        state.textContent = file.uploaded ? 'Diterima' : 'Belum diunggah';
+        row.append(label, state);
+        files.appendChild(row);
+      });
+
+      showText('print-year', application.academicYear);
+      showText('print-registration', application.registrationNumber);
+      showText('print-name', application.student.name);
+      showText('print-nisn', application.student.nisn);
+      showText('print-major', application.major);
+      showText('print-wave', application.wave);
+      showText('print-pin', pin);
+      showText('print-school', application.student.school);
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+      const date = new Date(value + 'T00:00:00');
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('login-button');
+      const error = document.getElementById('login-error');
+      button.disabled = true;
+      error.classList.add('hidden');
+      const registrationNumber = document.getElementById('registration-number').value.trim().toUpperCase();
+      const pin = document.getElementById('portal-pin').value.trim();
+      try {
+        const response = await fetch('/api/portal/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ registrationNumber: registrationNumber, pin: pin })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Tidak dapat masuk ke portal.');
+        displayPortal(result.application, pin);
+      } catch (requestError) {
+        error.textContent = requestError.message || 'Periksa nomor pendaftaran dan PIN.';
+        error.classList.remove('hidden');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('logout-button').addEventListener('click', function () {
+      activeApplication = null;
+      activePin = '';
+      document.getElementById('portal-content').classList.add('hidden');
+      document.getElementById('login-panel').classList.remove('hidden');
+      document.getElementById('portal-pin').value = '';
+      document.getElementById('registration-number').focus();
+    });
+
+    document.getElementById('download-card-button').addEventListener('click', function () {
+      if (activeApplication) window.print();
+    });
+  </script>
+</body>
+</html>
