@@ -58,6 +58,7 @@ header.site-header {
 
 .site-header-inner {
   display: flex;
+  box-sizing: border-box;
   max-width: 80rem;
   min-height: 76px;
   align-items: center;

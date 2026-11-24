@@ -10,11 +10,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { font-family: Arial, sans-serif; color: #172033; background: #f3f6fa; }
+    :root { font-family: 'Plus Jakarta Sans', Arial, sans-serif; font-size: 14px; color: #172033; background: #f3f6fa; }
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; padding: 24px 16px 48px; }
     button, input, select, textarea { font: inherit; }
-    button { min-height: 40px; padding: 9px 14px; border: 0; border-radius: 9px; color: white; background: #d94f0b; font-size: 13px; font-weight: 700; cursor: pointer; }
+    button { min-height: 40px; padding: 9px 14px; border: 0; border-radius: 9px; color: white; background: #d94f0b; font-size: 14px; font-weight: 700; cursor: pointer; }
     button:hover { filter: brightness(.96); }
     button:disabled { cursor: not-allowed; opacity: .6; }
     button.secondary { color: #334155; background: #e8edf4; }
@@ -48,7 +48,7 @@
     .profile-menu-identity { padding: 10px 11px 12px; border-bottom: 1px solid #edf0f4; }
     .profile-menu-identity strong, .profile-menu-identity span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .profile-menu-identity strong { color: #172554; font-size: 13px; }
-    .profile-menu-identity span { margin-top: 3px; color: #64748b; font-size: 11px; }
+    .profile-menu-identity span { margin-top: 3px; color: #64748b; font-size: 12px; }
     .profile-menu button { display: flex; width: 100%; min-height: 40px; align-items: center; gap: 9px; margin-top: 4px; padding: 8px 10px; border-radius: 9px; color: #334155; background: transparent; text-align: left; transition: color .16s ease, background .16s ease, transform .16s ease; }
     .profile-menu button:hover { color: #c2410c; background: #fff7ed; transform: translateX(2px); }
     .profile-menu button.danger { color: #b42318; }
@@ -78,19 +78,19 @@
     .chart-column { display: grid; grid-template-rows: 1fr auto; align-items: end; height: 100%; gap: 8px; text-align: center; }
     .chart-bar-wrap { display: flex; align-items: end; justify-content: center; height: 100%; }
     .chart-bar { width: min(100%, 28px); min-height: 2px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg,#fb923c,#ea580c); }
-    .chart-label { color: #667085; font-size: 10px; }
+    .chart-label { color: #667085; font-size: 12px; }
     .master-group { margin-top: 20px; padding-top: 14px; border-top: 1px solid #edf0f4; }
     .master-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); align-items: end; gap: 8px; margin-top: 9px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
     .master-row > * { min-width: 0; }
-    .master-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 11px; font-weight: 700; }
-    .master-row .check-control { display: flex; align-items: center; gap: 6px; min-height: 42px; font-size: 11px; }
+    .master-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 12px; font-weight: 700; }
+    .master-row .check-control { display: flex; align-items: center; gap: 6px; min-height: 42px; font-size: 12px; }
     .master-row .check-control input { width: auto; min-height: auto; }
     .payment-check-control { display: inline-flex; align-items: center; gap: .55em; width: fit-content; color: #475467; font-size: 13px; font-weight: 600; }
     .payment-check-control input[type="checkbox"] { width: 1em; height: 1em; min-height: 1em; margin: 0; accent-color: #ea580c; }
     .field-config-row { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
     .field-config-row > * { min-width: 0; }
     .field-toggle-setting { display: flex; min-height: 62px; flex-direction: column; justify-content: flex-end; gap: 7px; }
-    .field-control-caption { color: #475467; font-size: 11px; font-weight: 700; }
+    .field-control-caption { color: #475467; font-size: 12px; font-weight: 700; }
     .master-row label.field-switch { display: inline-flex; width: fit-content; min-height: 30px; align-items: center; gap: 8px; margin: 0 !important; color: #64748b; cursor: pointer; }
     .permission-matrix label.field-switch { display: inline-flex; width: fit-content; min-height: 28px; align-items: center; gap: 8px; margin: 0 !important; color: #64748b; cursor: pointer; }
     .field-switch input { position: absolute; width: 1px; height: 1px; min-height: 1px; margin: 0; opacity: 0; }
@@ -100,7 +100,7 @@
     .field-switch input:checked + .field-switch-track::after { transform: translateX(18px); }
     .field-switch input:focus-visible + .field-switch-track { outline: 3px solid #f9731640; outline-offset: 2px; }
     .field-switch.is-checked .field-switch-state { color: #c2410c; }
-    .field-switch-state { color: #64748b; font-size: 11px; font-weight: 700; }
+    .field-switch-state { color: #64748b; font-size: 12px; font-weight: 700; }
     .field-order-controls { display: flex; align-items: flex-end; gap: 6px; }
     .field-move { width: 38px; min-height: 38px; padding: 0; font-size: 18px; line-height: 1; }
     .field-move:disabled { cursor: not-allowed; }
@@ -108,13 +108,13 @@
     .role-permission-panel { margin: 18px 0; padding: 16px; border: 1px solid #e4e9f0; border-radius: 14px; background: #fbfcfe; }
     .permission-matrix { margin: 14px 0; overflow-x: auto; }
     .permission-matrix-row { display: grid; min-width: 470px; grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(80px, .42fr)); align-items: center; gap: 12px; padding: 9px 10px; border-bottom: 1px solid #edf0f4; }
-    .permission-matrix-head { color: #64748b; font-size: 11px; }
+    .permission-matrix-head { color: #64748b; font-size: 12px; }
     .permission-matrix-row > strong:first-child { color: #334155; font-size: 12px; }
     .permission-matrix-cell { display: flex; justify-content: center; }
     .permission-matrix-cell .field-toggle-setting { min-height: auto; align-items: center; gap: 2px; }
     .permission-matrix-cell .field-control-caption { display: none; }
     .permission-matrix-cell .field-switch { gap: 4px; }
-    .permission-matrix-cell .field-switch-state { min-width: 48px; font-size: 10px; }
+    .permission-matrix-cell .field-switch-state { min-width: 48px; font-size: 12px; }
     .school-document-row { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
     .school-document-row .wide { grid-column: 1 / -1; }
     .school-document-upload { display: flex; align-items: end; gap: 8px; }
@@ -125,7 +125,7 @@
     .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
     .metric { padding: 17px; }
     .metric span { display: block; color: #667085; font-size: 12px; }
-    .metric strong { display: block; margin-top: 8px; font-size: 25px; }
+    .metric strong { display: block; margin-top: 8px; font-size: 24px; }
     .section { margin-top: 16px; padding: 20px; }
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .section-heading p { margin: 5px 0 0; }
@@ -133,27 +133,29 @@
     .table-wrap { overflow: auto; margin-top: 14px; border: 1px solid #e6eaf0; border-radius: 10px; }
     table { width: 100%; min-width: 1330px; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 11px 9px; border-bottom: 1px solid #edf0f4; text-align: left; vertical-align: top; }
-    th { position: sticky; top: 0; background: #f8fafc; color: #667085; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+    th { position: sticky; top: 0; background: #f8fafc; color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
     tr:last-child td { border-bottom: 0; }
-    td select { min-width: 150px; font-size: 11px; }
+    td select { min-width: 150px; font-size: 12px; }
     .applicant-name { min-width: 170px; }
     .applicant-name strong, .applicant-name span { display: block; margin-bottom: 4px; }
-    .applicant-name span, .muted { color: #667085; font-size: 11px; }
+    .applicant-name span, .muted { color: #667085; font-size: 12px; }
     .file-links { display: grid; gap: 6px; min-width: 140px; }
     .file-links a { color: #c2410c; }
-    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 84px; }
+    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 120px; }
     .action-icon { display: inline-grid; width: 34px; min-width: 34px; min-height: 34px; place-items: center; padding: 0; border: 1px solid #e5e7eb; border-radius: 9px; color: #475569; background: white; transition: transform .18s ease, color .18s ease, background .18s ease; }
     .action-icon:hover { color: #c2410c; background: #fff7ed; }
+    .action-icon.action-danger { border-color: #fecaca; color: #b42318; background: #fef2f2; }
+    .action-icon.action-danger:hover { color: #991b1b; background: #fee2e2; }
     .action-icon svg { width: 17px; height: 17px; }
     .action-icon.action-primary { color: #c2410c; background: #fff7ed; }
     .applicant-photo { width: 34px; height: 42px; border: 1px solid #e5e7eb; border-radius: 6px; object-fit: cover; }
-    .applicant-photo-empty { display: grid; width: 34px; height: 42px; place-items: center; border: 1px dashed #cbd5e1; border-radius: 6px; color: #94a3b8; font-size: 10px; }
-    .status-badge { display: inline-flex; align-items: center; max-width: 190px; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.3; }
+    .applicant-photo-empty { display: grid; width: 34px; height: 42px; place-items: center; border: 1px dashed #cbd5e1; border-radius: 6px; color: #94a3b8; font-size: 12px; }
+    .status-badge { display: inline-flex; align-items: center; max-width: 190px; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.3; }
     .status-badge.pending { border-color: #fde68a; color: #a16207; background: #fffbeb; }
     .status-badge.verified { border-color: #a7f3d0; color: #047857; background: #ecfdf5; }
     .status-badge.revision { border-color: #fecaca; color: #b91c1c; background: #fef2f2; }
     .status-badge.neutral { border-color: #e2e8f0; color: #475569; background: #f8fafc; }
-    .official-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .official-status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; white-space: nowrap; }
     .official-status.yes { color: #047857; }
     .official-status.no { color: #94a3b8; }
     .applicant-detail-page { display: grid; gap: 16px; }
@@ -161,10 +163,10 @@
     [data-detail-edit-actions][hidden], .detail-page-actions button[hidden],
     .detail-record-layout[hidden], #detail-documents-section[hidden], .detail-payment-card[hidden] { display: none !important; }
     .detail-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-    .detail-breadcrumb { margin: 0 0 5px; color: #64748b; font-size: 11px; }
+    .detail-breadcrumb { margin: 0 0 5px; color: #64748b; font-size: 12px; }
     .detail-page-heading h1 { font-size: 22px; }
     .detail-page-actions, .detail-hero-badges, .detail-hero-actions, .detail-document-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-    .detail-page-actions button, .detail-hero-actions button, .detail-document-actions button { min-height: 34px; padding: 7px 11px; font-size: 11px; }
+    .detail-page-actions button, .detail-hero-actions button, .detail-document-actions button { min-height: 34px; padding: 7px 11px; font-size: 12px; }
     .detail-page-actions .secondary, .detail-document-actions .secondary { color: #334155; background: white; border: 1px solid #dbe3ec; }
     .detail-hero { display: flex; align-items: center; gap: 16px; padding: 16px; }
     .detail-photo, .detail-photo-empty { width: 64px; height: 78px; flex: 0 0 64px; border: 1px solid #e4e9f0; border-radius: 11px; background: #f8fafc; object-fit: cover; }
@@ -172,16 +174,16 @@
     .detail-hero-main { min-width: 0; flex: 1; }
     .detail-hero-main h2 { margin: 0 0 6px; font-size: 17px; }
     .detail-hero-badges { gap: 5px; }
-    .detail-chip { display: inline-flex; max-width: 100%; padding: 4px 8px; overflow-wrap: anywhere; border: 1px solid #e5eaf0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 10px; font-weight: 700; }
+    .detail-chip { display: inline-flex; max-width: 100%; padding: 4px 8px; overflow-wrap: anywhere; border: 1px solid #e5eaf0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 12px; font-weight: 700; }
     .detail-access { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-    .detail-access-note { max-width: 140px; color: #64748b; font-size: 10px; line-height: 1.5; }
-    .detail-access a { display: inline-flex; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #dbe3ec; border-radius: 8px; color: #334155; background: white; font-size: 11px; font-weight: 700; text-decoration: none; }
+    .detail-access-note { max-width: 140px; color: #64748b; font-size: 12px; line-height: 1.5; }
+    .detail-access a { display: inline-flex; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #dbe3ec; border-radius: 8px; color: #334155; background: white; font-size: 12px; font-weight: 700; text-decoration: none; }
     .detail-hero-actions .detail-verify-all { background: #15925b; }
     .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 10px; }
     .detail-section-heading h2 { font-size: 15px; }
-    .detail-section-heading p { margin: 3px 0 0; font-size: 11px; }
+    .detail-section-heading p { margin: 3px 0 0; font-size: 12px; }
     .detail-parent-stack { display: grid; gap: 14px; }
-    .detail-record-card h4 { margin: 12px 0 7px; color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
+    .detail-record-card h4 { margin: 12px 0 7px; color: #64748b; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
     .detail-record-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 14px; }
     .detail-record-card, .detail-document-card, .detail-payment-card { min-width: 0; padding: 14px; border: 1px solid #e4e9f0; border-radius: 12px; background: white; box-shadow: 0 6px 20px #16243a08; }
     .detail-record-card h3, .detail-document-card h3, .detail-payment-card h3 { margin: 0; font-size: 12px; }
@@ -189,22 +191,24 @@
     .detail-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 16px; padding: 12px; border: 1px solid #edf0f4; border-radius: 9px; background: #fbfcfe; }
     .detail-record-grid + .detail-record-grid { margin-top: 10px; }
     .detail-record-item { min-width: 0; }
-    .detail-record-item dt { color: #64748b; font-size: 9px; }
-    .detail-record-item dd { margin: 3px 0 0; color: #172033; font-size: 11px; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
-    .detail-record-item .detail-review-state { display: block; margin-top: 3px; color: #a16207; font-size: 9px; font-weight: 700; }
+    .detail-record-item dt { color: #64748b; font-size: 12px; }
+    .detail-record-item dd { margin: 3px 0 0; color: #172033; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .detail-record-item .detail-review-state { display: block; margin-top: 3px; color: #a16207; font-size: 12px; font-weight: 700; }
     .detail-card-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #edf0f4; }
-    .detail-card-actions button { min-height: 30px; padding: 6px 9px; font-size: 10px; }
+    .detail-card-actions button { min-height: 34px; padding: 6px 9px; font-size: 12px; }
     .detail-card-actions .detail-revision { background: #c62828; }
     .detail-card-actions .detail-verified { background: #16965d; }
     .detail-document-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .detail-document-card { display: grid; gap: 10px; }
     .detail-document-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .detail-file-link { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 10px; border: 1px solid #edf0f4; border-radius: 8px; background: #fbfcfe; color: #475569; font-size: 10px; text-decoration: none; }
+    .detail-file-link { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 10px; border: 1px solid #edf0f4; border-radius: 8px; background: #fbfcfe; color: #475569; font-size: 12px; text-decoration: none; }
     .detail-file-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .detail-file-link:hover { color: #c2410c; }
-    .detail-status-banner { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 11px; }
+    .detail-status-banner { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 12px; }
     .detail-payment-actions textarea { width: 100%; margin-top: 12px; }
-    .detail-readonly-notice { padding: 12px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; color: #92400e; font-size: 12px; }
+    .detail-readonly-notice { padding: 12px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; color: #92400e; font-size: 13px; }
+    #revision-note-dialog { width: min(100% - 24px, 520px); }
+    #revision-note-dialog textarea { min-height: 120px; resize: vertical; }
     #review-dialog.selection-only #review-items,
     #review-dialog.selection-only #save-reviews-button,
     #review-dialog.selection-only #payment-review-section,
@@ -218,7 +222,7 @@
     #print-applicant-card .print-card-heading img { width: 58px; height: 58px; object-fit: contain; }
     #print-applicant-card h2 { font-size: 20px; }
     #print-applicant-card .print-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; margin-top: 20px; }
-    #print-applicant-card .print-card-grid span, #print-applicant-card .print-card-number span { display: block; margin-bottom: 4px; color: #64748b; font-size: 10px; font-weight: 700; }
+    #print-applicant-card .print-card-grid span, #print-applicant-card .print-card-number span { display: block; margin-bottom: 4px; color: #64748b; font-size: 12px; font-weight: 700; }
     #print-applicant-card .print-card-grid strong, #print-applicant-card .print-card-number strong { font-size: 14px; }
     #print-applicant-card .print-card-number { margin-top: 18px; }
     #print-applicant-card .print-card-number strong { font-size: 22px; }
@@ -271,7 +275,7 @@
       .master-row, .review-controls { grid-template-columns: 1fr; }
       .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row { grid-template-columns: 1fr; }
       .chart { gap: 4px; }
-      .chart-label { font-size: 8px; }
+      .chart-label { font-size: 12px; }
       .file-setting { grid-template-columns: 1fr; }
       .dialog-content { padding: 17px; }
       .dialog-actions { flex-direction: column-reverse; }
@@ -288,7 +292,7 @@
     }
 
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-3">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-4">
 </head>
 <body>
   <main>
@@ -691,6 +695,41 @@
     </div>
   </dialog>
 
+  <dialog id="delete-confirm-dialog" aria-labelledby="delete-confirm-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="delete-confirm-title">Hapus Pendaftar?</h2>
+          <p id="delete-confirm-applicant"></p>
+        </div>
+      </div>
+      <p>Pendaftar akan dikeluarkan dari daftar aktif dan dipindahkan ke arsip, bukan dihapus permanen dari penyimpanan.</p>
+      <p id="delete-confirm-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-delete-applicant" class="secondary" type="button">Batal</button>
+        <button id="confirm-delete-applicant" type="button" style="background:#b42318">Ya, Hapus</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="revision-note-dialog" aria-labelledby="revision-note-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="revision-note-title">Catatan Revisi Data</h2>
+          <p id="revision-note-context"></p>
+        </div>
+      </div>
+      <label for="revision-note-input">Jelaskan data yang perlu diperbaiki oleh siswa</label>
+      <textarea id="revision-note-input" rows="4" maxlength="1000" required placeholder="Contoh: Mohon perbaiki penulisan nama sesuai dokumen KK."></textarea>
+      <p id="revision-note-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-revision-note" class="secondary" type="button">Batal</button>
+        <button id="submit-revision-note" type="button">Kirim Permintaan Revisi</button>
+      </div>
+    </div>
+  </dialog>
+
   <section id="print-applicant-card" aria-hidden="true">
     <div class="print-card-shell">
       <div class="print-card-heading">
@@ -769,6 +808,8 @@
     const adminSidebar = document.querySelector('.admin-layout .sidebar');
     const editDialog = document.getElementById('edit-dialog');
     const reviewDialog = document.getElementById('review-dialog');
+    const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
+    const revisionNoteDialog = document.getElementById('revision-note-dialog');
     const profileDialog = document.getElementById('profile-dialog');
     const passwordDialog = document.getElementById('password-dialog');
     const programs = [
@@ -816,6 +857,8 @@
     let currentMonthly = [];
     let adminReviewConfig = null;
     let currentDetailRegistrationNumber = '';
+    let deletingApplicant = null;
+    let pendingRevisionReview = null;
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -1733,6 +1776,12 @@
               printApplicantCard(applicant);
             })
           );
+          if (canAdmin('applications', 'delete')) {
+            actions.append(createIconAction('Hapus pendaftar', '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/>', function () {
+              openDeleteConfirmation(applicant);
+            }));
+            actions.lastElementChild.classList.add('action-danger');
+          }
         }
         [registrationNumber, photoCell, applicantCell, wave, path, makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), makeCell(officialStatus), actions]
           .forEach(function (cell) { row.appendChild(cell); });
@@ -2023,16 +2072,19 @@
         setStatus('detail-status', 'Tidak ada data terisi untuk diperiksa pada bagian ini.', 'error');
         return;
       }
-      let note = '';
       if (status === 'revision') {
-        note = window.prompt('Tuliskan catatan perbaikan untuk siswa:');
-        if (note === null) return;
-        if (!note.trim()) return setStatus('detail-status', 'Catatan perbaikan wajib diisi.', 'error');
+        openRevisionNoteDialog(
+          reviewingApplicant,
+          applicantDetailPage.querySelector('[data-detail-review-all="' + group + '"][data-review-status="revision"]'),
+          fields.map(function (field) { return { key: field.key, type: 'field' }; }),
+          group === 'student' ? 'Data calon siswa' : 'Data orang tua / wali'
+        );
+        return;
       }
       const button = applicantDetailPage.querySelector('[data-detail-review-all="' + group + '"][data-review-status="' + status + '"]');
       button.disabled = true;
       try {
-        for (const field of fields) await updateApplicantReview(reviewingApplicant, field.key, 'field', status, note);
+        for (const field of fields) await updateApplicantReview(reviewingApplicant, field.key, 'field', status, '');
         await loadApplications();
         setStatus('detail-status', status === 'verified' ? 'Data berhasil diverifikasi.' : 'Data dikembalikan untuk perbaikan.', 'success');
       } catch (error) {
@@ -2040,6 +2092,52 @@
         await loadApplications();
       } finally {
         button.disabled = false;
+      }
+    }
+
+    function openRevisionNoteDialog(applicant, button, items, context) {
+      pendingRevisionReview = { applicant: applicant, button: button, items: items };
+      document.getElementById('revision-note-context').textContent =
+        applicant.student_name + ' · ' + applicant.registration_number + ' · ' + context;
+      document.getElementById('revision-note-input').value = '';
+      setStatus('revision-note-status', '', '');
+      revisionNoteDialog.showModal();
+      document.getElementById('revision-note-input').focus();
+    }
+
+    async function submitRevisionNote() {
+      if (!pendingRevisionReview) return;
+      const noteInput = document.getElementById('revision-note-input');
+      const note = noteInput.value.trim();
+      if (!note) {
+        setStatus('revision-note-status', 'Catatan revisi wajib diisi.', 'error');
+        noteInput.focus();
+        return;
+      }
+      const pending = pendingRevisionReview;
+      const submitButton = document.getElementById('submit-revision-note');
+      const cancelButton = document.getElementById('cancel-revision-note');
+      submitButton.disabled = true;
+      cancelButton.disabled = true;
+      if (pending.button) pending.button.disabled = true;
+      setStatus('revision-note-status', 'Mengirim permintaan revisi...', '');
+      try {
+        for (const item of pending.items) {
+          await updateApplicantReview(pending.applicant, item.key, item.type, 'revision', note);
+        }
+        revisionNoteDialog.close();
+        pendingRevisionReview = null;
+        if (await loadApplications()) {
+          setStatus('detail-status', 'Permintaan revisi berhasil dikirim kepada siswa.', 'success');
+        } else {
+          setStatus('detail-status', 'Revisi tersimpan, tetapi halaman gagal dimuat ulang. Silakan muat ulang halaman.', 'error');
+        }
+      } catch (error) {
+        setStatus('revision-note-status', error.message || 'Permintaan revisi gagal dikirim.', 'error');
+      } finally {
+        submitButton.disabled = false;
+        cancelButton.disabled = false;
+        if (pending.button) pending.button.disabled = false;
       }
     }
 
@@ -2104,6 +2202,37 @@
         pathMarkup + '</svg>';
       button.addEventListener('click', function () { handler(button); });
       return button;
+    }
+
+    function openDeleteConfirmation(applicant) {
+      deletingApplicant = applicant;
+      document.getElementById('delete-confirm-applicant').textContent =
+        applicant.student_name + ' · ' + applicant.registration_number;
+      setStatus('delete-confirm-status', '', '');
+      deleteConfirmDialog.showModal();
+    }
+
+    async function deleteApplicant() {
+      if (!deletingApplicant) return;
+      const button = document.getElementById('confirm-delete-applicant');
+      button.disabled = true;
+      setStatus('delete-confirm-status', 'Memindahkan pendaftar ke arsip...', '');
+      try {
+        await api('/api/admin/applications/' + encodeURIComponent(deletingApplicant.registration_number), {
+          method: 'DELETE'
+        });
+        deleteConfirmDialog.close();
+        deletingApplicant = null;
+        if (await loadApplications()) {
+          setStatus('applications-status', 'Pendaftar berhasil dipindahkan ke arsip.', 'success');
+        } else {
+          setStatus('applications-status', 'Pendaftar berhasil diarsipkan, tetapi daftar gagal dimuat ulang. Silakan muat ulang halaman.', 'error');
+        }
+      } catch (error) {
+        setStatus('delete-confirm-status', error.message || 'Pendaftar gagal dihapus.', 'error');
+      } finally {
+        button.disabled = false;
+      }
     }
 
     function printApplicantCard(applicant) {
@@ -2757,16 +2886,17 @@
       const reviewButton = event.target.closest('[data-detail-review-key]');
       if (reviewButton) {
         const status = reviewButton.dataset.reviewStatus;
-        let note = '';
         if (status === 'revision') {
-          note = window.prompt('Tuliskan catatan perbaikan untuk siswa:');
-          if (note === null) return;
-          if (!note.trim()) return setStatus('detail-status', 'Catatan perbaikan wajib diisi.', 'error');
+          openRevisionNoteDialog(reviewingApplicant, reviewButton, [{
+            key: reviewButton.dataset.detailReviewKey,
+            type: reviewButton.dataset.detailReviewType
+          }], 'Data: ' + reviewButton.parentElement.parentElement.querySelector('h3').textContent);
+          return;
         }
         reviewButton.disabled = true;
         try {
           await updateApplicantReview(reviewingApplicant, reviewButton.dataset.detailReviewKey,
-            reviewButton.dataset.detailReviewType, status, note);
+            reviewButton.dataset.detailReviewType, status, '');
           await loadApplications();
           setStatus('detail-status', status === 'verified' ? 'Verifikasi berhasil disimpan.' : 'Item dikembalikan untuk perbaikan.', 'success');
         } catch (error) {
@@ -2787,6 +2917,25 @@
 
     document.getElementById('close-edit-button').addEventListener('click', function () { editDialog.close(); });
     document.getElementById('cancel-edit-button').addEventListener('click', function () { editDialog.close(); });
+    document.getElementById('cancel-delete-applicant').addEventListener('click', function () {
+      deletingApplicant = null;
+      deleteConfirmDialog.close();
+    });
+    document.getElementById('confirm-delete-applicant').addEventListener('click', deleteApplicant);
+    deleteConfirmDialog.addEventListener('close', function () {
+      if (!document.getElementById('confirm-delete-applicant').disabled) deletingApplicant = null;
+    });
+    document.getElementById('cancel-revision-note').addEventListener('click', function () {
+      pendingRevisionReview = null;
+      revisionNoteDialog.close();
+    });
+    document.getElementById('submit-revision-note').addEventListener('click', submitRevisionNote);
+    revisionNoteDialog.addEventListener('cancel', function (event) {
+      if (document.getElementById('submit-revision-note').disabled) event.preventDefault();
+    });
+    revisionNoteDialog.addEventListener('close', function () {
+      if (!document.getElementById('submit-revision-note').disabled) pendingRevisionReview = null;
+    });
     document.getElementById('application-search').addEventListener('input', filterApplications);
     document.getElementById('status-filter').addEventListener('change', filterApplications);
     document.getElementById('reload-button').addEventListener('click', loadAll);
