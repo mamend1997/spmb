@@ -121,8 +121,28 @@ database.exec(`
     token_hash TEXT PRIMARY KEY,
     expires_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS admin_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    display_name TEXT NOT NULL,
+    password_salt TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('owner', 'operator', 'viewer')),
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS admin_login_attempts (
+    login_key TEXT PRIMARY KEY,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    blocked_until INTEGER NOT NULL DEFAULT 0
+  );
 `);
 
+const adminSessionColumns = database.prepare('PRAGMA table_info(admin_sessions)').all();
+if (!adminSessionColumns.some(function (column) { return column.name === 'user_id'; })) {
+  database.exec('ALTER TABLE admin_sessions ADD COLUMN user_id INTEGER');
+}
 database.prepare('DELETE FROM admin_sessions WHERE expires_at <= ?').run(Date.now());
 
 app.set('trust proxy', 1);
@@ -312,6 +332,75 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+function hashPassword(password, salt) {
+  const passwordSalt = salt || crypto.randomBytes(16);
+  return {
+    salt: passwordSalt.toString('hex'),
+    hash: crypto.scryptSync(password, passwordSalt, 64).toString('hex')
+  };
+}
+
+const dummyAdminPasswordHash = hashPassword('spmb-dummy-password', Buffer.alloc(16, 1));
+
+function verifyPassword(password, saltHex, hashHex) {
+  const salt = Buffer.from(saltHex, 'hex');
+  const expected = Buffer.from(hashHex, 'hex');
+  if (salt.length !== 16 || expected.length !== 64) return false;
+  const actual = crypto.scryptSync(password, salt, 64);
+  return crypto.timingSafeEqual(actual, expected);
+}
+
+function normalizeAdminUsername(value) {
+  if (typeof value !== 'string') throw new Error('Username harus diisi.');
+  const username = value.trim().toLowerCase();
+  if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
+    throw new Error('Username harus 3–40 karakter dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung.');
+  }
+  return username;
+}
+
+function validateAdminPassword(value) {
+  if (typeof value !== 'string' || value.length < 12 || value.length > 128) {
+    throw new Error('Password harus terdiri dari 12–128 karakter.');
+  }
+  return value;
+}
+
+function publicAdminUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.display_name,
+    role: user.role
+  };
+}
+
+function bootstrapInitialOwner() {
+  if (database.prepare('SELECT COUNT(*) AS count FROM admin_users').get().count > 0) return;
+  if (!process.env.ADMIN_USERNAME && !process.env.ADMIN_PASSWORD) {
+    console.warn('Admin belum dibuat. Atur ADMIN_USERNAME dan ADMIN_PASSWORD di environment variables.');
+    return;
+  }
+  const username = normalizeAdminUsername(process.env.ADMIN_USERNAME);
+  const password = validateAdminPassword(process.env.ADMIN_PASSWORD);
+  const passwordHash = hashPassword(password);
+  const now = new Date().toISOString();
+  database.prepare(`
+    INSERT INTO admin_users (username, display_name, password_salt, password_hash, role, is_active, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'owner', 1, ?, ?)
+  `).run(
+    username,
+    String(process.env.ADMIN_DISPLAY_NAME || username).trim().slice(0, 80) || username,
+    passwordHash.salt,
+    passwordHash.hash,
+    now,
+    now
+  );
+  console.log('Initial owner account created.');
+}
+
+bootstrapInitialOwner();
+
 function withTransaction(callback) {
   database.exec('BEGIN IMMEDIATE');
   try {
@@ -322,12 +411,6 @@ function withTransaction(callback) {
     try { database.exec('ROLLBACK'); } catch (rollbackError) { console.error('SQLite rollback failed:', rollbackError.message); }
     throw error;
   }
-}
-
-function constantTimeEqual(left, right) {
-  const leftBuffer = Buffer.from(String(left || ''));
-  const rightBuffer = Buffer.from(String(right || ''));
-  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 function parseCookies(header) {
@@ -343,13 +426,32 @@ function parseCookies(header) {
 function requireAdmin(request, response, next) {
   const session = parseCookies(request.headers.cookie).spmb_admin;
   if (!session) return response.status(401).json({ message: 'Silakan masuk sebagai admin.' });
-  const row = database.prepare('SELECT expires_at FROM admin_sessions WHERE token_hash = ?').get(hashToken(session));
-  if (!row || row.expires_at <= Date.now()) {
-    if (row) database.prepare('DELETE FROM admin_sessions WHERE token_hash = ?').run(hashToken(session));
+  const sessionHash = hashToken(session);
+  const row = database.prepare(`
+    SELECT s.expires_at, u.id, u.username, u.display_name, u.role, u.is_active
+    FROM admin_sessions s
+    INNER JOIN admin_users u ON u.id = s.user_id
+    WHERE s.token_hash = ?
+  `).get(sessionHash);
+  if (!row || row.expires_at <= Date.now() || !row.is_active) {
+    database.prepare('DELETE FROM admin_sessions WHERE token_hash = ?').run(sessionHash);
     return response.status(401).json({ message: 'Sesi admin berakhir. Silakan masuk kembali.' });
   }
+  request.adminUser = row;
   next();
 }
+
+function requireRoles(roles) {
+  return function (request, response, next) {
+    if (!request.adminUser || !roles.includes(request.adminUser.role)) {
+      return response.status(403).json({ message: 'Akun Anda tidak memiliki izin untuk tindakan ini.' });
+    }
+    next();
+  };
+}
+
+const requireOwner = requireRoles(['owner']);
+const requireOperator = requireRoles(['owner', 'operator']);
 
 function setAdminCookie(request, response, token, maxAge) {
   const secure = request.secure ? '; Secure' : '';
@@ -750,18 +852,167 @@ app.post('/api/portal/login', function (request, response) {
 });
 
 app.post('/api/admin/login', function (request, response) {
-  const expected = process.env.ADMIN_TOKEN;
-  if (!expected || expected.length < 32) {
-    return response.status(503).json({ message: 'ADMIN_TOKEN belum disetel sebagai environment variable di Railway.' });
+  if (database.prepare('SELECT COUNT(*) AS count FROM admin_users').get().count === 0) {
+    return response.status(503).json({ message: 'Akun Pemilik belum dibuat. Atur ADMIN_USERNAME dan ADMIN_PASSWORD di Railway.' });
   }
-  if (!constantTimeEqual(request.body && request.body.token, expected)) {
-    return response.status(401).json({ message: 'Token admin tidak valid.' });
+  const rawUsername = request.body && request.body.username;
+  const username = typeof rawUsername === 'string' ? rawUsername.trim().toLowerCase().slice(0, 40) : '';
+  const loginKey = hashToken(username + '|' + String(request.ip || 'unknown'));
+  let attempt = database.prepare('SELECT attempts, blocked_until FROM admin_login_attempts WHERE login_key = ?').get(loginKey);
+  if (attempt && attempt.blocked_until > Date.now()) {
+    return response.status(429).json({ message: 'Terlalu banyak percobaan masuk. Coba lagi dalam 15 menit.' });
   }
+  if (attempt && attempt.blocked_until > 0) {
+    database.prepare('DELETE FROM admin_login_attempts WHERE login_key = ?').run(loginKey);
+    attempt = null;
+  }
+
+  const user = database.prepare('SELECT * FROM admin_users WHERE username = ? COLLATE NOCASE').get(username);
+  const suppliedPassword = request.body && request.body.password;
+  const password = typeof suppliedPassword === 'string' ? suppliedPassword : '';
+  const passwordValid = password.length <= 128 && (user
+    ? verifyPassword(password, user.password_salt, user.password_hash)
+    : verifyPassword(password, dummyAdminPasswordHash.salt, dummyAdminPasswordHash.hash));
+  if (!user || !user.is_active || !passwordValid) {
+    const attempts = (attempt ? attempt.attempts : 0) + 1;
+    const blockedUntil = attempts >= 5 ? Date.now() + 15 * 60 * 1000 : 0;
+    database.prepare(`
+      INSERT INTO admin_login_attempts (login_key, attempts, blocked_until)
+      VALUES (?, ?, ?)
+      ON CONFLICT(login_key) DO UPDATE SET attempts = excluded.attempts, blocked_until = excluded.blocked_until
+    `).run(loginKey, attempts, blockedUntil);
+    return response.status(401).json({ message: 'Username atau password tidak valid.' });
+  }
+
+  database.prepare('DELETE FROM admin_login_attempts WHERE login_key = ?').run(loginKey);
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
-  database.prepare('INSERT INTO admin_sessions (token_hash, expires_at) VALUES (?, ?)').run(hashToken(token), expiresAt);
+  database.prepare('INSERT INTO admin_sessions (token_hash, expires_at, user_id) VALUES (?, ?, ?)')
+    .run(hashToken(token), expiresAt, user.id);
   setAdminCookie(request, response, token, 8 * 60 * 60);
+  response.json({ status: 'success', user: publicAdminUser(user) });
+});
+
+app.get('/api/admin/me', requireAdmin, function (request, response) {
+  response.json({ user: publicAdminUser(request.adminUser) });
+});
+
+app.post('/api/admin/change-password', requireAdmin, function (request, response) {
+  try {
+    const currentPassword = request.body && request.body.currentPassword;
+    const newPassword = validateAdminPassword(request.body && request.body.newPassword);
+    const user = database.prepare('SELECT * FROM admin_users WHERE id = ?').get(request.adminUser.id);
+    if (typeof currentPassword !== 'string' || currentPassword.length > 128 ||
+        !verifyPassword(currentPassword, user.password_salt, user.password_hash)) {
+      return response.status(401).json({ message: 'Password saat ini tidak sesuai.' });
+    }
+    const passwordHash = hashPassword(newPassword);
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
+    withTransaction(function () {
+      database.prepare('UPDATE admin_users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ?')
+        .run(passwordHash.salt, passwordHash.hash, new Date().toISOString(), user.id);
+      database.prepare('DELETE FROM admin_sessions WHERE user_id = ?').run(user.id);
+      database.prepare('INSERT INTO admin_sessions (token_hash, expires_at, user_id) VALUES (?, ?, ?)')
+        .run(hashToken(token), expiresAt, user.id);
+    });
+    setAdminCookie(request, response, token, 8 * 60 * 60);
+    response.json({ status: 'success', message: 'Password berhasil diubah.' });
+  } catch (error) {
+    response.status(400).json({ message: error.message || 'Password gagal diubah.' });
+  }
+});
+
+app.get('/api/admin/users', requireAdmin, requireOwner, function (request, response) {
+  const users = database.prepare(`
+    SELECT id, username, display_name, role, is_active, created_at
+    FROM admin_users ORDER BY id
+  `).all().map(function (user) {
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.display_name,
+      role: user.role,
+      isActive: Boolean(user.is_active),
+      createdAt: user.created_at
+    };
+  });
+  response.json({ users: users });
+});
+
+app.post('/api/admin/users', requireAdmin, requireOwner, function (request, response) {
+  try {
+    const body = request.body || {};
+    const username = normalizeAdminUsername(body.username);
+    const displayName = cleanText(body.displayName, 'nama akun', 80);
+    const password = validateAdminPassword(body.password);
+    if (!['owner', 'operator', 'viewer'].includes(body.role)) throw new Error('Peran akun tidak valid.');
+    const passwordHash = hashPassword(password);
+    const now = new Date().toISOString();
+    const result = database.prepare(`
+      INSERT INTO admin_users (username, display_name, password_salt, password_hash, role, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+    `).run(username, displayName, passwordHash.salt, passwordHash.hash, body.role, now, now);
+    response.status(201).json({ status: 'success', id: Number(result.lastInsertRowid) });
+  } catch (error) {
+    const isDuplicate = String(error.message || '').includes('UNIQUE constraint failed');
+    response.status(isDuplicate ? 409 : 400).json({
+      message: isDuplicate ? 'Username sudah digunakan.' : error.message || 'Akun gagal dibuat.'
+    });
+  }
+});
+
+app.patch('/api/admin/users/:id', requireAdmin, requireOwner, function (request, response) {
+  const id = Number(request.params.id);
+  const body = request.body || {};
+  const existing = Number.isSafeInteger(id) && id > 0
+    ? database.prepare('SELECT * FROM admin_users WHERE id = ?').get(id)
+    : null;
+  if (!existing) return response.status(404).json({ message: 'Akun tidak ditemukan.' });
+  if (typeof body.displayName !== 'string' || !['owner', 'operator', 'viewer'].includes(body.role) ||
+      typeof body.isActive !== 'boolean') {
+    return response.status(400).json({ message: 'Nama, peran, atau status akun tidak valid.' });
+  }
+  let displayName;
+  try {
+    displayName = cleanText(body.displayName, 'nama akun', 80);
+  } catch (error) {
+    return response.status(400).json({ message: error.message });
+  }
+  if (existing.id === request.adminUser.id && (body.role !== 'owner' || !body.isActive)) {
+    return response.status(400).json({ message: 'Akun Pemilik yang sedang digunakan tidak dapat diturunkan perannya atau dinonaktifkan.' });
+  }
+  if (existing.role === 'owner' && existing.is_active && (body.role !== 'owner' || !body.isActive)) {
+    const activeOwners = database.prepare(
+      "SELECT COUNT(*) AS count FROM admin_users WHERE role = 'owner' AND is_active = 1"
+    ).get().count;
+    if (activeOwners <= 1) return response.status(400).json({ message: 'Minimal harus ada satu akun Pemilik aktif.' });
+  }
+  database.prepare('UPDATE admin_users SET display_name = ?, role = ?, is_active = ?, updated_at = ? WHERE id = ?')
+    .run(displayName, body.role, body.isActive ? 1 : 0, new Date().toISOString(), id);
+  if (!body.isActive) database.prepare('DELETE FROM admin_sessions WHERE user_id = ?').run(id);
   response.json({ status: 'success' });
+});
+
+app.post('/api/admin/users/:id/reset-password', requireAdmin, requireOwner, function (request, response) {
+  const id = Number(request.params.id);
+  const user = Number.isSafeInteger(id) && id > 0
+    ? database.prepare('SELECT id FROM admin_users WHERE id = ?').get(id)
+    : null;
+  if (!user) return response.status(404).json({ message: 'Akun tidak ditemukan.' });
+  if (user.id === request.adminUser.id) {
+    return response.status(400).json({ message: 'Gunakan fitur Ganti Password untuk mengubah password akun sendiri.' });
+  }
+  try {
+    const password = validateAdminPassword(request.body && request.body.password);
+    const passwordHash = hashPassword(password);
+    database.prepare('UPDATE admin_users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ?')
+      .run(passwordHash.salt, passwordHash.hash, new Date().toISOString(), id);
+    database.prepare('DELETE FROM admin_sessions WHERE user_id = ?').run(id);
+    response.json({ status: 'success' });
+  } catch (error) {
+    response.status(400).json({ message: error.message || 'Password gagal diatur ulang.' });
+  }
 });
 
 app.post('/api/admin/logout', requireAdmin, function (request, response) {
@@ -771,11 +1022,11 @@ app.post('/api/admin/logout', requireAdmin, function (request, response) {
   response.json({ status: 'success' });
 });
 
-app.get('/api/admin/config', requireAdmin, function (request, response) {
+app.get('/api/admin/config', requireAdmin, requireOwner, function (request, response) {
   response.json(getConfig());
 });
 
-app.put('/api/admin/config', requireAdmin, function (request, response) {
+app.put('/api/admin/config', requireAdmin, requireOwner, function (request, response) {
   try {
     const config = sanitizeConfig(request.body);
     database.prepare(`
@@ -788,7 +1039,7 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
   }
 });
 
-app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
+app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (request, response) {
   const assetTypes = {
     formPdf: { key: 'formPdfUrl', fileName: 'formulir-offline.pdf' },
     scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf' }
@@ -821,45 +1072,49 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
 });
 
 app.get('/api/admin/applications', requireAdmin, function (request, response) {
+  const isViewer = request.adminUser.role === 'viewer';
   const applicants = database.prepare('SELECT * FROM applicants ORDER BY id DESC LIMIT 500').all();
   const getFiles = database.prepare('SELECT field_key, original_name, file_size FROM uploaded_files WHERE applicant_id = ?');
   const results = applicants.map(function (applicant) {
-    return {
+    const result = {
       id: applicant.id,
       registration_number: applicant.registration_number,
       wave: applicant.wave,
-      wave_fee: applicant.wave_fee,
       major: applicant.major,
       student_name: applicant.student_name,
-      school_origin: applicant.school_origin,
-      nisn: applicant.nisn,
-      family_card_number: applicant.family_card_number,
-      student_nik: applicant.student_nik,
-      gender: applicant.gender,
-      religion: applicant.religion,
-      birth_place: applicant.birth_place,
-      birth_date: applicant.birth_date,
-      email: applicant.email,
-      student_phone: applicant.student_phone,
-      father_nik: applicant.father_nik,
-      father_name: applicant.father_name,
-      father_education: applicant.father_education,
-      father_occupation: applicant.father_occupation,
-      father_income: applicant.father_income,
-      father_phone: applicant.father_phone,
-      mother_nik: applicant.mother_nik,
-      mother_name: applicant.mother_name,
-      mother_education: applicant.mother_education,
-      mother_occupation: applicant.mother_occupation,
-      mother_income: applicant.mother_income,
-      mother_phone: applicant.mother_phone,
-      address: applicant.address,
       document_status: applicant.document_status,
       selection_status: applicant.selection_status,
       reenrollment_status: applicant.reenrollment_status,
       sheet_sync_status: applicant.sheet_sync_status,
-      created_at: applicant.created_at,
-      files: getFiles.all(applicant.id).map(function (file) {
+      created_at: applicant.created_at
+    };
+    if (!isViewer) {
+      Object.assign(result, {
+        wave_fee: applicant.wave_fee,
+        school_origin: applicant.school_origin,
+        nisn: applicant.nisn,
+        family_card_number: applicant.family_card_number,
+        student_nik: applicant.student_nik,
+        gender: applicant.gender,
+        religion: applicant.religion,
+        birth_place: applicant.birth_place,
+        birth_date: applicant.birth_date,
+        email: applicant.email,
+        student_phone: applicant.student_phone,
+        father_nik: applicant.father_nik,
+        father_name: applicant.father_name,
+        father_education: applicant.father_education,
+        father_occupation: applicant.father_occupation,
+        father_income: applicant.father_income,
+        father_phone: applicant.father_phone,
+        mother_nik: applicant.mother_nik,
+        mother_name: applicant.mother_name,
+        mother_education: applicant.mother_education,
+        mother_occupation: applicant.mother_occupation,
+        mother_income: applicant.mother_income,
+        mother_phone: applicant.mother_phone,
+        address: applicant.address,
+        files: getFiles.all(applicant.id).map(function (file) {
         return {
           key: file.field_key,
           label: uploadTypes[file.field_key].label,
@@ -867,8 +1122,12 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
           size: file.file_size,
           url: '/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/files/' + file.field_key
         };
-      })
-    };
+        })
+      });
+    } else {
+      result.files = [];
+    }
+    return result;
   });
   const totals = database.prepare(`
     SELECT
@@ -883,7 +1142,7 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
   response.json({ applicants: results, totals: totals });
 });
 
-app.put('/api/admin/applications/:registrationNumber', requireAdmin, function (request, response) {
+app.put('/api/admin/applications/:registrationNumber', requireAdmin, requireOperator, function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const existing = getApplicantByRegistration(registrationNumber);
   if (!existing) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
@@ -914,7 +1173,7 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, function (r
   }
 });
 
-app.get('/api/admin/export.csv', requireAdmin, function (request, response) {
+app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (request, response) {
   const rows = database.prepare('SELECT * FROM applicants ORDER BY id').all();
   const headers = [
     ['registration_number', 'Nomor Pendaftaran'], ['wave', 'Gelombang'], ['major', 'Program Studi'],
@@ -943,7 +1202,7 @@ app.get('/api/admin/export.csv', requireAdmin, function (request, response) {
   response.send(csv);
 });
 
-app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, function (request, response) {
+app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, requireOperator, function (request, response) {
   const key = request.params.key;
   if (!Object.prototype.hasOwnProperty.call(uploadTypes, key)) return response.status(404).end();
   const applicant = getApplicantByRegistration(request.params.registrationNumber);
@@ -962,7 +1221,7 @@ app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, 
   response.sendFile(filePath);
 });
 
-app.patch('/api/admin/applications/:registrationNumber', requireAdmin, function (request, response) {
+app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requireOperator, function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const statuses = request.body || {};
   if (!documentStatuses.includes(statuses.documentStatus) ||
@@ -982,7 +1241,7 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, function 
   response.json({ status: 'success' });
 });
 
-app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, function (request, response) {
+app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, requireOperator, function (request, response) {
   const applicant = getApplicantByRegistration(String(request.params.registrationNumber || '').toUpperCase());
   if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
   const pin = String(crypto.randomInt(100000, 1000000));
@@ -1007,7 +1266,7 @@ app.get('/api/admin/sync-status', requireAdmin, function (request, response) {
   });
 });
 
-app.post('/api/admin/sync-retry', requireAdmin, function (request, response) {
+app.post('/api/admin/sync-retry', requireAdmin, requireOperator, function (request, response) {
   database.prepare('UPDATE sheet_sync_queue SET next_attempt_at = ? WHERE synced_at IS NULL')
     .run(new Date().toISOString());
   setImmediate(syncQueuedApplications);

@@ -99,8 +99,10 @@
       <h1 style="text-align:center">Portal Admin SPMB</h1>
       <p style="text-align:center">Masuk untuk mengatur pendaftaran dan melihat rekap calon siswa.</p>
       <form id="login-form">
-        <label for="admin-token">Token admin</label>
-        <input id="admin-token" type="password" autocomplete="current-password" minlength="32" required>
+        <label for="admin-username">Username</label>
+        <input id="admin-username" autocomplete="username" maxlength="40" required>
+        <label for="admin-password">Password</label>
+        <input id="admin-password" type="password" autocomplete="current-password" required>
         <button id="login-button" type="submit">Masuk</button>
       </form>
       <p id="login-status" class="status-line" role="status"></p>
@@ -110,7 +112,9 @@
       <header class="card topbar">
         <div><h1>Rekap Pendaftar SPMB</h1><p>Kelola pengaturan, data pendaftar, status, dan sinkronisasi Google Sheets.</p></div>
         <div class="actions">
-          <button id="export-button" class="dark" type="button">Ekspor CSV</button>
+          <span id="admin-identity" class="muted"></span>
+          <button id="change-password-button" class="secondary" type="button">Ganti Password</button>
+          <button id="export-button" class="dark" data-admin-roles="owner,operator" type="button">Ekspor CSV</button>
           <button id="reload-button" class="secondary" type="button">Muat Ulang</button>
           <button id="logout-button" class="secondary" type="button">Keluar</button>
         </div>
@@ -127,11 +131,11 @@
       <section class="card section">
         <div class="section-heading">
           <div><h2>Data Pendaftar</h2><p id="application-count">Memuat rekap...</p></div>
-          <button id="retry-sync-button" class="secondary" type="button">Coba Sinkronkan Sheet Lagi</button>
+          <button id="retry-sync-button" class="secondary" data-admin-roles="owner,operator" type="button">Coba Sinkronkan Sheet Lagi</button>
         </div>
         <div id="sync-banner" class="sync-banner" role="status">Memeriksa status Google Sheets...</div>
         <div class="filters">
-          <input id="application-search" type="search" placeholder="Cari nama, nomor pendaftaran, NISN">
+          <input id="application-search" type="search" placeholder="Cari nama atau nomor pendaftaran">
           <select id="status-filter" aria-label="Filter status verifikasi">
             <option value="">Semua status verifikasi</option>
             <option>Menunggu Verifikasi</option>
@@ -150,7 +154,7 @@
         </div>
       </section>
 
-      <details class="card section">
+      <details id="settings-section" class="card section" data-admin-roles="owner">
         <summary>Pengaturan Halaman dan Gelombang</summary>
         <p>Pengaturan disimpan di SQLite pada volume Railway dan langsung digunakan halaman pendaftaran.</p>
         <form id="settings-form">
@@ -179,6 +183,29 @@
         </form>
         <p id="settings-status" class="status-line" role="status"></p>
       </details>
+
+      <section id="accounts-section" class="card section" data-admin-roles="owner">
+        <div class="section-heading">
+          <div><h2>Manajemen Akun</h2><p>Pemilik dapat membuat akun, mengubah peran, menonaktifkan akun, atau mengatur ulang password.</p></div>
+          <button id="reload-users-button" class="secondary" type="button">Muat Ulang Akun</button>
+        </div>
+        <form id="create-account-form">
+          <div class="settings-grid">
+            <div><label for="new-username">Username</label><input id="new-username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]+" autocomplete="off" required></div>
+            <div><label for="new-display-name">Nama pengguna</label><input id="new-display-name" maxlength="80" required></div>
+            <div><label for="new-account-password">Password sementara (min. 12 karakter)</label><input id="new-account-password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></div>
+            <div><label for="new-account-role">Peran</label><select id="new-account-role" required><option value="operator">Operator</option><option value="viewer">Viewer</option><option value="owner">Pemilik</option></select></div>
+          </div>
+          <button id="create-account-button" type="submit" style="margin-top:14px">Tambah Akun</button>
+        </form>
+        <p id="accounts-status" class="status-line" role="status"></p>
+        <div class="table-wrap">
+          <table style="min-width:780px">
+            <thead><tr><th>Akun</th><th>Nama pengguna</th><th>Peran</th><th>Status</th><th>Aksi</th></tr></thead>
+            <tbody id="admin-users-body"></tbody>
+          </table>
+        </div>
+      </section>
     </section>
   </main>
 
@@ -199,11 +226,34 @@
     </div>
   </dialog>
 
+  <dialog id="password-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2>Ganti Password</h2><p>Gunakan password minimal 12 karakter.</p></div>
+        <button id="close-password-button" class="secondary" type="button" aria-label="Tutup">Tutup</button>
+      </div>
+      <form id="password-form">
+        <label for="current-password">Password saat ini</label>
+        <input id="current-password" type="password" autocomplete="current-password" required>
+        <label for="new-password">Password baru</label>
+        <input id="new-password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+        <label for="confirm-password">Ulangi password baru</label>
+        <input id="confirm-password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+        <p id="password-status" class="status-line" role="status"></p>
+        <div class="dialog-actions">
+          <button id="cancel-password-button" class="secondary" type="button">Batal</button>
+          <button id="save-password-button" type="submit">Simpan Password</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <script>
     const loginCard = document.getElementById('login-card');
     const dashboard = document.getElementById('dashboard');
     const applicationBody = document.getElementById('applications-body');
     const editDialog = document.getElementById('edit-dialog');
+    const passwordDialog = document.getElementById('password-dialog');
     const programs = [
       'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
       'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
@@ -242,6 +292,7 @@
     let siteConfig = null;
     let applicants = [];
     let editingRegistrationNumber = '';
+    let currentUser = null;
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -249,7 +300,11 @@
       const response = await fetch(url, requestOptions);
       const type = response.headers.get('content-type') || '';
       const data = type.includes('application/json') ? await response.json() : null;
-      if (!response.ok) throw new Error(data && data.message || 'Permintaan gagal (HTTP ' + response.status + ').');
+      if (!response.ok) {
+        const error = new Error(data && data.message || 'Permintaan gagal (HTTP ' + response.status + ').');
+        error.status = response.status;
+        throw error;
+      }
       return data;
     }
 
@@ -262,11 +317,32 @@
     function showDashboard() {
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
+      applyRolePermissions();
     }
 
     function showLogin() {
+      currentUser = null;
       dashboard.classList.add('hidden');
       loginCard.classList.remove('hidden');
+    }
+
+    function roleName(role) {
+      return { owner: 'Pemilik', operator: 'Operator', viewer: 'Viewer' }[role] || role;
+    }
+
+    function applyRolePermissions() {
+      if (!currentUser) return;
+      document.querySelectorAll('[data-admin-roles]').forEach(function (element) {
+        const roles = element.dataset.adminRoles.split(',').map(function (role) { return role.trim(); });
+        element.hidden = !roles.includes(currentUser.role);
+      });
+      document.getElementById('admin-identity').textContent =
+        currentUser.displayName + ' · ' + roleName(currentUser.role);
+      if (currentUser.role === 'viewer') {
+        document.getElementById('application-search').placeholder = 'Cari nama atau nomor pendaftaran';
+      } else {
+        document.getElementById('application-search').placeholder = 'Cari nama, nomor pendaftaran, NISN';
+      }
     }
 
     function makeOption(value, label) {
@@ -365,6 +441,7 @@
 
     function renderApplications(data) {
       applicants = data.applicants || [];
+      const readOnly = currentUser.role === 'viewer';
       const totals = data.totals || {};
       document.getElementById('metric-total').textContent = Number(totals.total || 0).toLocaleString('id-ID');
       document.getElementById('metric-pending').textContent = Number(totals.pending || 0).toLocaleString('id-ID');
@@ -381,7 +458,7 @@
       applicants.forEach(function (applicant) {
         const row = document.createElement('tr');
         row.dataset.search = [
-          applicant.registration_number, applicant.student_name, applicant.nisn, applicant.wave, applicant.major
+          applicant.registration_number, applicant.student_name, applicant.nisn || '', applicant.wave, applicant.major
         ].join(' ').toLowerCase();
         row.dataset.documentStatus = applicant.document_status;
         const applicantCell = document.createElement('td');
@@ -390,9 +467,12 @@
         name.textContent = applicant.student_name;
         const regNumber = document.createElement('span');
         regNumber.textContent = applicant.registration_number;
-        const nisn = document.createElement('span');
-        nisn.textContent = 'NISN ' + applicant.nisn;
-        applicantCell.append(name, regNumber, nisn);
+        applicantCell.append(name, regNumber);
+        if (!readOnly) {
+          const nisn = document.createElement('span');
+          nisn.textContent = 'NISN ' + applicant.nisn;
+          applicantCell.appendChild(nisn);
+        }
 
         const wave = document.createElement('td');
         wave.textContent = applicant.wave + ' · ' + applicant.major;
@@ -409,66 +489,67 @@
           link.title = file.name || file.label;
           files.appendChild(link);
         });
-        if (!applicant.files.length) files.textContent = 'Tidak ada berkas';
-        const documentStatus = statusSelect(
-          ['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'],
-          applicant.document_status
-        );
-        const selectionStatus = statusSelect(
-          ['Menunggu Pengumuman', 'Diterima', 'Tidak Diterima'],
-          applicant.selection_status
-        );
-        const reenrollmentStatus = statusSelect(
-          ['Belum Daftar Ulang', 'Daftar Ulang Selesai'],
-          applicant.reenrollment_status
-        );
+        if (!applicant.files.length) files.textContent = readOnly ? 'Tidak dapat diakses' : 'Tidak ada berkas';
+        const documentStatus = readOnly
+          ? document.createTextNode(applicant.document_status)
+          : statusSelect(['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'], applicant.document_status);
+        const selectionStatus = readOnly
+          ? document.createTextNode(applicant.selection_status)
+          : statusSelect(['Menunggu Pengumuman', 'Diterima', 'Tidak Diterima'], applicant.selection_status);
+        const reenrollmentStatus = readOnly
+          ? document.createTextNode(applicant.reenrollment_status)
+          : statusSelect(['Belum Daftar Ulang', 'Daftar Ulang Selesai'], applicant.reenrollment_status);
         const syncStatus = document.createElement('td');
         syncStatus.textContent = applicant.sheet_sync_status === 'synced' ? 'Tersinkron' : 'Menunggu sync';
         const actions = document.createElement('td');
         actions.className = 'row-actions';
-        const save = document.createElement('button');
-        save.textContent = 'Simpan Status';
-        save.addEventListener('click', async function () {
-          save.disabled = true;
-          try {
-            await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number), {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                documentStatus: documentStatus.value,
-                selectionStatus: selectionStatus.value,
-                reenrollmentStatus: reenrollmentStatus.value
-              })
-            });
-            if (await loadApplications()) {
-              setStatus('applications-status', 'Status berhasil disimpan.', 'success');
+        if (readOnly) {
+          actions.textContent = 'Hanya lihat';
+        } else {
+          const save = document.createElement('button');
+          save.textContent = 'Simpan Status';
+          save.addEventListener('click', async function () {
+            save.disabled = true;
+            try {
+              await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number), {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  documentStatus: documentStatus.value,
+                  selectionStatus: selectionStatus.value,
+                  reenrollmentStatus: reenrollmentStatus.value
+                })
+              });
+              if (await loadApplications()) {
+                setStatus('applications-status', 'Status berhasil disimpan.', 'success');
+              }
+            } catch (error) {
+              setStatus('applications-status', error.message, 'error');
+            } finally {
+              save.disabled = false;
             }
-          } catch (error) {
-            setStatus('applications-status', error.message, 'error');
-          } finally {
-            save.disabled = false;
-          }
-        });
-        const edit = document.createElement('button');
-        edit.className = 'secondary';
-        edit.textContent = 'Edit Data';
-        edit.addEventListener('click', function () { openEditDialog(applicant); });
-        const resetPin = document.createElement('button');
-        resetPin.className = 'secondary';
-        resetPin.textContent = 'Atur Ulang PIN';
-        resetPin.addEventListener('click', async function () {
-          if (!confirm('Buat PIN baru untuk ' + applicant.student_name + '? Sampaikan PIN tersebut secara langsung kepada siswa.')) return;
-          resetPin.disabled = true;
-          try {
-            const result = await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/reset-pin', { method: 'POST' });
-            alert('PIN portal baru: ' + result.pin);
-          } catch (error) {
-            setStatus('applications-status', error.message, 'error');
-          } finally {
-            resetPin.disabled = false;
-          }
-        });
-        actions.append(save, edit, resetPin);
+          });
+          const edit = document.createElement('button');
+          edit.className = 'secondary';
+          edit.textContent = 'Edit Data';
+          edit.addEventListener('click', function () { openEditDialog(applicant); });
+          const resetPin = document.createElement('button');
+          resetPin.className = 'secondary';
+          resetPin.textContent = 'Atur Ulang PIN';
+          resetPin.addEventListener('click', async function () {
+            if (!confirm('Buat PIN baru untuk ' + applicant.student_name + '? Sampaikan PIN tersebut secara langsung kepada siswa.')) return;
+            resetPin.disabled = true;
+            try {
+              const result = await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/reset-pin', { method: 'POST' });
+              alert('PIN portal baru: ' + result.pin);
+            } catch (error) {
+              setStatus('applications-status', error.message, 'error');
+            } finally {
+              resetPin.disabled = false;
+            }
+          });
+          actions.append(save, edit, resetPin);
+        }
         [applicantCell, wave, date, files, makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), syncStatus, actions]
           .forEach(function (cell) { row.appendChild(cell); });
         applicationBody.appendChild(row);
@@ -561,7 +642,7 @@
         return true;
       } catch (error) {
         setStatus('applications-status', error.message, 'error');
-        if (error.message.includes('Sesi admin')) showLogin();
+        if (error.status === 401) showLogin();
         return false;
       }
     }
@@ -575,15 +656,114 @@
           : 'Google Sheets belum dikonfigurasi. Data tetap tersimpan di SQLite; atur APPS_SCRIPT_SYNC_URL dan SHEET_SYNC_TOKEN di Railway.';
       } catch (error) {
         document.getElementById('sync-banner').textContent = error.message;
+        if (error.status === 401) showLogin();
       }
+    }
+
+    async function loadUsers() {
+      setStatus('accounts-status', 'Memuat daftar akun...', '');
+      try {
+        const result = await api('/api/admin/users');
+        renderUsers(result.users || []);
+        setStatus('accounts-status', '', '');
+      } catch (error) {
+        setStatus('accounts-status', error.message, 'error');
+        if (error.status === 401) showLogin();
+      }
+    }
+
+    function renderUsers(users) {
+      const body = document.getElementById('admin-users-body');
+      body.replaceChildren();
+      users.forEach(function (user) {
+        const row = document.createElement('tr');
+        const account = document.createElement('td');
+        const username = document.createElement('strong');
+        username.textContent = user.username;
+        const created = document.createElement('span');
+        created.className = 'muted';
+        created.textContent = 'Dibuat ' + new Date(user.createdAt).toLocaleDateString('id-ID');
+        account.append(username, document.createElement('br'), created);
+
+        const displayName = document.createElement('input');
+        displayName.value = user.displayName;
+        displayName.maxLength = 80;
+        displayName.setAttribute('aria-label', 'Nama pengguna ' + user.username);
+
+        const role = document.createElement('select');
+        [['owner', 'Pemilik'], ['operator', 'Operator'], ['viewer', 'Viewer']].forEach(function (item) {
+          role.appendChild(makeOption(item[0], item[1]));
+        });
+        role.value = user.role;
+
+        const active = document.createElement('select');
+        active.append(makeOption('true', 'Aktif'), makeOption('false', 'Nonaktif'));
+        active.value = String(user.isActive);
+        const isCurrentUser = user.id === currentUser.id;
+        if (isCurrentUser) {
+          role.disabled = true;
+          active.disabled = true;
+        }
+
+        const actions = document.createElement('td');
+        actions.className = 'row-actions';
+        const save = document.createElement('button');
+        save.textContent = 'Simpan';
+        save.addEventListener('click', async function () {
+          save.disabled = true;
+          try {
+            await api('/api/admin/users/' + user.id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                displayName: displayName.value.trim(),
+                role: user.id === currentUser.id ? currentUser.role : role.value,
+                isActive: user.id === currentUser.id ? true : active.value === 'true'
+              })
+            });
+            await loadUsers();
+            setStatus('accounts-status', 'Akun ' + user.username + ' berhasil diperbarui.', 'success');
+          } catch (error) {
+            setStatus('accounts-status', error.message, 'error');
+          } finally {
+            save.disabled = false;
+          }
+        });
+        const reset = document.createElement('button');
+        reset.className = 'secondary';
+        reset.textContent = 'Atur Password';
+        reset.disabled = isCurrentUser;
+        reset.addEventListener('click', async function () {
+          const password = prompt('Masukkan password sementara baru (minimal 12 karakter) untuk ' + user.username + ':');
+          if (password === null) return;
+          try {
+            await api('/api/admin/users/' + user.id + '/reset-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: password })
+            });
+            setStatus('accounts-status', 'Password berhasil diatur ulang. Sampaikan password sementara dengan aman.', 'success');
+          } catch (error) {
+            setStatus('accounts-status', error.message, 'error');
+          }
+        });
+        actions.append(save, reset);
+        [account, makeCell(displayName), makeCell(role), makeCell(active), actions].forEach(function (cell) {
+          row.appendChild(cell);
+        });
+        body.appendChild(row);
+      });
     }
 
     async function loadAll() {
       try {
-        showConfig(await api('/api/admin/config'));
+        if (currentUser.role === 'owner') {
+          showConfig(await api('/api/admin/config'));
+          await loadUsers();
+        }
         await loadApplications();
       } catch (error) {
-        if (error.message.includes('Sesi admin')) showLogin();
+        if (error.status === 401) showLogin();
         else setStatus('applications-status', error.message, 'error');
       }
     }
@@ -592,14 +772,18 @@
       event.preventDefault();
       const button = document.getElementById('login-button');
       button.disabled = true;
-      setStatus('login-status', 'Memeriksa token...', '');
+      setStatus('login-status', 'Memeriksa username dan password...', '');
       try {
-        await api('/api/admin/login', {
+        const result = await api('/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: document.getElementById('admin-token').value })
+          body: JSON.stringify({
+            username: document.getElementById('admin-username').value,
+            password: document.getElementById('admin-password').value
+          })
         });
-        document.getElementById('admin-token').value = '';
+        currentUser = result.user;
+        document.getElementById('admin-password').value = '';
         showDashboard();
         await loadAll();
       } catch (error) {
@@ -723,10 +907,69 @@
       showLogin();
     });
 
-    api('/api/admin/config').then(async function (config) {
+    document.getElementById('create-account-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('create-account-button');
+      button.disabled = true;
+      try {
+        await api('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('new-username').value,
+            displayName: document.getElementById('new-display-name').value,
+            password: document.getElementById('new-account-password').value,
+            role: document.getElementById('new-account-role').value
+          })
+        });
+        event.currentTarget.reset();
+        await loadUsers();
+        setStatus('accounts-status', 'Akun berhasil dibuat. Berikan username dan password sementara secara aman; pengguna dapat mengganti password setelah masuk.', 'success');
+      } catch (error) {
+        setStatus('accounts-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('reload-users-button').addEventListener('click', loadUsers);
+    document.getElementById('change-password-button').addEventListener('click', function () {
+      setStatus('password-status', '', '');
+      passwordDialog.showModal();
+    });
+    document.getElementById('close-password-button').addEventListener('click', function () { passwordDialog.close(); });
+    document.getElementById('cancel-password-button').addEventListener('click', function () { passwordDialog.close(); });
+    document.getElementById('password-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const newPassword = document.getElementById('new-password').value;
+      if (newPassword !== document.getElementById('confirm-password').value) {
+        return setStatus('password-status', 'Konfirmasi password baru tidak sama.', 'error');
+      }
+      const button = document.getElementById('save-password-button');
+      button.disabled = true;
+      try {
+        await api('/api/admin/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentPassword: document.getElementById('current-password').value,
+            newPassword: newPassword
+          })
+        });
+        event.currentTarget.reset();
+        setStatus('password-status', 'Password berhasil diubah.', 'success');
+        passwordDialog.close();
+      } catch (error) {
+        setStatus('password-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    api('/api/admin/me').then(async function (result) {
+      currentUser = result.user;
       showDashboard();
-      showConfig(config);
-      await loadApplications();
+      await loadAll();
     }).catch(function () {
       showLogin();
     });
