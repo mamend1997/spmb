@@ -1913,8 +1913,14 @@
       renderDetailValues(document.getElementById('detail-household-data'), householdFields.map(function (field) {
         return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
       }), reviews);
-      setDetailStatusBadge('detail-student-status', summarizeFieldReviews(studentFields, applicant));
-      setDetailStatusBadge('detail-parent-status', summarizeFieldReviews(parentFields, applicant));
+      const studentReviewStatus = summarizeFieldReviews(studentFields, applicant);
+      const parentReviewStatus = summarizeFieldReviews(parentFields, applicant);
+      setDetailStatusBadge('detail-student-status', studentReviewStatus);
+      setDetailStatusBadge('detail-parent-status', parentReviewStatus);
+      applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="verified"]').textContent =
+        studentReviewStatus === 'Terverifikasi' ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
+      applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="verified"]').textContent =
+        parentReviewStatus === 'Terverifikasi' ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
       document.getElementById('detail-readonly-notice').hidden = !readOnly;
       document.querySelectorAll('[data-detail-edit-actions]').forEach(function (element) { element.hidden = readOnly; });
       document.getElementById('detail-selection-button').hidden = readOnly;
@@ -1963,9 +1969,13 @@
         if (!readOnly) {
           const actions = document.createElement('div');
           actions.className = 'detail-document-actions';
+          const verifyButton = createDetailReviewButton(
+            review && review.status === 'verified' ? '✓ Data telah diverifikasi valid' : '✓ Terima Dokumen',
+            config.key, 'document', 'verified', 'detail-verified'
+          );
           actions.append(
             createDetailReviewButton('✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'),
-            createDetailReviewButton('✓ Terima Dokumen', config.key, 'document', 'verified', 'detail-verified')
+            verifyButton
           );
           card.appendChild(actions);
         }
@@ -1977,6 +1987,20 @@
         empty.textContent = 'Belum ada dokumen tambahan yang perlu ditinjau.';
         documentList.appendChild(empty);
       }
+      const reviewableFields = fields.filter(function (field) {
+        return applicantValue(applicant, field);
+      });
+      const reviewableDocuments = documentConfigs.filter(function (item) {
+        return (item.required || (applicant.files || []).some(function (file) { return file.key === item.key; })) &&
+          (applicant.files || []).some(function (file) { return file.key === item.key; });
+      });
+      const reviewableItems = reviewableFields.map(function (field) { return field.key; })
+        .concat(reviewableDocuments.map(function (item) { return item.key; }));
+      const allReviewableItemsVerified = reviewableItems.length > 0 && reviewableItems.every(function (key) {
+        return reviews[key] && reviews[key].status === 'verified';
+      });
+      document.getElementById('detail-verify-all').textContent = allReviewableItemsVerified
+        ? '✓ Data telah diverifikasi valid' : '✓ Verifikasi Semua (Data & Berkas)';
 
       const paymentStatus = applicant.payment_status || applicant.reenrollment_status || 'Belum Daftar Ulang';
       setDetailStatusBadge('detail-payment-status', paymentStatus);
@@ -2086,7 +2110,7 @@
       try {
         for (const field of fields) await updateApplicantReview(reviewingApplicant, field.key, 'field', status, '');
         await loadApplications();
-        setStatus('detail-status', status === 'verified' ? 'Data berhasil diverifikasi.' : 'Data dikembalikan untuk perbaikan.', 'success');
+        setStatus('detail-status', status === 'verified' ? 'Data telah diverifikasi valid.' : 'Data dikembalikan untuk perbaikan.', 'success');
       } catch (error) {
         setStatus('detail-status', error.message || 'Status data gagal diperbarui.', 'error');
         await loadApplications();
@@ -2159,7 +2183,7 @@
       try {
         for (const item of items) await updateApplicantReview(reviewingApplicant, item.key, item.type, 'verified', '');
         await loadApplications();
-        setStatus('detail-status', 'Semua data terisi dan berkas yang diunggah berhasil diverifikasi.', 'success');
+        setStatus('detail-status', 'Data telah diverifikasi valid.', 'success');
       } catch (error) {
         setStatus('detail-status', error.message || 'Verifikasi berhenti sebelum seluruh item selesai.', 'error');
         await loadApplications();
@@ -2898,7 +2922,7 @@
           await updateApplicantReview(reviewingApplicant, reviewButton.dataset.detailReviewKey,
             reviewButton.dataset.detailReviewType, status, '');
           await loadApplications();
-          setStatus('detail-status', status === 'verified' ? 'Verifikasi berhasil disimpan.' : 'Item dikembalikan untuk perbaikan.', 'success');
+          setStatus('detail-status', status === 'verified' ? 'Data telah diverifikasi valid.' : 'Item dikembalikan untuk perbaikan.', 'success');
         } catch (error) {
           setStatus('detail-status', error.message || 'Status verifikasi gagal diperbarui.', 'error');
         } finally {
