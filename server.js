@@ -37,10 +37,19 @@ const reenrollmentStatuses = ['Belum Daftar Ulang', 'Daftar Ulang Selesai'];
 const initialConfig = {
   pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
   academicYear: '2027/2028',
+  brochureImageUrl: '',
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
   contactLabel: 'Contact Person SPMB',
   contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
+  timelineEvents: [
+    { title: 'Pra SPMB', description: 'Sosialisasi program dan informasi pendaftaran.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 1 },
+    { title: 'Persiapan', description: 'Persiapkan dokumen dan data calon peserta didik.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 2 },
+    { title: 'Pendaftaran', description: 'Pengisian formulir pendaftaran secara online.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 3 },
+    { title: 'Verifikasi', description: 'Pemeriksaan data dan dokumen oleh panitia.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 4 },
+    { title: 'Seleksi', description: 'Proses seleksi dan pengumuman hasil.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 5 },
+    { title: 'Registrasi', description: 'Daftar ulang bagi peserta yang dinyatakan diterima.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 6 }
+  ],
   registrationWaves: [{
     name: 'Gelombang 1', academicYear: '2027/2028', openDate: '', closeDate: '',
     announcementDate: '', quota: 0, fee: '', reenrollmentFee: '', order: 1, status: 'open', notes: ''
@@ -362,8 +371,10 @@ function sanitizeConfig(input) {
   const config = {
     pageTitle: String(input.pageTitle || '').trim(),
     academicYear: String(input.academicYear || '').trim(),
+    brochureImageUrl: String(input.brochureImageUrl || '').trim(),
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
+    timelineEvents: sanitizeTimelineEvents(input.timelineEvents),
     contactLabel: String(input.contactLabel || '').trim(),
     contactUrl: String(input.contactUrl || '').trim(),
     registrationWaves: registrationWaves,
@@ -383,6 +394,11 @@ function sanitizeConfig(input) {
   }
   if (!isAllowedPublicUrl(config.contactUrl)) {
     throw new Error('Link Contact Person harus menggunakan URL HTTPS.');
+  }
+  if (config.brochureImageUrl &&
+      (!isAllowedPublicUrl(config.brochureImageUrl) ||
+       (!config.brochureImageUrl.startsWith('/assets/') && !config.brochureImageUrl.startsWith('/public-files/')))) {
+    throw new Error('Foto brosur harus berasal dari file publik situs.');
   }
   ['formPdfUrl', 'scholarshipPdfUrl'].forEach(function (key) {
     if (!isAllowedPublicUrl(config[key]) || (!config[key].startsWith('/assets/') && !config[key].startsWith('/public-files/'))) {
@@ -460,6 +476,34 @@ function sanitizePaths(paths, waves) {
       requirements: String(item.requirements || '').trim().slice(0, 1000),
       order: Number.isSafeInteger(Number(item.order)) && Number(item.order) > 0 ? Number(item.order) : index + 1,
       active: item.active !== false
+    };
+  });
+}
+
+function sanitizeTimelineEvents(events) {
+  if (events === undefined) events = initialConfig.timelineEvents;
+  if (!Array.isArray(events) || events.length > 12) {
+    throw new Error('Timeline harus berisi maksimal 12 tahapan.');
+  }
+  const statuses = ['upcoming', 'ongoing', 'complete'];
+  return events.map(function (event) {
+    if (!event || typeof event !== 'object') throw new Error('Data timeline tidak valid.');
+    const title = String(event.title || '').trim().slice(0, 60);
+    const description = String(event.description || '').trim().slice(0, 180);
+    const dateLabel = String(event.dateLabel || '').trim().slice(0, 100);
+    const status = String(event.status || 'upcoming');
+    const order = Number(event.order);
+    if (title.length < 2) throw new Error('Nama tahap timeline harus terdiri dari 2–60 karakter.');
+    if (!statuses.includes(status)) throw new Error('Status timeline tidak valid.');
+    if (!Number.isSafeInteger(order) || order < 1 || order > 1000) {
+      throw new Error('Urutan timeline harus berupa angka antara 1 dan 1000.');
+    }
+    return {
+      title: title,
+      description: description,
+      dateLabel: dateLabel,
+      status: status,
+      order: order
     };
   });
 }
@@ -1684,17 +1728,18 @@ app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (reques
   const assetTypes = {
     formPdf: { key: 'formPdfUrl', fileName: 'formulir-offline.pdf' },
     scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf' },
-    paymentQr: { key: 'qrisImageUrl', image: true }
+    paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024 },
+    brochureImage: { key: 'brochureImageUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb' }
   };
   const asset = assetTypes[request.params.type];
   if (!asset) return response.status(400).json({ message: 'Jenis file tidak dikenali.' });
   try {
     const base64 = String(request.body && request.body.base64 || '');
     const contentType = String(request.body && request.body.contentType || '').toLowerCase();
-    const maxBytes = asset.image ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxBytes = asset.maxBytes || 5 * 1024 * 1024;
     if (!base64 || base64.length > Math.ceil(maxBytes * 4 / 3) + 8 ||
         !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
-      throw new Error(asset.image ? 'Gambar QRIS maksimal berukuran 2 MB.' : 'PDF maksimal berukuran 5 MB.');
+      throw new Error(asset.image ? 'Gambar harus maksimal berukuran ' + (maxBytes / 1024 / 1024) + ' MB.' : 'PDF maksimal berukuran 5 MB.');
     }
     const bytes = Buffer.from(base64, 'base64');
     const validPdf = !asset.image && bytes.length >= 5 && bytes.length <= maxBytes &&
@@ -1703,12 +1748,16 @@ app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (reques
       bytes.subarray(0, 8).toString('hex') === '89504e470d0a1a0a';
     const validJpeg = asset.image && contentType === 'image/jpeg' && bytes.length > 3 && bytes.length <= maxBytes &&
       bytes.subarray(0, 3).toString('hex') === 'ffd8ff';
-    if (!validPdf && !validPng && !validJpeg) throw new Error(asset.image ? 'Pilih gambar QRIS PNG atau JPG valid (maksimal 2 MB).' : 'File yang dipilih bukan PDF valid atau melebihi 5 MB.');
+    if (!validPdf && !validPng && !validJpeg) {
+      throw new Error(asset.image
+        ? 'Pilih gambar PNG atau JPG valid (maksimal ' + (maxBytes / 1024 / 1024) + ' MB).'
+        : 'File yang dipilih bukan PDF valid atau melebihi 5 MB.');
+    }
     const extension = validPng ? '.png' : validJpeg ? '.jpg' : '.pdf';
-    const fileName = request.params.type + '-' + crypto.randomBytes(10).toString('hex') + extension;
+    const fileName = (asset.filePrefix || request.params.type) + '-' + crypto.randomBytes(10).toString('hex') + extension;
     fs.writeFileSync(path.join(publicFileDirectory, fileName), bytes, { mode: 0o644, flag: 'wx' });
     const config = getConfig();
-    if (asset.image) config.paymentSettings.qrisImageUrl = '/public-files/' + fileName;
+    if (asset.section) config[asset.section][asset.key] = '/public-files/' + fileName;
     else config[asset.key] = '/public-files/' + fileName;
     const safeConfig = sanitizeConfig(config);
     database.prepare(`
