@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-spmb-page="home">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f8f9fa">
-  <meta id="page-description" name="description" content="Formulir Pendaftaran Calon Peserta Didik Baru SMK PGRI Cikoneng Tahun Ajaran 2027/2028.">
+  <meta id="page-description" name="description" content="Informasi SPMB SMK PGRI Cikoneng Tahun Ajaran 2027/2028.">
   <link rel="icon" type="image/png" href="/assets/logo-pgri-cikoneng.png">
-  <title>Formulir SPMB 2027/2028 | SMK PGRI Cikoneng</title>
+  <title>Beranda SPMB 2027/2028 | SMK PGRI Cikoneng</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,6 +20,10 @@
         }
       }
     };
+  </script>
+  <script>
+    document.documentElement.dataset.spmbPage =
+      window.location.pathname.replace(/\/+$/, '') === '/pendaftaran' ? 'registration' : 'home';
   </script>
   <style>
     :root { color-scheme: light; }
@@ -72,20 +76,20 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
     <div class="site-header-inner">
-      <a href="#beranda" class="site-brand" aria-label="SMK PGRI Cikoneng - Beranda">
+      <a href="/" class="site-brand" aria-label="SMK PGRI Cikoneng - Beranda">
         <img src="/assets/logo-pgri-cikoneng.png" alt="" width="44" height="44">
         <span>SMK PGRI <small>Cikoneng</small></span>
       </a>
       <nav class="site-nav" aria-label="Navigasi utama">
-        <a class="site-nav-home" href="#beranda">Beranda</a>
+        <a class="site-nav-home" href="/">Beranda</a>
         <a href="/portal">Pencarian Pendaftar</a>
-        <a href="#dokumen">Dokumen</a>
-        <a href="#formulir">Pendaftaran</a>
+        <a href="/#dokumen">Dokumen</a>
+        <a href="/pendaftaran">Pendaftaran</a>
         <a class="site-nav-login" href="/admin">Masuk</a>
       </nav>
     </div>
@@ -98,7 +102,7 @@
         <h1>Mulai langkah masa depanmu bersama SMK PGRI Cikoneng.</h1>
         <p>Daftar sebagai calon peserta didik baru secara online. Siapkan data diri dan dokumen, lalu pantau proses pendaftaran melalui portal siswa.</p>
         <div class="hero-actions">
-          <a class="hero-register" href="#formulir">
+          <a class="hero-register" href="/pendaftaran">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
             Daftar Sekarang
           </a>
@@ -514,6 +518,11 @@
 
     function renderRegistrationWaves(waves) {
       const select = document.getElementById('wave');
+      const field = (siteConfig.formFields || []).find(function (item) { return item.key === 'wave'; });
+      const fieldActive = Boolean(field && field.active !== false);
+      select.closest('.field-row').hidden = !fieldActive;
+      select.disabled = !fieldActive;
+      select.required = fieldActive && field.required === true;
       const selectedValue = select.value;
       select.replaceChildren(new Option('Pilih Gelombang Pendaftaran...', ''));
       let openWaves = 0;
@@ -529,10 +538,8 @@
       renderRegistrationPaths();
       if (!openWaves) {
         select.options[0].textContent = 'Pendaftaran belum dibuka';
-        select.required = true;
         document.getElementById('wave-fee-label').textContent = 'Belum ada gelombang yang dibuka.';
       } else {
-        select.required = true;
         updateWaveFee();
       }
     }
@@ -562,9 +569,10 @@
       select.replaceChildren(new Option('Pilih Jalur Pendaftaran...', ''));
       paths.forEach(function (item) { select.appendChild(new Option(item.name, item.name)); });
       if (paths.some(function (item) { return item.name === selectedValue; })) select.value = selectedValue;
-      select.required = field ? field.active !== false && field.required === true : true;
-      select.disabled = field ? field.active === false : false;
-      select.closest('.field-row').hidden = field ? field.active === false : false;
+      const fieldActive = Boolean(field && field.active !== false);
+      select.required = fieldActive && field.required === true;
+      select.disabled = !fieldActive;
+      select.closest('.field-row').hidden = !fieldActive;
     }
 
     function renderTimelineEvents(events) {
@@ -664,9 +672,13 @@
       renderTimelineEvents(siteConfig.timelineEvents);
       document.getElementById('contact-link').href = siteConfig.contactUrl;
       document.getElementById('contact-label').textContent = siteConfig.contactLabel;
-      document.title = siteConfig.pageTitle + ' | SMK PGRI Cikoneng';
+      const registrationPage = document.documentElement.dataset.spmbPage === 'registration';
+      document.title = registrationPage
+        ? siteConfig.pageTitle + ' | SMK PGRI Cikoneng'
+        : 'Beranda SPMB ' + siteConfig.academicYear + ' | SMK PGRI Cikoneng';
       document.getElementById('page-description').content =
-        siteConfig.pageTitle + ' SMK PGRI Cikoneng Tahun Ajaran ' + siteConfig.academicYear + '.';
+        (registrationPage ? siteConfig.pageTitle : 'Informasi SPMB') +
+        ' SMK PGRI Cikoneng Tahun Ajaran ' + siteConfig.academicYear + '.';
       renderRegistrationWaves(siteConfig.registrationWaves);
       renderConfiguredForm();
       setActiveStep(activeStepNumber, false);
@@ -696,20 +708,32 @@
 
     function renderConfiguredForm() {
       const fields = Array.isArray(siteConfig.formFields) ? siteConfig.formFields : [];
+      const configuredFields = new Map(fields.filter(function (field) { return !field.custom; })
+        .map(function (field) { return [field.key, field]; }));
       const customRows = document.querySelectorAll('.custom-form-field');
       customRows.forEach(function (row) { row.remove(); });
+      document.querySelectorAll('#spmb-form .field-row').forEach(function (row) {
+        const control = row.querySelector('input[id], select[id], textarea[id]');
+        if (!control) return;
+        const field = configuredFields.get(control.id);
+        if (!field) {
+          row.hidden = true;
+          control.disabled = true;
+        }
+      });
       fields.forEach(function (field) {
         if (field.custom) {
           if (field.active) createCustomFieldRow(field);
           return;
         }
         const control = document.getElementById(field.key);
-        if (!control || control.type === 'file') return;
+        if (!control) return;
         const row = control.closest('.field-row');
         if (!row) return;
         row.hidden = field.active === false;
         control.disabled = field.active === false;
         control.required = field.active !== false && field.required === true;
+        if (control.type === 'file') return;
         const label = row.querySelector('.field-label');
         if (label) {
           const mark = label.querySelector('.required-mark');

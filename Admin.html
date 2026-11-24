@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f9fa">
   <title>Portal Admin SPMB | SMK PGRI Cikoneng</title>
+  <link rel="icon" type="image/png" href="/assets/logo-pgri-cikoneng.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +16,7 @@
     button, input, select, textarea { font: inherit; }
     button { min-height: 40px; padding: 9px 14px; border: 0; border-radius: 9px; color: white; background: #d94f0b; font-size: 13px; font-weight: 700; cursor: pointer; }
     button:hover { filter: brightness(.96); }
-    button:disabled { cursor: wait; opacity: .6; }
+    button:disabled { cursor: not-allowed; opacity: .6; }
     button.secondary { color: #334155; background: #e8edf4; }
     button.dark { background: #172033; }
     input, select, textarea { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #d5dce7; border-radius: 8px; background: white; color: #172033; }
@@ -26,28 +27,78 @@
     h1 { margin: 0; font-size: 23px; }
     h2 { margin: 0; font-size: 18px; }
     p { color: #667085; font-size: 13px; line-height: 1.6; }
-    .login-card label, .settings-grid label, .edit-grid label, .wave-row label { display: block; margin: 14px 0 6px; color: #475467; font-size: 12px; font-weight: 700; }
+    .login-card label, .settings-grid label, .edit-grid label, .wave-row label, .profile-form > label { display: block; margin: 14px 0 6px; color: #475467; font-size: 12px; font-weight: 700; }
     .login-card button { width: 100%; margin-top: 16px; }
     .hidden { display: none !important; }
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 18px 20px; }
     .topbar p { margin: 5px 0 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .excel-button { color: #fff; background: #16834a; }
+    .excel-button:hover { background: #126a3c; }
+    .admin-topbar { position: sticky; top: 12px; z-index: 60; max-width: 1440px; margin: 0 auto 22px; padding: 12px 20px; border-radius: 18px; }
+    .admin-brand { display: inline-flex; min-width: 0; align-items: center; gap: 12px; color: white; font-size: 15px; font-weight: 800; letter-spacing: .02em; text-decoration: none; }
+    .admin-brand img { width: 44px; height: 44px; border: 2px solid rgb(255 255 255 / 90%); border-radius: 50%; background: white; object-fit: contain; }
+    .profile-control { position: relative; flex: 0 0 auto; }
+    .profile-trigger { display: grid; width: 44px; min-height: 44px; place-items: center; padding: 0; overflow: hidden; border: 2px solid rgb(255 255 255 / 90%); border-radius: 50%; color: #c2410c; background: white; box-shadow: 0 5px 14px rgb(124 45 18 / 20%); transition: transform .2s ease, box-shadow .2s ease; }
+    .profile-trigger:hover { transform: scale(1.06); box-shadow: 0 7px 18px rgb(124 45 18 / 28%); }
+    .profile-trigger img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .profile-trigger span { font-size: 14px; font-weight: 800; }
+    .profile-menu { position: absolute; top: calc(100% + 12px); right: 0; z-index: 70; width: min(280px, calc(100vw - 32px)); padding: 8px; border: 1px solid #e7eaf3; border-radius: 14px; background: white; box-shadow: 0 18px 45px rgb(23 37 84 / 16%); opacity: 0; pointer-events: none; transform: translateY(-7px) scale(.98); transform-origin: top right; transition: opacity .18s ease, transform .18s ease, visibility .18s ease; visibility: hidden; }
+    .profile-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); visibility: visible; }
+    .profile-menu-identity { padding: 10px 11px 12px; border-bottom: 1px solid #edf0f4; }
+    .profile-menu-identity strong, .profile-menu-identity span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-menu-identity strong { color: #172554; font-size: 13px; }
+    .profile-menu-identity span { margin-top: 3px; color: #64748b; font-size: 11px; }
+    .profile-menu button { display: flex; width: 100%; min-height: 40px; align-items: center; gap: 9px; margin-top: 4px; padding: 8px 10px; border-radius: 9px; color: #334155; background: transparent; text-align: left; transition: color .16s ease, background .16s ease, transform .16s ease; }
+    .profile-menu button:hover { color: #c2410c; background: #fff7ed; transform: translateX(2px); }
+    .profile-menu button.danger { color: #b42318; }
+    .profile-menu button.danger:hover { background: #fef3f2; }
+    .profile-menu button svg { width: 18px !important; height: 18px !important; flex-basis: 18px; }
+    .profile-preview { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+    .profile-preview img { width: 64px; height: 64px; border: 1px solid #e4e9f0; border-radius: 50%; background: #fff7ed; object-fit: cover; }
+    .profile-preview > span { display: grid; width: 64px; height: 64px; place-items: center; border: 1px solid #fed7aa; border-radius: 50%; color: #c2410c; background: #fff7ed; font-size: 18px; font-weight: 800; }
+    .profile-trigger img[hidden], .profile-preview img[hidden], .profile-preview > span[hidden] { display: none; }
+    .profile-preview button { min-height: 34px; padding: 7px 10px; }
+    .profile-file { margin-top: 8px; }
+    .profile-file input { min-height: 38px; padding: 7px; font-size: 12px; }
     .admin-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; }
     .sidebar { align-self: start; position: sticky; top: 16px; display: grid; gap: 5px; padding: 12px; }
     .sidebar button { width: 100%; text-align: left; color: #475467; background: transparent; }
     .sidebar button.active, .sidebar button:hover { color: #c2410c; background: #fff7ed; }
     .admin-pages { min-width: 0; }
     .admin-page[hidden] { display: none !important; }
+    @keyframes admin-view-enter { from { opacity: 0; transform: translateY(12px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .admin-enter { animation: admin-view-enter .32s cubic-bezier(.2,.75,.25,1) both; }
+    .sidebar button { transition: color .18s ease, background .18s ease, transform .18s ease; }
+    .sidebar button:active, .profile-menu button:active { transform: scale(.97); }
     .chart { display: grid; grid-template-columns: repeat(12, minmax(22px, 1fr)); align-items: end; gap: 10px; height: 190px; margin-top: 20px; padding: 12px 4px 0; border-bottom: 1px solid #e4e9f0; }
     .chart-column { display: grid; grid-template-rows: 1fr auto; align-items: end; height: 100%; gap: 8px; text-align: center; }
     .chart-bar-wrap { display: flex; align-items: end; justify-content: center; height: 100%; }
     .chart-bar { width: min(100%, 28px); min-height: 2px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg,#fb923c,#ea580c); }
     .chart-label { color: #667085; font-size: 10px; }
     .master-group { margin-top: 20px; padding-top: 14px; border-top: 1px solid #edf0f4; }
-    .master-row { display: grid; grid-template-columns: minmax(130px,1fr) minmax(120px,.8fr) minmax(90px,.5fr) auto; align-items: end; gap: 8px; margin-top: 9px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
+    .master-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); align-items: end; gap: 8px; margin-top: 9px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
+    .master-row > * { min-width: 0; }
     .master-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 11px; font-weight: 700; }
     .master-row .check-control { display: flex; align-items: center; gap: 6px; min-height: 42px; font-size: 11px; }
     .master-row .check-control input { width: auto; min-height: auto; }
+    .field-config-row { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
+    .field-config-row > * { min-width: 0; }
+    .field-toggle-setting { display: flex; min-height: 62px; flex-direction: column; justify-content: flex-end; gap: 7px; }
+    .field-control-caption { color: #475467; font-size: 11px; font-weight: 700; }
+    .field-switch { display: inline-flex; width: fit-content; min-height: 24px; align-items: center; gap: 8px; margin: 0 !important; cursor: pointer; }
+    .field-switch input { position: absolute; width: 1px; height: 1px; min-height: 1px; margin: 0; opacity: 0; }
+    .field-switch-track { position: relative; width: 36px; height: 20px; flex: 0 0 36px; border-radius: 999px; background: #cbd5e1; transition: background .18s ease; }
+    .field-switch-track::after { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 3px #0f172a30; content: ""; transition: transform .18s ease; }
+    .field-switch input:checked + .field-switch-track { background: #f97316; }
+    .field-switch input:checked + .field-switch-track::after { transform: translateX(16px); }
+    .field-switch input:focus-visible + .field-switch-track { outline: 3px solid #f9731640; outline-offset: 2px; }
+    .field-switch-state { color: #64748b; font-size: 11px; font-weight: 600; }
+    .field-order-controls { display: flex; align-items: flex-end; gap: 6px; }
+    .field-move { width: 38px; min-height: 38px; padding: 0; font-size: 18px; line-height: 1; }
+    .field-move:disabled { cursor: not-allowed; }
+    .field-delete { min-height: 38px; padding: 8px 11px; color: #b42318 !important; background: #fef3f2 !important; }
+    [data-master-section][hidden] { display: none !important; }
     .review-item { margin-top: 12px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
     .review-controls { display: grid; grid-template-columns: minmax(150px,.8fr) minmax(180px,1fr); gap: 8px; margin-top: 8px; }
     .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
@@ -69,8 +120,37 @@
     .applicant-name span, .muted { color: #667085; font-size: 11px; }
     .file-links { display: grid; gap: 6px; min-width: 140px; }
     .file-links a { color: #c2410c; }
-    .row-actions { display: grid; gap: 6px; min-width: 120px; }
-    .row-actions button { min-height: 34px; padding: 7px; font-size: 11px; }
+    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 190px; }
+    .action-icon { display: inline-grid; width: 34px; min-width: 34px; min-height: 34px; place-items: center; padding: 0; border: 1px solid #e5e7eb; border-radius: 9px; color: #475569; background: white; transition: transform .18s ease, color .18s ease, background .18s ease; }
+    .action-icon:hover { color: #c2410c; background: #fff7ed; }
+    .action-icon svg { width: 17px; height: 17px; }
+    .action-icon.action-primary { color: #c2410c; background: #fff7ed; }
+    .applicant-photo { width: 34px; height: 42px; border: 1px solid #e5e7eb; border-radius: 6px; object-fit: cover; }
+    .applicant-photo-empty { display: grid; width: 34px; height: 42px; place-items: center; border: 1px dashed #cbd5e1; border-radius: 6px; color: #94a3b8; font-size: 10px; }
+    .status-badge { display: inline-flex; align-items: center; max-width: 190px; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.3; }
+    .status-badge.pending { border-color: #fde68a; color: #a16207; background: #fffbeb; }
+    .status-badge.verified { border-color: #a7f3d0; color: #047857; background: #ecfdf5; }
+    .status-badge.revision { border-color: #fecaca; color: #b91c1c; background: #fef2f2; }
+    .status-badge.neutral { border-color: #e2e8f0; color: #475569; background: #f8fafc; }
+    .official-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .official-status.yes { color: #047857; }
+    .official-status.no { color: #94a3b8; }
+    #print-applicant-card { display: none; }
+    #print-applicant-card .print-card-shell { padding: 24px; border: 2px solid #334155; border-radius: 12px; background: white; color: #172033; }
+    #print-applicant-card .print-card-heading { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid #cbd5e1; }
+    #print-applicant-card .print-card-heading img { width: 58px; height: 58px; object-fit: contain; }
+    #print-applicant-card h2 { font-size: 20px; }
+    #print-applicant-card .print-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; margin-top: 20px; }
+    #print-applicant-card .print-card-grid span, #print-applicant-card .print-card-number span { display: block; margin-bottom: 4px; color: #64748b; font-size: 10px; font-weight: 700; }
+    #print-applicant-card .print-card-grid strong, #print-applicant-card .print-card-number strong { font-size: 14px; }
+    #print-applicant-card .print-card-number { margin-top: 18px; }
+    #print-applicant-card .print-card-number strong { font-size: 22px; }
+    @media print {
+      @page { size: A4; margin: 14mm; }
+      body * { visibility: hidden !important; }
+      #print-applicant-card, #print-applicant-card * { visibility: visible !important; }
+      #print-applicant-card { display: block !important; position: fixed; inset: 14mm; width: auto; }
+    }
     .status-line { min-height: 22px; margin: 10px 0 0; font-size: 13px; }
     .status-line.error { color: #b42318; }
     .status-line.success { color: #067647; }
@@ -92,12 +172,16 @@
     .edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 12px; }
     .edit-grid .wide { grid-column: 1 / -1; }
     .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-    @media (max-width: 900px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .admin-layout { grid-template-columns: 1fr; } .sidebar { position: static; display:flex; overflow:auto; } .sidebar button { min-width: max-content; width:auto; } }
+    @media (max-width: 900px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .admin-layout { grid-template-columns: 1fr; } .sidebar { position: static; display:flex; overflow:auto; } .sidebar button { min-width: max-content; width:auto; } .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 640px) {
       body { padding: 12px 10px 32px; }
       .login-card { margin: 8vh auto; padding: 22px; }
       .topbar, .section-heading { align-items: flex-start; flex-direction: column; }
       .topbar { padding: 16px; }
+      .admin-topbar { flex-direction: row; align-items: center; padding: 10px 14px; }
+      .admin-brand { gap: 9px; font-size: 12px; }
+      .admin-brand img { width: 38px; height: 38px; }
+      .profile-trigger { width: 40px; min-height: 40px; }
       .actions { width: 100%; }
       .actions button { flex: 1 1 auto; }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -108,15 +192,19 @@
       .settings-grid .wide, .edit-grid .wide { grid-column: auto; }
       .wave-row { grid-template-columns: 1fr; }
       .master-row, .review-controls { grid-template-columns: 1fr; }
+      .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row { grid-template-columns: 1fr; }
       .chart { gap: 4px; }
       .chart-label { font-size: 8px; }
       .file-setting { grid-template-columns: 1fr; }
       .dialog-content { padding: 17px; }
       .dialog-actions { flex-direction: column-reverse; }
     }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
 
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125">
 </head>
 <body>
   <main>
@@ -135,14 +223,34 @@
     </section>
 
     <section id="dashboard" class="hidden">
-      <header class="card topbar">
-        <div><h1>Rekap Pendaftar SPMB</h1><p>Kelola pengaturan, data pendaftar, status, dan sinkronisasi Google Sheets.</p></div>
-        <div class="actions">
-          <span id="admin-identity" class="muted"></span>
-          <button id="change-password-button" class="secondary" type="button">Ganti Password</button>
-          <button id="export-button" class="dark" data-admin-roles="owner,operator" type="button">Ekspor CSV</button>
-          <button id="reload-button" class="secondary" type="button">Muat Ulang</button>
-          <button id="logout-button" class="secondary" type="button">Keluar</button>
+      <header class="card topbar site-header admin-topbar">
+        <a class="admin-brand" href="/" aria-label="SMK PGRI Cikoneng">
+          <img src="/assets/logo-pgri-cikoneng.png" width="44" height="44" alt="">
+          <span>SMK PGRI CIKONENG</span>
+        </a>
+        <div class="profile-control">
+          <button id="profile-trigger" class="profile-trigger" type="button" aria-label="Buka menu akun" aria-expanded="false" aria-controls="profile-menu">
+            <img id="profile-avatar-image" alt="" hidden>
+            <span id="profile-avatar-initials" aria-hidden="true">SP</span>
+          </button>
+          <div id="profile-menu" class="profile-menu" aria-hidden="true" inert>
+            <div class="profile-menu-identity">
+              <strong id="profile-menu-name"></strong>
+              <span id="profile-menu-role"></span>
+            </div>
+            <button id="edit-profile-button" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0M18 5l1.5 1.5L22 4"/></svg>
+              <span>Edit Profil</span>
+            </button>
+            <button id="change-password-button" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>
+              <span>Ganti Password</span>
+            </button>
+            <button id="logout-button" class="danger" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+              <span>Keluar</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -165,17 +273,25 @@
               <svg class="ui-icon master-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div id="master-submenu" class="sidebar-submenu" hidden>
-              <button type="button" data-page-target="master-page" data-master-anchor="master-fields">
+              <button type="button" data-page-target="master-page" data-master-anchor="form">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 <span>Form Pendaftaran</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="master-waves">
+              <button type="button" data-page-target="master-page" data-master-anchor="waves">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m-3 3h3"/></svg>
                 <span>Gelombang Pendaftaran</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="master-paths">
+              <button type="button" data-page-target="master-page" data-master-anchor="paths">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3"/></svg>
                 <span>Jalur Pendaftaran</span>
+              </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="timeline">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <span>Timeline Beranda</span>
+              </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="payment">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+                <span>Metode Pembayaran Daftar Ulang</span>
               </button>
             </div>
           </div>
@@ -197,7 +313,7 @@
       </div>
 
       <section class="card section">
-        <div class="section-heading"><div><h2>Grafik Pendaftar Bulanan</h2><p id="chart-year">Tahun ajaran aktif</p></div></div>
+        <div class="section-heading"><div><h2>Grafik Pendaftar Bulanan</h2><p id="chart-year">Tahun ajaran aktif</p></div><button id="reload-button" class="secondary" type="button">Muat Ulang</button></div>
         <div id="monthly-chart" class="chart" role="img" aria-label="Grafik jumlah pendaftar per bulan"></div>
       </section>
       </section>
@@ -205,7 +321,10 @@
       <section id="applications-page" class="card section admin-page" hidden>
         <div class="section-heading">
           <div><h2>Data Pendaftar</h2><p id="application-count">Memuat rekap...</p></div>
-          <button id="retry-sync-button" class="secondary" data-admin-roles="owner,operator" type="button">Coba Sinkronkan Sheet Lagi</button>
+          <div class="actions">
+            <button id="export-button" class="dark" data-admin-roles="owner,operator" type="button">Ekspor CSV</button>
+            <button id="export-excel-button" class="excel-button" data-admin-roles="owner,operator" type="button">Ekspor Excel</button>
+          </div>
         </div>
         <div id="sync-banner" class="sync-banner" role="status">Memeriksa status Google Sheets...</div>
         <div class="filters">
@@ -221,7 +340,7 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Pendaftar</th><th>Gelombang / Program</th><th>Masuk</th><th>Berkas</th><th>Verifikasi</th><th>Hasil Seleksi</th><th>Daftar Ulang</th><th>Google Sheets</th><th>Aksi</th></tr>
+              <tr><th>No. Pendaftaran</th><th>Foto</th><th>Nama Calon Siswa</th><th>Gelombang</th><th>Jalur</th><th>Verifikasi Berkas</th><th>Hasil Seleksi</th><th>Daftar Ulang</th><th>Siswa Resmi</th><th>Aksi</th></tr>
             </thead>
             <tbody id="applications-body"></tbody>
           </table>
@@ -230,11 +349,12 @@
 
       <details id="master-page" class="card section admin-page" hidden>
         <summary>Master Data SPMB</summary>
-        <p>Pengaturan disimpan di SQLite pada volume Railway dan langsung digunakan halaman pendaftaran.</p>
+        <p id="master-page-description">Pengaturan disimpan di SQLite pada volume Railway dan langsung digunakan halaman pendaftaran.</p>
         <form id="settings-form">
           <div class="settings-grid">
-            <div class="wide"><label for="page-title">Judul halaman</label><input id="page-title" maxlength="120" required></div>
-            <div class="wide">
+            <h2 class="wide" data-master-section="form">Form Pendaftaran</h2>
+            <div class="wide" data-master-section="form"><label for="page-title">Judul formulir</label><input id="page-title" maxlength="120" required></div>
+            <div class="wide" data-master-section="timeline">
               <label for="brochure-image-file">Foto brosur beranda (PNG/JPG · maksimal 5 MB)</label>
               <div class="file-setting">
                 <input id="brochure-image-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
@@ -245,49 +365,49 @@
                 <p id="brochure-image-empty">Brosur belum diunggah. Area beranda akan menampilkan placeholder.</p>
               </div>
             </div>
-            <div><label for="academic-year">Tahun ajaran</label><input id="academic-year" placeholder="2027/2028" pattern="[0-9]{4}/[0-9]{4}" required></div>
-            <div><label for="contact-label">Nama Contact Person</label><input id="contact-label" maxlength="60" required></div>
-            <div class="wide"><label for="contact-url">Tautan Contact Person</label><input id="contact-url" type="url" required></div>
-            <div class="wide">
+            <div data-master-section="form"><label for="academic-year">Tahun ajaran</label><input id="academic-year" placeholder="2027/2028" pattern="[0-9]{4}/[0-9]{4}" required></div>
+            <div data-master-section="form"><label for="contact-label">Nama Contact Person</label><input id="contact-label" maxlength="60" required></div>
+            <div class="wide" data-master-section="form"><label for="contact-url">Tautan Contact Person</label><input id="contact-url" type="url" required></div>
+            <div class="wide" data-master-section="form">
               <label>Formulir Offline (PDF)</label>
               <div class="file-setting"><input id="form-pdf" type="file" accept="application/pdf,.pdf"><button type="button" class="secondary upload-button" data-asset="formPdf">Unggah PDF</button></div>
               <a id="form-pdf-current" href="#" target="_blank" rel="noopener noreferrer">Lihat file saat ini</a>
             </div>
-            <div class="wide">
+            <div class="wide" data-master-section="form">
               <label>Informasi Beasiswa (PDF)</label>
               <div class="file-setting"><input id="scholarship-pdf" type="file" accept="application/pdf,.pdf"><button type="button" class="secondary upload-button" data-asset="scholarshipPdf">Unggah PDF</button></div>
               <a id="scholarship-pdf-current" href="#" target="_blank" rel="noopener noreferrer">Lihat file saat ini</a>
             </div>
-            <div class="wide">
-              <h2 id="master-fields" class="master-group">Form Pendaftaran · Field</h2>
-              <p>Aktifkan field yang dipakai, tentukan wajib/opsional, urutan, tahap, dan pilihan dropdown. Jenis input field bawaan dikunci; jenis field tambahan dapat dipilih.</p>
+            <div class="wide master-group" data-master-section="form">
+              <h2 id="master-fields">Form Pendaftaran · Field</h2>
+              <p>Atur jenis, tahap, pilihan, status wajib, dan keaktifan field. Gunakan tombol panah untuk mengubah urutan.</p>
               <div id="form-fields-list"></div>
               <button id="add-form-field-button" class="secondary" type="button" style="margin-top:10px">Tambah Field</button>
             </div>
-            <div class="wide master-group">
+            <div class="wide master-group" data-master-section="timeline">
               <h2 id="master-timeline">Timeline Beranda</h2>
               <p>Atur nama tahap, keterangan, tanggal, status, dan urutan tampil. Angka urutan terkecil tampil lebih dahulu.</p>
               <div id="timeline-list"></div>
               <button id="add-timeline-event-button" class="secondary" type="button" style="margin-top:10px">Tambah Tahap Timeline</button>
             </div>
-            <div class="wide master-group">
+            <div class="wide master-group" data-master-section="form">
               <h2>Dokumen Tambahan</h2>
               <p>Pengaturan berlaku pada formulir baru; dokumen pendaftar lama tetap tersimpan.</p>
               <div id="document-list"></div>
               <button id="add-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen</button>
             </div>
-            <div class="wide master-group">
-              <label id="master-waves">Gelombang pendaftaran</label>
+            <h2 class="wide" id="master-waves" data-master-section="waves">Gelombang Pendaftaran</h2>
+            <div class="wide master-group" data-master-section="waves">
               <div id="wave-list"></div>
               <button id="add-wave-button" class="secondary" type="button" style="margin-top:10px">Tambah Gelombang</button>
             </div>
-            <div class="wide master-group">
-              <label id="master-paths">Jalur pendaftaran</label>
+            <h2 class="wide" id="master-paths" data-master-section="paths">Jalur Pendaftaran</h2>
+            <div class="wide master-group" data-master-section="paths">
               <div id="path-list"></div>
               <button id="add-path-button" class="secondary" type="button" style="margin-top:10px">Tambah Jalur</button>
             </div>
-            <div class="wide master-group">
-              <h2>Metode Pembayaran Daftar Ulang</h2>
+            <h2 class="wide" id="master-payment" data-master-section="payment">Metode Pembayaran Daftar Ulang</h2>
+            <div class="wide master-group" data-master-section="payment">
               <div class="settings-grid">
                 <label><input id="bank-enabled" type="checkbox"> Aktifkan transfer bank</label>
                 <label><input id="qris-enabled" type="checkbox"> Aktifkan QRIS manual</label>
@@ -380,6 +500,53 @@
     </div>
   </dialog>
 
+  <section id="print-applicant-card" aria-hidden="true">
+    <div class="print-card-shell">
+      <div class="print-card-heading">
+        <img src="/assets/logo-pgri-cikoneng.png" alt="">
+        <div>
+          <h2>KARTU PENDAFTAR CALON PESERTA DIDIK BARU</h2>
+          <p>SMK PGRI CIKONENG · TAHUN AJARAN <span id="print-academic-year"></span></p>
+        </div>
+      </div>
+      <div class="print-card-number"><span>NOMOR PENDAFTARAN</span><strong id="print-registration-number"></strong></div>
+      <div class="print-card-grid">
+        <div><span>NAMA CALON SISWA</span><strong id="print-student-name"></strong></div>
+        <div><span>NISN</span><strong id="print-student-nisn"></strong></div>
+        <div><span>GELOMBANG</span><strong id="print-wave"></strong></div>
+        <div><span>JALUR</span><strong id="print-path"></strong></div>
+        <div><span>PROGRAM STUDI</span><strong id="print-major"></strong></div>
+        <div><span>ASAL SEKOLAH</span><strong id="print-school"></strong></div>
+      </div>
+      <p class="muted" style="margin-top:20px">Kartu ini digunakan sebagai identitas pendaftaran. Simpan nomor pendaftaran untuk keperluan informasi SPMB.</p>
+    </div>
+  </section>
+
+  <dialog id="profile-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2>Edit Profil</h2><p>Perbarui nama dan foto yang ditampilkan pada akun admin.</p></div>
+        <button id="close-profile-button" class="secondary" type="button" aria-label="Tutup">Tutup</button>
+      </div>
+      <form id="profile-form" class="profile-form">
+        <label for="profile-display-name">Nama tampilan</label>
+        <input id="profile-display-name" maxlength="80" autocomplete="name" required>
+        <label for="profile-image-file">Foto profil (PNG, JPG, atau WebP · maksimal 1 MB)</label>
+        <input id="profile-image-file" class="profile-file" type="file" accept="image/png,image/jpeg,image/webp">
+        <div class="profile-preview">
+          <img id="profile-preview-image" alt="Pratinjau foto profil" hidden>
+          <span id="profile-preview-initials" aria-hidden="true">SP</span>
+          <button id="remove-profile-image" class="secondary" type="button">Hapus Foto</button>
+        </div>
+        <p id="profile-status" class="status-line" role="status"></p>
+        <div class="dialog-actions">
+          <button id="cancel-profile-button" class="secondary" type="button">Batal</button>
+          <button id="save-profile-button" type="submit">Simpan Profil</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <dialog id="password-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -408,6 +575,7 @@
     const applicationBody = document.getElementById('applications-body');
     const editDialog = document.getElementById('edit-dialog');
     const reviewDialog = document.getElementById('review-dialog');
+    const profileDialog = document.getElementById('profile-dialog');
     const passwordDialog = document.getElementById('password-dialog');
     const programs = [
       'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
@@ -448,6 +616,7 @@
     let applicants = [];
     let editingRegistrationNumber = '';
     let currentUser = null;
+    let pendingProfileImage = '';
     let reviewingApplicant = null;
     let currentMonthly = [];
     let adminReviewConfig = null;
@@ -476,16 +645,61 @@
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
       applyRolePermissions();
+      animateAdminElement(document.getElementById('dashboard-page'));
     }
 
     function showLogin() {
       currentUser = null;
+      closeProfileMenu();
       dashboard.classList.add('hidden');
       loginCard.classList.remove('hidden');
+      animateAdminElement(loginCard);
     }
 
     function roleName(role) {
       return { owner: 'Pemilik', operator: 'Operator', viewer: 'Viewer' }[role] || role;
+    }
+
+    function userInitials(name) {
+      return String(name || '').trim().split(/\s+/).slice(0, 2)
+        .map(function (part) { return part.charAt(0); }).join('').toUpperCase() || 'SP';
+    }
+
+    function updateProfileUI() {
+      if (!currentUser) return;
+      const avatar = document.getElementById('profile-avatar-image');
+      const initials = document.getElementById('profile-avatar-initials');
+      const hasPhoto = Boolean(currentUser.profileImage);
+      avatar.onerror = function () {
+        avatar.hidden = true;
+        initials.hidden = false;
+      };
+      if (hasPhoto) avatar.src = currentUser.profileImage;
+      else avatar.removeAttribute('src');
+      avatar.hidden = !hasPhoto;
+      initials.hidden = false;
+      if (hasPhoto) initials.hidden = true;
+      initials.textContent = userInitials(currentUser.displayName);
+      document.getElementById('profile-trigger').setAttribute('aria-label', 'Menu akun ' + currentUser.displayName);
+      document.getElementById('profile-menu-name').textContent = currentUser.displayName;
+      document.getElementById('profile-menu-role').textContent =
+        currentUser.username + ' · ' + roleName(currentUser.role);
+    }
+
+    function closeProfileMenu() {
+      const menu = document.getElementById('profile-menu');
+      if (!menu) return;
+      menu.classList.remove('open');
+      menu.setAttribute('aria-hidden', 'true');
+      menu.inert = true;
+      document.getElementById('profile-trigger').setAttribute('aria-expanded', 'false');
+    }
+
+    function animateAdminElement(element) {
+      if (!element) return;
+      element.classList.remove('admin-enter');
+      void element.offsetWidth;
+      element.classList.add('admin-enter');
     }
 
     function applyRolePermissions() {
@@ -494,8 +708,7 @@
         const roles = element.dataset.adminRoles.split(',').map(function (role) { return role.trim(); });
         element.hidden = !roles.includes(currentUser.role);
       });
-      document.getElementById('admin-identity').textContent =
-        currentUser.displayName + ' · ' + roleName(currentUser.role);
+      updateProfileUI();
       if (currentUser.role === 'viewer') {
         document.getElementById('application-search').placeholder = 'Cari nama atau nomor pendaftaran';
       } else {
@@ -511,19 +724,26 @@
           (!anchorId || button.dataset.masterAnchor === anchorId));
       });
       if (pageId === 'master-page') {
+        const sectionKey = anchorId || 'form';
+        document.querySelectorAll('[data-master-section]').forEach(function (section) {
+          section.hidden = section.dataset.masterSection !== sectionKey;
+        });
+        const activeSections = Array.from(document.querySelectorAll('[data-master-section="' + sectionKey + '"]'));
+        activeSections.forEach(animateAdminElement);
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'true');
         document.getElementById('master-submenu').hidden = false;
         document.getElementById('master-nav-toggle').classList.add('active');
         document.getElementById('master-page').open = true;
-        if (anchorId) setTimeout(function () {
-          const anchor = document.getElementById(anchorId);
-          if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (sectionKey) setTimeout(function () {
+          const section = document.querySelector('[data-master-section="' + sectionKey + '"]');
+          if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 0);
       } else {
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'false');
         document.getElementById('master-nav-toggle').classList.remove('active');
         document.getElementById('master-submenu').hidden = true;
       }
+      animateAdminElement(document.getElementById(pageId));
     }
 
     function makeOption(value, label) {
@@ -826,9 +1046,9 @@
     function renderFormFieldRows(fields) {
       const list = document.getElementById('form-fields-list');
       list.replaceChildren();
-      fields.forEach(function (field) {
+      fields.slice().sort(function (a, b) { return Number(a.order) - Number(b.order); }).forEach(function (field) {
         const row = document.createElement('div');
-        row.className = 'master-row';
+        row.className = 'master-row field-config-row';
         row.dataset.formField = 'true';
         row.dataset.formFieldKey = field.key;
         row.dataset.isCustom = String(Boolean(field.custom));
@@ -849,12 +1069,6 @@
         [['1', 'Tahap 1 · Pilihan'], ['2', 'Tahap 2 · Siswa'], ['3', 'Tahap 3 · Orang tua'], ['4', 'Tahap 4 · Lainnya']]
           .forEach(function (item) { step.appendChild(makeOption(item[0], item[1])); });
         step.value = String(field.step);
-        const order = document.createElement('input');
-        order.dataset.fieldOrder = 'true';
-        order.type = 'number';
-        order.min = '1';
-        order.max = '1000';
-        order.value = field.order;
         const options = document.createElement('input');
         options.dataset.fieldOptions = 'true';
         options.maxLength = 1000;
@@ -871,33 +1085,87 @@
         helpText.maxLength = 250;
         helpText.placeholder = 'Keterangan bantuan';
         helpText.value = field.helpText || '';
-        const required = document.createElement('input');
-        required.type = 'checkbox';
-        required.dataset.fieldRequired = 'true';
-        required.checked = field.required;
-        const active = document.createElement('input');
-        active.type = 'checkbox';
-        active.dataset.fieldActive = 'true';
-        active.checked = field.active;
+        const orderControls = document.createElement('div');
+        orderControls.className = 'field-order-controls';
+        const moveUp = document.createElement('button');
+        moveUp.className = 'secondary field-move';
+        moveUp.type = 'button';
+        moveUp.dataset.moveUp = 'true';
+        moveUp.textContent = '↑';
+        moveUp.setAttribute('aria-label', 'Pindahkan ' + field.label + ' ke atas');
+        moveUp.addEventListener('click', function () {
+          if (row.previousElementSibling) row.parentElement.insertBefore(row, row.previousElementSibling);
+          updateFormFieldMoveButtons();
+        });
+        const moveDown = document.createElement('button');
+        moveDown.className = 'secondary field-move';
+        moveDown.type = 'button';
+        moveDown.dataset.moveDown = 'true';
+        moveDown.textContent = '↓';
+        moveDown.setAttribute('aria-label', 'Pindahkan ' + field.label + ' ke bawah');
+        moveDown.addEventListener('click', function () {
+          if (row.nextElementSibling) row.parentElement.insertBefore(row.nextElementSibling, row);
+          updateFormFieldMoveButtons();
+        });
+        orderControls.append(moveUp, moveDown);
         const remove = document.createElement('button');
-        remove.className = 'secondary';
+        remove.className = 'secondary field-delete';
         remove.type = 'button';
-        remove.textContent = field.custom ? 'Hapus' : 'Nonaktifkan';
-        remove.disabled = !field.custom;
-        remove.addEventListener('click', function () { row.remove(); });
+        remove.textContent = 'Hapus';
+        remove.setAttribute('aria-label', 'Hapus field ' + field.label);
+        remove.addEventListener('click', function () {
+          row.remove();
+          updateFormFieldMoveButtons();
+        });
         row.append(
           makeLabeledControl(field.key + ' · Label', label),
           makeLabeledControl('Jenis', type),
           makeLabeledControl('Tahap', step),
-          makeLabeledControl('Urutan', order),
           makeLabeledControl('Pilihan', options),
           makeLabeledControl('Placeholder', placeholder),
           makeLabeledControl('Bantuan', helpText),
-          makeLabeledControl('Wajib', required),
-          makeLabeledControl('Aktif', active),
+          makeFieldToggle('Wajib', 'fieldRequired', field.required),
+          makeFieldToggle('Aktif', 'fieldActive', field.active),
+          orderControls,
           remove
         );
         list.appendChild(row);
+      });
+      updateFormFieldMoveButtons();
+    }
+
+    function makeFieldToggle(labelText, dataKey, checked) {
+      const group = document.createElement('div');
+      group.className = 'field-toggle-setting';
+      const label = document.createElement('span');
+      label.className = 'field-control-caption';
+      label.textContent = labelText;
+      const toggle = document.createElement('label');
+      toggle.className = 'field-switch';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.dataset[dataKey] = 'true';
+      input.checked = Boolean(checked);
+      input.setAttribute('aria-label', labelText);
+      const track = document.createElement('span');
+      track.className = 'field-switch-track';
+      track.setAttribute('aria-hidden', 'true');
+      const state = document.createElement('span');
+      state.className = 'field-switch-state';
+      state.textContent = input.checked ? 'Aktif' : 'Nonaktif';
+      input.addEventListener('change', function () {
+        state.textContent = input.checked ? 'Aktif' : 'Nonaktif';
+      });
+      toggle.append(input, track, state);
+      group.append(label, toggle);
+      return group;
+    }
+
+    function updateFormFieldMoveButtons() {
+      const rows = Array.from(document.querySelectorAll('[data-form-field]'));
+      rows.forEach(function (row, index) {
+        row.querySelector('[data-move-up]').disabled = index === 0;
+        row.querySelector('[data-move-down]').disabled = index === rows.length - 1;
       });
     }
 
@@ -908,7 +1176,7 @@
           label: row.querySelector('[data-field-label]').value.trim(),
           type: row.querySelector('[data-field-type]').value,
           step: Number(row.querySelector('[data-field-step]').value),
-          order: Number(row.querySelector('[data-field-order]').value || index + 1),
+          order: index + 1,
           options: row.querySelector('[data-field-options]').value.split(',').map(function (value) { return value.trim(); }).filter(Boolean),
           placeholder: row.querySelector('[data-field-placeholder]').value.trim(),
           helpText: row.querySelector('[data-field-help]').value.trim(),
@@ -1063,13 +1331,35 @@
           applicant.registration_number, applicant.student_name, applicant.nisn || '', applicant.wave, applicant.major
         ].join(' ').toLowerCase();
         row.dataset.documentStatus = applicant.document_status;
+        const registrationNumber = document.createElement('td');
+        const regNumber = document.createElement('strong');
+        regNumber.textContent = applicant.registration_number;
+        registrationNumber.appendChild(regNumber);
+        const photoCell = document.createElement('td');
+        const photo = (applicant.files || []).find(function (file) { return file.key === 'studentPhoto'; });
+        if (photo) {
+          const image = document.createElement('img');
+          image.className = 'applicant-photo';
+          image.src = photo.url;
+          image.alt = 'Foto ' + applicant.student_name;
+          image.onerror = function () {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'applicant-photo-empty';
+            placeholder.textContent = '—';
+            photoCell.replaceChildren(placeholder);
+          };
+          photoCell.appendChild(image);
+        } else {
+          const placeholder = document.createElement('span');
+          placeholder.className = 'applicant-photo-empty';
+          placeholder.textContent = '—';
+          photoCell.appendChild(placeholder);
+        }
         const applicantCell = document.createElement('td');
         applicantCell.className = 'applicant-name';
         const name = document.createElement('strong');
         name.textContent = applicant.student_name;
-        const regNumber = document.createElement('span');
-        regNumber.textContent = applicant.registration_number;
-        applicantCell.append(name, regNumber);
+        applicantCell.appendChild(name);
         if (!readOnly) {
           const nisn = document.createElement('span');
           nisn.textContent = 'NISN ' + applicant.nisn;
@@ -1077,85 +1367,55 @@
         }
 
         const wave = document.createElement('td');
-        wave.textContent = applicant.wave + (applicant.registration_path ? ' · ' + applicant.registration_path : '') + ' · ' + applicant.major;
-        const date = document.createElement('td');
-        date.textContent = new Date(applicant.created_at).toLocaleString('id-ID');
-        const files = document.createElement('td');
-        files.className = 'file-links';
-        applicant.files.forEach(function (file) {
-          const link = document.createElement('a');
-          link.href = file.url;
-          link.textContent = file.label + (file.name ? '' : '');
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.title = file.name || file.label;
-          files.appendChild(link);
-        });
-        if (!applicant.files.length) files.textContent = readOnly ? 'Tidak dapat diakses' : 'Tidak ada berkas';
-        const documentStatus = readOnly
-          ? document.createTextNode(applicant.document_status)
-          : statusSelect(['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'], applicant.document_status);
-        const selectionStatus = readOnly
-          ? document.createTextNode(applicant.selection_status)
-        : statusSelect(['Menunggu Pengumuman', 'Diterima / Lulus', 'Cadangan', 'Tidak Diterima'], applicant.selection_status === 'Diterima' ? 'Diterima / Lulus' : applicant.selection_status);
-        const reenrollmentStatus = readOnly
-          ? document.createTextNode(applicant.reenrollment_status)
-          : document.createTextNode(applicant.reenrollment_status + (applicant.payment_status ? ' · ' + applicant.payment_status : ''));
-        const syncStatus = document.createElement('td');
-        syncStatus.textContent = applicant.sheet_sync_status === 'synced' ? 'Tersinkron' : 'Menunggu sync';
+        wave.textContent = applicant.wave;
+        const path = document.createElement('td');
+        path.textContent = applicant.registration_path || '—';
+        const documentStatus = makeStatusBadge(applicant.document_status, statusTone(applicant.document_status));
+        const selectionLabel = applicant.selection_status === 'Diterima' ? 'Diterima / Lulus' : applicant.selection_status;
+        const selectionStatus = makeStatusBadge(selectionLabel, statusTone(selectionLabel));
+        const reenrollmentLabel = applicant.reenrollment_status +
+          (applicant.payment_status && applicant.payment_status !== applicant.reenrollment_status ? ' · ' + applicant.payment_status : '');
+        const reenrollmentStatus = makeStatusBadge(reenrollmentLabel, statusTone(reenrollmentLabel));
+        const officialStatus = document.createElement('span');
+        const officiallyEnrolled = applicant.reenrollment_status === 'Daftar Ulang Selesai';
+        officialStatus.className = 'official-status ' + (officiallyEnrolled ? 'yes' : 'no');
+        officialStatus.textContent = officiallyEnrolled ? 'Resmi' : 'Belum resmi';
         const actions = document.createElement('td');
         actions.className = 'row-actions';
         if (readOnly) {
           actions.textContent = 'Hanya lihat';
         } else {
-          const save = document.createElement('button');
-          save.textContent = 'Simpan Status';
-          save.addEventListener('click', async function () {
-            save.disabled = true;
-            try {
-              await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number), {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  documentStatus: documentStatus.value,
-                  selectionStatus: selectionStatus.value
-                })
-              });
-              if (await loadApplications()) {
-                setStatus('applications-status', 'Status berhasil disimpan.', 'success');
+          actions.append(
+            createIconAction('Verifikasi berkas', '<path d="M8 3H5a2 2 0 0 0-2 2v15a1 1 0 0 0 1 1h13"/><path d="M9 3h7l4 4v5M9 3v5h7"/><path d="m14 18 2 2 5-5"/>', function () {
+              openReviewDialog(applicant, 'documents');
+            }, true),
+            createIconAction('Penetapan kelulusan', '<path d="m12 3 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7L12 3Z"/><path d="M8.5 17.5 7 22l5-2 5 2-1.5-4.5"/>', function () {
+              openReviewDialog(applicant, 'selection');
+            }),
+            createIconAction('Lihat dan verifikasi', '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/><path d="m17 18 1.5 1.5L22 16"/>', function () {
+              openReviewDialog(applicant, 'details');
+            }),
+            createIconAction('Cetak kartu', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
+              printApplicantCard(applicant);
+            }),
+            createIconAction('Edit data pendaftar', '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>', function () {
+              openEditDialog(applicant);
+            }),
+            createIconAction('Atur ulang PIN', '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-3 3 3 3m-6 0 3 3"/>', async function (button) {
+              if (!confirm('Buat PIN baru untuk ' + applicant.student_name + '? Sampaikan PIN tersebut secara langsung kepada siswa.')) return;
+              button.disabled = true;
+              try {
+                const result = await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/reset-pin', { method: 'POST' });
+                alert('PIN portal baru: ' + result.pin);
+              } catch (error) {
+                setStatus('applications-status', error.message, 'error');
+              } finally {
+                button.disabled = false;
               }
-            } catch (error) {
-              setStatus('applications-status', error.message, 'error');
-            } finally {
-              save.disabled = false;
-            }
-          });
-          const edit = document.createElement('button');
-          edit.className = 'secondary';
-          edit.textContent = 'Edit Data';
-          edit.addEventListener('click', function () { openEditDialog(applicant); });
-          const review = document.createElement('button');
-          review.className = 'secondary';
-          review.textContent = 'Verifikasi Detail';
-          review.addEventListener('click', function () { openReviewDialog(applicant); });
-          const resetPin = document.createElement('button');
-          resetPin.className = 'secondary';
-          resetPin.textContent = 'Atur Ulang PIN';
-          resetPin.addEventListener('click', async function () {
-            if (!confirm('Buat PIN baru untuk ' + applicant.student_name + '? Sampaikan PIN tersebut secara langsung kepada siswa.')) return;
-            resetPin.disabled = true;
-            try {
-              const result = await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/reset-pin', { method: 'POST' });
-              alert('PIN portal baru: ' + result.pin);
-            } catch (error) {
-              setStatus('applications-status', error.message, 'error');
-            } finally {
-              resetPin.disabled = false;
-            }
-          });
-          actions.append(review, save, edit, resetPin);
+            })
+          );
         }
-        [applicantCell, wave, date, files, makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), syncStatus, actions]
+        [registrationNumber, photoCell, applicantCell, wave, path, makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), makeCell(officialStatus), actions]
           .forEach(function (cell) { row.appendChild(cell); });
         applicationBody.appendChild(row);
       });
@@ -1168,13 +1428,57 @@
       return cell;
     }
 
+    function statusTone(status) {
+      const value = String(status || '').toLowerCase();
+      if (value.includes('perlu perbaikan') || value.includes('tidak diterima')) return 'revision';
+      if (value.includes('terverifikasi') || value.includes('selesai') || value.includes('diterima')) return 'verified';
+      if (value.includes('menunggu')) return 'pending';
+      return 'neutral';
+    }
+
+    function makeStatusBadge(status, tone) {
+      const badge = document.createElement('span');
+      badge.className = 'status-badge ' + tone;
+      badge.textContent = status || '—';
+      return badge;
+    }
+
+    function createIconAction(label, pathMarkup, handler, primary) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'action-icon' + (primary ? ' action-primary' : '');
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        pathMarkup + '</svg>';
+      button.addEventListener('click', function () { handler(button); });
+      return button;
+    }
+
+    function printApplicantCard(applicant) {
+      const values = {
+        'print-academic-year': siteConfig.academicYear || '',
+        'print-registration-number': applicant.registration_number,
+        'print-student-name': applicant.student_name,
+        'print-student-nisn': applicant.nisn || '—',
+        'print-wave': applicant.wave || '—',
+        'print-path': applicant.registration_path || '—',
+        'print-major': applicant.major || '—',
+        'print-school': applicant.school_origin || '—'
+      };
+      Object.keys(values).forEach(function (id) {
+        document.getElementById(id).textContent = values[id];
+      });
+      window.print();
+    }
+
     function applicantValue(applicant, field) {
       if (field.custom) return (applicant.custom_data || {})[field.key] || '';
       const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
       return applicant[column] || '';
     }
 
-    function openReviewDialog(applicant) {
+    function openReviewDialog(applicant, focusTarget) {
       reviewingApplicant = applicant;
       document.getElementById('review-registration-number').textContent = applicant.registration_number + ' · ' + applicant.student_name;
       document.getElementById('selection-score').value = applicant.selection_score || '';
@@ -1221,6 +1525,17 @@
       document.getElementById('payment-approve-button').disabled = !proof;
       setStatus('review-status', '', '');
       reviewDialog.showModal();
+      if (focusTarget) window.setTimeout(function () {
+        const target = focusTarget === 'selection'
+          ? document.getElementById('selection-decision')
+          : focusTarget === 'documents'
+            ? content.querySelector('[data-review-type="document"]') || content.querySelector('[data-review-key]')
+            : null;
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (target.tagName === 'SELECT') target.focus();
+        }
+      }, 0);
     }
 
     function addReviewItem(container, key, labelText, value, type, review, file) {
@@ -1352,7 +1667,7 @@
         const status = await api('/api/admin/sync-status');
         const banner = document.getElementById('sync-banner');
         banner.textContent = status.configured
-          ? 'Google Sheets terhubung · ' + status.synced + ' tersinkron · ' + status.pending + ' menunggu sinkronisasi.'
+          ? 'Google Sheets terhubung · sinkronisasi otomatis aktif · ' + status.synced + ' tersinkron · ' + status.pending + ' menunggu sinkronisasi.'
           : 'Google Sheets belum dikonfigurasi. Data tetap tersimpan di SQLite; atur APPS_SCRIPT_SYNC_URL dan SHEET_SYNC_TOKEN di Railway.';
       } catch (error) {
         document.getElementById('sync-banner').textContent = error.message;
@@ -1758,14 +2073,8 @@
     document.getElementById('export-button').addEventListener('click', function () {
       window.location.assign('/api/admin/export.csv');
     });
-    document.getElementById('retry-sync-button').addEventListener('click', async function () {
-      try {
-        await api('/api/admin/sync-retry', { method: 'POST' });
-        setStatus('applications-status', 'Percobaan sinkronisasi dijadwalkan.', 'success');
-        await loadSyncStatus();
-      } catch (error) {
-        setStatus('applications-status', error.message, 'error');
-      }
+    document.getElementById('export-excel-button').addEventListener('click', function () {
+      window.location.assign('/api/admin/export.xlsx');
     });
     document.getElementById('logout-button').addEventListener('click', async function () {
       try { await api('/api/admin/logout', { method: 'POST' }); } catch (error) { console.error(error); }
@@ -1798,7 +2107,105 @@
     });
 
     document.getElementById('reload-users-button').addEventListener('click', loadUsers);
+    document.getElementById('profile-trigger').addEventListener('click', function () {
+      const menu = document.getElementById('profile-menu');
+      const opening = !menu.classList.contains('open');
+      menu.classList.toggle('open', opening);
+      menu.setAttribute('aria-hidden', String(!opening));
+      menu.inert = !opening;
+      this.setAttribute('aria-expanded', String(opening));
+    });
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('.profile-control')) closeProfileMenu();
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeProfileMenu();
+    });
+    document.getElementById('edit-profile-button').addEventListener('click', function () {
+      closeProfileMenu();
+      document.getElementById('profile-display-name').value = currentUser.displayName;
+      document.getElementById('profile-image-file').value = '';
+      pendingProfileImage = currentUser.profileImage || '';
+      setStatus('profile-status', '', '');
+      const image = document.getElementById('profile-preview-image');
+      const initials = document.getElementById('profile-preview-initials');
+      image.onerror = function () {
+        image.hidden = true;
+        initials.hidden = false;
+      };
+      image.hidden = !pendingProfileImage;
+      initials.hidden = Boolean(pendingProfileImage);
+      initials.textContent = userInitials(currentUser.displayName);
+      if (pendingProfileImage) image.src = pendingProfileImage;
+      else image.removeAttribute('src');
+      profileDialog.showModal();
+    });
+    document.getElementById('profile-image-file').addEventListener('change', function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+        this.value = '';
+        return setStatus('profile-status', 'Pilih foto berformat PNG, JPG, atau WebP.', 'error');
+      }
+      if (file.size > 1048576) {
+        this.value = '';
+        return setStatus('profile-status', 'Ukuran foto maksimal 1 MB.', 'error');
+      }
+      const reader = new FileReader();
+      reader.onload = function () {
+        if (typeof reader.result !== 'string') {
+          return setStatus('profile-status', 'Foto gagal dibaca. Silakan pilih ulang.', 'error');
+        }
+        pendingProfileImage = reader.result;
+        const image = document.getElementById('profile-preview-image');
+        image.onerror = function () {
+          image.hidden = true;
+          document.getElementById('profile-preview-initials').hidden = false;
+        };
+        image.src = pendingProfileImage;
+        image.hidden = false;
+        document.getElementById('profile-preview-initials').hidden = true;
+        setStatus('profile-status', '', '');
+      };
+      reader.onerror = function () {
+        setStatus('profile-status', 'Foto gagal dibaca. Silakan pilih ulang.', 'error');
+      };
+      reader.readAsDataURL(file);
+    });
+    document.getElementById('remove-profile-image').addEventListener('click', function () {
+      pendingProfileImage = '';
+      document.getElementById('profile-image-file').value = '';
+      document.getElementById('profile-preview-image').hidden = true;
+      document.getElementById('profile-preview-image').removeAttribute('src');
+      document.getElementById('profile-preview-initials').hidden = false;
+    });
+    document.getElementById('close-profile-button').addEventListener('click', function () { profileDialog.close(); });
+    document.getElementById('cancel-profile-button').addEventListener('click', function () { profileDialog.close(); });
+    document.getElementById('profile-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('save-profile-button');
+      button.disabled = true;
+      try {
+        const result = await api('/api/admin/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            displayName: document.getElementById('profile-display-name').value,
+            profileImage: pendingProfileImage
+          })
+        });
+        currentUser = result.user;
+        updateProfileUI();
+        setStatus('profile-status', 'Profil berhasil diperbarui.', 'success');
+        window.setTimeout(function () { profileDialog.close(); }, 650);
+      } catch (error) {
+        setStatus('profile-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
     document.getElementById('change-password-button').addEventListener('click', function () {
+      closeProfileMenu();
       setStatus('password-status', '', '');
       passwordDialog.showModal();
     });

@@ -1,6 +1,6 @@
 # SPMB SMK PGRI Cikoneng 2027/2028
 
-Aplikasi pendaftaran SPMB dengan formulir empat tahap, portal siswa, kartu peserta, dan portal admin. Railway menjalankan aplikasi Node.js; SQLite di Persistent Volume Railway menjadi penyimpanan utama. Data pendaftar disalin satu arah ke Google Sheets melalui Google Apps Script. Jika sinkronisasi gagal, pendaftaran tetap tersimpan di SQLite dan akan dicoba kembali.
+Aplikasi SPMB dengan halaman beranda, formulir empat tahap, portal siswa, kartu peserta, dan portal admin. Beranda berada di `/`, sedangkan formulir pendaftaran memiliki halaman tersendiri di `/pendaftaran`. Railway menjalankan aplikasi Node.js; SQLite di Persistent Volume Railway menjadi penyimpanan utama. Data pendaftar disalin satu arah ke Google Sheets melalui Google Apps Script. Jika sinkronisasi gagal, pendaftaran tetap tersimpan di SQLite dan akan dicoba kembali.
 
 ## Menjalankan lokal
 
@@ -30,7 +30,7 @@ Buka `http://localhost:3000`. Untuk membuat akun Pemilik pertama, set `ADMIN_USE
    | `SHEET_SYNC_TOKEN` | Token acak minimal 32 karakter; harus sama dengan Script Property Apps Script |
 
 4. Railway menggunakan perintah start `npm start` dan mengambil versi Node dari `package.json` (`>=22.13`).
-5. Setelah deploy, portal admin ada di `/admin` dan portal siswa di `/portal` pada domain Railway Anda.
+5. Setelah deploy, beranda ada di `/`, formulir di `/pendaftaran`, portal admin di `/admin`, dan portal siswa di `/portal` pada domain Railway Anda.
 
 `ADMIN_USERNAME` dan `ADMIN_PASSWORD` hanya dipakai untuk membuat akun Pemilik saat tabel akun masih kosong. Setelah akun dibuat, perubahan nilai environment tersebut tidak mengganti password akun yang sudah tersimpan. Jangan menaruh password atau token rahasia di GitHub, kode frontend, atau spreadsheet. Unggahan identitas pendaftar disimpan privat pada volume Railway dan tidak disinkronkan ke Google Sheets.
 
@@ -45,18 +45,19 @@ Buka `http://localhost:3000`. Untuk membuat akun Pemilik pertama, set `ADMIN_USE
 5. Salin URL Web App berakhiran `/exec` ke `APPS_SCRIPT_SYNC_URL` di Railway. Masukkan nilai `SHEET_SYNC_TOKEN` yang sama pada environment variables Railway.
 6. Deploy ulang service Railway setelah mengubah environment variables.
 
-Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronisasi memakai nomor pendaftaran untuk memperbarui baris yang sama, sehingga retry tidak membuat baris duplikat. Data tambahan, jalur pendaftaran, hasil seleksi, catatan review, dan status daftar ulang disimpan dalam kolom JSON/status. PIN portal dan file pribadi tidak dikirim ke Sheet. Pada portal admin, status sinkronisasi dapat diperiksa dan antrean dapat dicoba ulang.
+Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronisasi berjalan otomatis di latar belakang setelah pendaftaran atau perubahan data; retry memakai nomor pendaftaran sehingga tidak membuat baris duplikat. Data tambahan, jalur pendaftaran, hasil seleksi, catatan review, dan status daftar ulang disimpan dalam kolom JSON/status. PIN portal dan file pribadi tidak dikirim ke Sheet. Portal admin hanya menampilkan ringkasan status sinkronisasi.
 
 ## Portal dan penyimpanan data
 
 - **Portal admin:** `/admin`. Masuk dengan username dan password. Akun Pemilik pertama dibuat dari `ADMIN_USERNAME` dan `ADMIN_PASSWORD` di Railway pada deploy pertama setelah versi ini dipasang.
-- **Peran admin:** Pemilik memiliki semua akses termasuk mengatur situs dan akun. Operator dapat melihat/mengelola pendaftar, berkas, status, PIN, ekspor, dan retry sinkronisasi. Viewer hanya melihat ringkasan pendaftar; data identitas, berkas, ekspor, dan tindakan perubahan tidak tersedia untuk peran ini.
+- **Peran admin:** Pemilik memiliki semua akses termasuk mengatur situs dan akun. Operator dapat melihat/mengelola pendaftar, berkas, status, PIN, dan ekspor CSV/Excel. Viewer hanya melihat ringkasan pendaftar; data identitas, berkas, ekspor, dan tindakan perubahan tidak tersedia untuk peran ini.
 - **Manajemen akun:** Pemilik dapat menambah akun Pemilik, Operator, atau Viewer, mengubah peran/nama, menonaktifkan akun, dan mengatur ulang password. Setiap pengguna dapat mengganti password sendiri. Password minimal 12 karakter; login dibatasi setelah beberapa percobaan gagal.
+- **Profil admin:** Setiap admin dapat mengubah nama tampilan dan foto profil dari menu avatar; foto PNG/JPG/WebP dibatasi 1 MB. Password diganti melalui dialog terpisah yang meminta password saat ini.
 - **Migrasi login:** setelah versi akun diterapkan, sesi token lama tidak berlaku. Pastikan `ADMIN_USERNAME` dan `ADMIN_PASSWORD` disetel di Railway sebelum deploy. Sesudah berhasil masuk, buat akun Pemilik cadangan; nilai `ADMIN_TOKEN` lama sudah tidak digunakan dan dapat dihapus.
 - **Portal siswa:** `/portal`. Pendaftar masuk menggunakan nomor pendaftaran dan PIN acak yang diberikan setelah formulir berhasil disimpan.
 - **Master SPMB:** Pemilik mengatur label, urutan, tahap, kewajiban, dan pilihan field; dokumen; gelombang (tanggal, kuota, biaya pendaftaran dan daftar ulang); serta jalur dari sidebar admin. Field inti yang dinonaktifkan tetap tersimpan sebagai kolom SQLite agar data lama tidak hilang. Aplikasi memigrasikan tabel pendaftar lama di tempat dan mempertahankan relasi berkas serta antrean Google Sheets.
 - **Beranda:** Pemilik dapat mengunggah brosur PNG/JPG (maksimal 5 MB) melalui Pengaturan Situs. Tahapan Timeline Beranda juga dapat ditambah, dihapus, dan diurutkan; tiap tahap mendukung keterangan, jadwal, dan status. Urutan angka terkecil ditampilkan lebih dahulu. Jadwal bawaan sengaja bertuliskan “Jadwal segera diumumkan” agar tanggal resmi diisi oleh sekolah.
-- **Verifikasi dan seleksi:** Operator/Pemilik dapat meninjau setiap field/dokumen dengan catatan revisi, memberi nilai seleksi, serta menetapkan Diterima/Lulus, Cadangan, atau Tidak Diterima.
+- **Verifikasi dan seleksi:** Status pada daftar pendaftar hanya ringkasan; perubahan berkas dan hasil seleksi dilakukan dari aksi verifikasi/penetapan. Operator/Pemilik dapat meninjau tiap field/dokumen dengan catatan revisi, memberi nilai seleksi, serta menetapkan Diterima/Lulus, Cadangan, atau Tidak Diterima. Data dapat diekspor sebagai CSV atau workbook Excel `.xlsx`.
 - **Daftar ulang:** hanya pendaftar Diterima/Lulus dapat mengirim bukti pembayaran. Pemilik mengatur rekening, gambar QRIS, biaya daftar ulang per gelombang, petunjuk, dan tautan checkout Qiospay. Bukti transfer/QRIS atau pembayaran melalui tautan tetap diverifikasi manual oleh admin; versi ini belum membuat transaksi atau mengonsumsi callback/API Qiospay.
 - **SQLite:** `DATABASE_PATH` harus berada pada Persistent Volume Railway. Seluruh unggahan pendaftar dan bukti pembayaran berada di subfolder `uploads` pada `STORAGE_DIR`; PDF dan gambar QRIS yang diunggah admin berada di `public-files`.
 - **Batas berkas:** dokumen pendaftar dan bukti pembayaran maksimal 2 MB per berkas; PDF informasi admin maksimal 5 MB.

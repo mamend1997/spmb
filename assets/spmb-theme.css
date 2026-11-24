@@ -46,7 +46,10 @@ header.no-print img {
   box-shadow: 0 4px 14px rgb(249 115 22 / 20%);
 }
 
-.site-header {
+header.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   border: 0 !important;
   background: linear-gradient(105deg, #f97316, #ea580c 58%, #c2410c) !important;
   box-shadow: 0 8px 26px rgb(194 65 12 / 22%) !important;
@@ -1181,3 +1184,13 @@ a[href]:hover {
   }
   .reveal-on-scroll { opacity: 1; transform: none; }
 }
+
+html[data-spmb-page="home"] #formulir { display: none !important; }
+
+html[data-spmb-page="registration"] #beranda,
+html[data-spmb-page="registration"] .about-section,
+html[data-spmb-page="registration"] #timeline {
+  display: none !important;
+}
+
+html[data-spmb-page="registration"] main { padding-top: 30px !important; }

@@ -346,6 +346,10 @@ const adminSessionColumns = database.prepare('PRAGMA table_info(admin_sessions)'
 if (!adminSessionColumns.some(function (column) { return column.name === 'user_id'; })) {
   database.exec('ALTER TABLE admin_sessions ADD COLUMN user_id INTEGER');
 }
+const adminUserColumns = database.prepare('PRAGMA table_info(admin_users)').all();
+if (!adminUserColumns.some(function (column) { return column.name === 'profile_image'; })) {
+  database.exec("ALTER TABLE admin_users ADD COLUMN profile_image TEXT NOT NULL DEFAULT ''");
+}
 database.prepare('DELETE FROM admin_sessions WHERE expires_at <= ?').run(Date.now());
 
 app.set('trust proxy', 1);
@@ -786,7 +790,8 @@ function publicAdminUser(user) {
     id: user.id,
     username: user.username,
     displayName: user.display_name,
-    role: user.role
+    role: user.role,
+    profileImage: user.profile_image || ''
   };
 }
 
@@ -843,7 +848,7 @@ function requireAdmin(request, response, next) {
   if (!session) return response.status(401).json({ message: 'Silakan masuk sebagai admin.' });
   const sessionHash = hashToken(session);
   const row = database.prepare(`
-    SELECT s.expires_at, u.id, u.username, u.display_name, u.role, u.is_active
+    SELECT s.expires_at, u.id, u.username, u.display_name, u.profile_image, u.role, u.is_active
     FROM admin_sessions s
     INNER JOIN admin_users u ON u.id = s.user_id
     WHERE s.token_hash = ?
@@ -1582,6 +1587,40 @@ app.get('/api/admin/me', requireAdmin, function (request, response) {
   response.json({ user: publicAdminUser(request.adminUser) });
 });
 
+app.put('/api/admin/profile', requireAdmin, function (request, response) {
+  const body = request.body || {};
+  const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : '';
+  if (!displayName || displayName.length > 80) {
+    return response.status(400).json({ message: 'Nama tampilan wajib diisi (maksimal 80 karakter).' });
+  }
+
+  let profileImage = '';
+  if (body.profileImage !== undefined && body.profileImage !== null && body.profileImage !== '') {
+    if (typeof body.profileImage !== 'string' || body.profileImage.length > 1400000) {
+      return response.status(400).json({ message: 'Foto profil harus berupa PNG, JPG, atau WebP maksimal 1 MB.' });
+    }
+    const match = body.profileImage.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/);
+    if (!match) return response.status(400).json({ message: 'Format foto profil tidak valid.' });
+    const imageBytes = Buffer.from(match[2], 'base64');
+    const isPng = match[1] === 'png' && imageBytes.length >= 8 &&
+      imageBytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    const isJpeg = match[1] === 'jpeg' && imageBytes.length >= 3 &&
+      imageBytes[0] === 255 && imageBytes[1] === 216 && imageBytes[2] === 255;
+    const isWebp = match[1] === 'webp' && imageBytes.length >= 12 &&
+      imageBytes.toString('ascii', 0, 4) === 'RIFF' && imageBytes.toString('ascii', 8, 12) === 'WEBP';
+    if (imageBytes.length > 1048576 || !(isPng || isJpeg || isWebp)) {
+      return response.status(400).json({ message: 'Foto harus berupa gambar PNG, JPG, atau WebP yang valid dan maksimal 1 MB.' });
+    }
+    profileImage = body.profileImage;
+  }
+
+  database.prepare('UPDATE admin_users SET display_name = ?, profile_image = ?, updated_at = ? WHERE id = ?')
+    .run(displayName, profileImage, new Date().toISOString(), request.adminUser.id);
+  const user = database.prepare('SELECT id, username, display_name, profile_image, role FROM admin_users WHERE id = ?')
+    .get(request.adminUser.id);
+  response.json({ status: 'success', user: publicAdminUser(user) });
+});
+
 app.post('/api/admin/change-password', requireAdmin, function (request, response) {
   try {
     const currentPassword = request.body && request.body.currentPassword;
@@ -1908,9 +1947,7 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requireOper
   }
 });
 
-app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (request, response) {
-  const rows = database.prepare('SELECT * FROM applicants ORDER BY id').all();
-  const headers = [
+const applicantExportColumns = [
     ['registration_number', 'Nomor Pendaftaran'], ['wave', 'Gelombang'], ['major', 'Program Studi'],
     ['student_name', 'Nama Siswa'], ['school_origin', 'Asal Sekolah'], ['nisn', 'NISN'],
     ['family_card_number', 'Nomor KK'], ['student_nik', 'NIK Siswa'], ['gender', 'Jenis Kelamin'],
@@ -1922,19 +1959,176 @@ app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (reques
     ['mother_income', 'Penghasilan Ibu'], ['mother_phone', 'WhatsApp Ibu'], ['address', 'Alamat'],
     ['document_status', 'Status Verifikasi Berkas'], ['selection_status', 'Hasil Seleksi'],
     ['reenrollment_status', 'Daftar Ulang'], ['created_at', 'Waktu Daftar'], ['sheet_sync_status', 'Sinkronisasi Sheet']
-  ];
+];
+
+function xmlEscape(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[character];
+  });
+}
+
+function xlsxColumnName(index) {
+  let value = index + 1;
+  let name = '';
+  while (value > 0) {
+    value -= 1;
+    name = String.fromCharCode(65 + value % 26) + name;
+    value = Math.floor(value / 26);
+  }
+  return name;
+}
+
+const zipCrcTable = Array.from({ length: 256 }, function (_, index) {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+  return value >>> 0;
+});
+
+function zipCrc32(buffer) {
+  let crc = 0xffffffff;
+  for (let index = 0; index < buffer.length; index += 1) {
+    crc = zipCrcTable[(crc ^ buffer[index]) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function createStoredZip(entries) {
+  const localParts = [];
+  const centralParts = [];
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+  const dosDate = (Math.max(1980, now.getFullYear()) - 1980) * 512 + (now.getMonth() + 1) * 32 + now.getDate();
+  let localOffset = 0;
+
+  entries.forEach(function (entry) {
+    const name = Buffer.from(entry.name, 'utf8');
+    const data = Buffer.from(entry.data, 'utf8');
+    const crc = zipCrc32(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(dosTime, 10);
+    local.writeUInt16LE(dosDate, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    local.writeUInt16LE(0, 28);
+    localParts.push(local, name, data);
+
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0x0800, 8);
+    central.writeUInt16LE(0, 10);
+    central.writeUInt16LE(dosTime, 12);
+    central.writeUInt16LE(dosDate, 14);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(data.length, 20);
+    central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(name.length, 28);
+    central.writeUInt16LE(0, 30);
+    central.writeUInt16LE(0, 32);
+    central.writeUInt16LE(0, 34);
+    central.writeUInt16LE(0, 36);
+    central.writeUInt32LE(0, 38);
+    central.writeUInt32LE(localOffset, 42);
+    centralParts.push(central, name);
+    localOffset += local.length + name.length + data.length;
+  });
+
+  const centralSize = centralParts.reduce(function (total, part) { return total + part.length; }, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(localOffset, 16);
+  end.writeUInt16LE(0, 20);
+  return Buffer.concat(localParts.concat(centralParts, end));
+}
+
+function createApplicantWorkbook(rows) {
+  const sheetRows = [applicantExportColumns.map(function (column) { return column[1]; })]
+    .concat(rows.map(function (row) {
+      return applicantExportColumns.map(function (column) { return row[column[0]]; });
+    }));
+  const lastColumn = xlsxColumnName(applicantExportColumns.length - 1);
+  const rowXml = sheetRows.map(function (values, rowIndex) {
+    const cells = values.map(function (value, columnIndex) {
+      const reference = xlsxColumnName(columnIndex) + (rowIndex + 1);
+      return '<c r="' + reference + '" t="inlineStr"' + (rowIndex === 0 ? ' s="1"' : '') +
+        '><is><t xml:space="preserve">' + xmlEscape(value) + '</t></is></c>';
+    }).join('');
+    return '<row r="' + (rowIndex + 1) + '"' + (rowIndex === 0 ? ' ht="26" customHeight="1"' : '') +
+      '>' + cells + '</row>';
+  }).join('');
+  const worksheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="18" defaultColWidth="22"/>' +
+    '<sheetData>' + rowXml + '</sheetData><autoFilter ref="A1:' + lastColumn + sheetRows.length + '"/>' +
+    '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/></worksheet>';
+  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+    '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFF97316"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  return createStoredZip([
+    { name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+    { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+    { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheets><sheet name="Pendaftar" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+    { name: 'xl/_rels/workbook.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+    { name: 'xl/worksheets/sheet1.xml', data: worksheet },
+    { name: 'xl/styles.xml', data: styles }
+  ]);
+}
+
+app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (request, response) {
+  const rows = database.prepare('SELECT * FROM applicants ORDER BY id').all();
   function csvCell(value) {
     const text = String(value == null ? '' : value);
     const safeText = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? "'" + text : text;
     return '"' + safeText.replace(/"/g, '""') + '"';
   }
-  const csv = '\uFEFF' + [headers.map(function (header) { return csvCell(header[1]); }).join(',')]
+  const csv = '\uFEFF' + [applicantExportColumns.map(function (header) { return csvCell(header[1]); }).join(',')]
     .concat(rows.map(function (row) {
-      return headers.map(function (header) { return csvCell(row[header[0]]); }).join(',');
+      return applicantExportColumns.map(function (header) { return csvCell(row[header[0]]); }).join(',');
     })).join('\r\n');
   response.setHeader('Content-Disposition', 'attachment; filename="rekap-pendaftar-spmb.csv"');
   response.setHeader('Content-Type', 'text/csv; charset=utf-8');
   response.send(csv);
+});
+
+app.get('/api/admin/export.xlsx', requireAdmin, requireOperator, function (request, response) {
+  const rows = database.prepare('SELECT * FROM applicants ORDER BY id').all();
+  const workbook = createApplicantWorkbook(rows);
+  response.setHeader('Content-Disposition', 'attachment; filename="rekap-pendaftar-spmb.xlsx"');
+  response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.send(workbook);
 });
 
 app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, requireOperator, function (request, response) {
@@ -2099,7 +2293,15 @@ app.post('/api/admin/sync-retry', requireAdmin, requireOperator, function (reque
   response.json({ status: 'success' });
 });
 
-app.use('/assets', express.static(path.join(__dirname, 'assets'), { fallthrough: false, maxAge: '1h' }));
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+  fallthrough: false,
+  maxAge: '1h',
+  setHeaders: function (response, filePath) {
+    if (path.extname(filePath).toLowerCase() === '.css') {
+      response.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    }
+  }
+}));
 app.get('/public-files/:fileName', function (request, response) {
   const fileName = path.basename(request.params.fileName);
   const filePath = path.join(publicFileDirectory, fileName);
@@ -2111,6 +2313,9 @@ app.get('/public-files/:fileName', function (request, response) {
   response.sendFile(filePath);
 });
 app.get('/', function (request, response) {
+  response.sendFile(path.join(__dirname, 'index.html'));
+});
+app.get('/pendaftaran', function (request, response) {
   response.sendFile(path.join(__dirname, 'index.html'));
 });
 app.get(['/portal', '/portal.html'], function (request, response) {
