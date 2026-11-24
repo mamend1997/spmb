@@ -31,6 +31,7 @@
       #print-card { display: block !important; position: absolute; inset: 0 auto auto 0; width: 100%; padding: 22px; border: 1px solid #cbd5e1; border-radius: 12px; background: white !important; color: #172033 !important; }
     }
   </style>
+  <link rel="stylesheet" href="/assets/spmb-theme.css">
 </head>
 <body class="min-h-screen bg-[#f3f6fa] text-slate-800">
   <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -49,7 +50,10 @@
           <p class="mt-1.5 text-xs text-slate-400">Gunakan PIN yang diberikan setelah pendaftaran berhasil.</p>
         </div>
         <p id="login-error" class="hidden text-sm text-red-600" role="alert"></p>
-        <button id="login-button" class="w-full rounded-xl bg-orange-600 px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 disabled:opacity-60" type="submit">Masuk ke Portal</button>
+        <button id="login-button" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-600/20 transition hover:bg-orange-700 disabled:opacity-60" type="submit">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+          Masuk ke Portal
+        </button>
       </form>
       <p class="mt-6 text-xs text-slate-500">Belum mendaftar? <a class="font-bold text-orange-700 hover:underline" href="/">Daftar sekarang</a></p>
     </section>
@@ -68,8 +72,14 @@
           </div>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button id="download-card-button" class="rounded-full bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-700" type="button">Unduh Kartu (PDF)</button>
-          <button id="logout-button" class="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50" type="button">Keluar</button>
+          <button id="download-card-button" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-700" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+            Unduh Kartu (PDF)
+          </button>
+          <button id="logout-button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+            Keluar
+          </button>
         </div>
       </header>
 
@@ -148,7 +158,10 @@
               <label class="mb-1.5 block text-xs font-bold text-slate-600" for="payment-proof-file">Bukti transfer / pembayaran (PDF, JPG, PNG · maks. 2 MB)</label>
               <input id="payment-proof-file" class="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required>
             </div>
-            <button id="payment-proof-button" class="rounded-lg bg-orange-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-60" type="submit">Kirim Bukti Pembayaran</button>
+            <button id="payment-proof-button" class="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-60" type="submit">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+              Kirim Bukti Pembayaran
+            </button>
           </form>
           <p id="payment-proof-message" class="mt-2 text-sm" role="status"></p>
         </div>

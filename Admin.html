@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f9fa">
   <title>Portal Admin SPMB | SMK PGRI Cikoneng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root { font-family: Arial, sans-serif; color: #172033; background: #f3f6fa; }
     * { box-sizing: border-box; }
@@ -113,6 +116,7 @@
     }
 
   </style>
+  <link rel="stylesheet" href="/assets/spmb-theme.css">
 </head>
 <body>
   <main>
@@ -144,12 +148,30 @@
 
       <div class="admin-layout">
         <nav class="card sidebar" aria-label="Navigasi admin">
-          <button type="button" class="active" data-page-target="dashboard-page">Dashboard</button>
-          <button type="button" data-page-target="applications-page">Data Pendaftar</button>
-          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-fields">Master · Form Pendaftaran</button>
-          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-waves">Master · Gelombang</button>
-          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-paths">Master · Jalur</button>
-          <button type="button" data-page-target="accounts-page" data-admin-roles="owner">Manajemen Akun</button>
+          <button type="button" class="active" data-page-target="dashboard-page">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+            <span>Dashboard</span>
+          </button>
+          <button type="button" data-page-target="applications-page">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><rect x="8" y="3" width="8" height="5" rx="2"/><path d="M8 13h8M8 17h5"/></svg>
+            <span>Data Pendaftar</span>
+          </button>
+          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-fields">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="9" cy="5" r="2" fill="white"/><circle cx="15" cy="12" r="2" fill="white"/><circle cx="8" cy="19" r="2" fill="white"/></svg>
+            <span>Master · Form Pendaftaran</span>
+          </button>
+          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-waves">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m-3 3h3"/></svg>
+            <span>Master · Gelombang</span>
+          </button>
+          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-paths">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v5a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3"/></svg>
+            <span>Master · Jalur</span>
+          </button>
+          <button type="button" data-page-target="accounts-page" data-admin-roles="owner">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 11a3 3 0 1 0-1.2-5.8M18 14a5 5 0 0 1 3 4.6V20"/></svg>
+            <span>Manajemen Akun</span>
+          </button>
         </nav>
         <div class="admin-pages">
         <section id="dashboard-page" class="admin-page">
