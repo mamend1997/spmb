@@ -5,6 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const app = express();
+const publicLookupRequests = new Map();
+const publicLookupWindowMs = 60 * 1000;
+const publicLookupLimit = 12;
 const port = Number(process.env.PORT) || 3000;
 const configuredDatabasePath = process.env.DATABASE_PATH
   ? path.resolve(process.env.DATABASE_PATH)
@@ -1514,6 +1517,50 @@ app.post('/api/registrations', function (request, response) {
   }
 });
 
+app.post('/api/public/application-result', function (request, response) {
+  response.setHeader('Cache-Control', 'no-store');
+  const now = Date.now();
+  const clientIp = request.ip || request.socket.remoteAddress || 'unknown';
+  let attempts = publicLookupRequests.get(clientIp);
+  if (!attempts || attempts.expiresAt <= now) {
+    attempts = { count: 0, expiresAt: now + publicLookupWindowMs };
+  }
+  if (attempts.count >= publicLookupLimit) {
+    response.setHeader('Retry-After', String(Math.ceil((attempts.expiresAt - now) / 1000)));
+    return response.status(429).json({ message: 'Terlalu banyak pencarian. Silakan coba kembali dalam satu menit.' });
+  }
+  attempts.count += 1;
+  publicLookupRequests.set(clientIp, attempts);
+  if (publicLookupRequests.size > 5000) {
+    publicLookupRequests.forEach(function (entry, ip) {
+      if (entry.expiresAt <= now) publicLookupRequests.delete(ip);
+    });
+  }
+
+  const body = request.body || {};
+  const type = String(body.type || '');
+  const identifier = String(body.identifier || '').trim().toUpperCase();
+  const searchColumns = {
+    nisn: { column: 'nisn', pattern: /^\d{10}$/ },
+    nik: { column: 'student_nik', pattern: /^\d{16}$/ },
+    registrationNumber: { column: 'registration_number', pattern: /^SPMB-\d{4}-\d{6}$/ }
+  };
+  const search = searchColumns[type];
+  if (!search || !search.pattern.test(identifier)) {
+    return response.status(400).json({ message: 'Format pencarian tidak valid. Periksa kembali nomor yang dimasukkan.' });
+  }
+  const applicants = database.prepare(
+    "SELECT document_status, selection_status FROM applicants WHERE " + search.column + " = ? AND archived_at = '' LIMIT 2"
+  ).all(identifier);
+  if (applicants.length !== 1) {
+    return response.status(404).json({ message: 'Data pendaftar tidak ditemukan atau belum tersedia.' });
+  }
+  response.json({
+    documentStatus: applicants[0].document_status,
+    selectionStatus: applicants[0].selection_status
+  });
+});
+
 app.post('/api/portal/login', function (request, response) {
   const registrationNumber = String(request.body && request.body.registrationNumber || '').trim().toUpperCase();
   const pin = String(request.body && request.body.pin || '').trim();
@@ -1574,6 +1621,7 @@ app.post('/api/portal/login', function (request, response) {
     application: {
       registrationNumber: applicant.registration_number,
       registeredAt: applicant.created_at,
+      studentPhotoUrl: uploadedFiles.has('studentPhoto') ? '/api/portal/photo' : '',
       academicYear: config.academicYear,
       wave: applicant.wave,
       waveFee: applicant.wave_fee,
@@ -1645,6 +1693,21 @@ app.post('/api/portal/login', function (request, response) {
       canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
     }
   });
+});
+
+app.get('/api/portal/photo', requirePortal, function (request, response) {
+  const applicant = request.portalApplicant;
+  const file = database.prepare('SELECT * FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
+    .get(applicant.id, 'studentPhoto');
+  if (!file) return response.status(404).end();
+  const filePath = path.resolve(uploadDirectory, applicant.registration_number, file.stored_name);
+  if (!filePath.startsWith(path.resolve(uploadDirectory) + path.sep) || !fs.existsSync(filePath)) {
+    return response.status(404).end();
+  }
+  response.type(file.mime_type);
+  response.setHeader('Content-Disposition', 'inline; filename="student-photo"');
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.sendFile(filePath);
 });
 
 app.post('/api/portal/logout', requirePortal, function (request, response) {
@@ -2630,10 +2693,16 @@ app.get('/pendaftaran', function (request, response) {
 app.get('/dokumen', function (request, response) {
   response.sendFile(path.join(__dirname, 'documents.html'));
 });
+app.get('/pencarian', function (request, response) {
+  response.sendFile(path.join(__dirname, 'search.html'));
+});
 app.get(['/portal', '/portal.html'], function (request, response) {
   response.sendFile(path.join(__dirname, 'portal.html'));
 });
 app.get(['/admin', '/admin.html'], function (request, response) {
+  response.sendFile(path.join(__dirname, 'Admin.html'));
+});
+app.get('/admin/pendaftar/:registrationNumber', function (request, response) {
   response.sendFile(path.join(__dirname, 'Admin.html'));
 });
 

@@ -120,7 +120,7 @@ header.site-header {
 }
 
 .site-nav a:hover,
-.site-nav .site-nav-home {
+.site-nav a[aria-current="page"] {
   background: rgb(255 255 255 / 18%);
 }
 

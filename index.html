@@ -76,7 +76,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-2">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -86,14 +86,23 @@
         <span>SMK PGRI <small>Cikoneng</small></span>
       </a>
       <nav class="site-nav" aria-label="Navigasi utama">
-        <a class="site-nav-home" href="/">Beranda</a>
-        <a href="/portal">Pencarian Pendaftar</a>
+        <a href="/" aria-current="page">Beranda</a>
+        <a href="/pencarian">Pencarian Pendaftar</a>
         <a href="/dokumen">Dokumen</a>
         <a href="/pendaftaran">Pendaftaran</a>
         <a class="site-nav-login" href="/portal">Login Siswa</a>
       </nav>
     </div>
   </header>
+  <script>
+    const activeNavigationPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    const activeNavigationLink = activeNavigationPath === '/pendaftaran' ? '/pendaftaran'
+      : activeNavigationPath === '/' ? '/' : '';
+    document.querySelectorAll('.site-nav a').forEach(function (link) {
+      if (link.pathname === activeNavigationLink) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  </script>
 
   <main class="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
     <section id="beranda" class="home-hero no-print">
@@ -105,7 +114,7 @@
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
             Daftar Sekarang
           </a>
-          <a class="hero-status-link" href="/portal">
+          <a class="hero-status-link" href="/pencarian">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5M8 10.8h5.6M10.8 8v5.6"/></svg>
             Cek Status Pendaftaran
           </a>

@@ -62,6 +62,8 @@
     .profile-file { margin-top: 8px; }
     .profile-file input { min-height: 38px; padding: 7px; font-size: 12px; }
     .admin-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; }
+    .admin-layout.detail-layout-active { grid-template-columns: minmax(0, 1fr); }
+    .admin-layout .sidebar[hidden] { display: none !important; }
     .sidebar { align-self: start; position: sticky; top: 16px; display: grid; gap: 5px; padding: 12px; }
     .sidebar button { width: 100%; text-align: left; color: #475467; background: transparent; }
     .sidebar button.active, .sidebar button:hover { color: #c2410c; background: #fff7ed; }
@@ -139,7 +141,7 @@
     .applicant-name span, .muted { color: #667085; font-size: 11px; }
     .file-links { display: grid; gap: 6px; min-width: 140px; }
     .file-links a { color: #c2410c; }
-    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 190px; }
+    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 84px; }
     .action-icon { display: inline-grid; width: 34px; min-width: 34px; min-height: 34px; place-items: center; padding: 0; border: 1px solid #e5e7eb; border-radius: 9px; color: #475569; background: white; transition: transform .18s ease, color .18s ease, background .18s ease; }
     .action-icon:hover { color: #c2410c; background: #fff7ed; }
     .action-icon svg { width: 17px; height: 17px; }
@@ -154,6 +156,62 @@
     .official-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; white-space: nowrap; }
     .official-status.yes { color: #047857; }
     .official-status.no { color: #94a3b8; }
+    .applicant-detail-page { display: grid; gap: 16px; }
+    .applicant-detail-page[hidden], .detail-photo[hidden], .detail-photo-empty[hidden],
+    [data-detail-edit-actions][hidden], .detail-page-actions button[hidden],
+    .detail-record-layout[hidden], #detail-documents-section[hidden], .detail-payment-card[hidden] { display: none !important; }
+    .detail-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+    .detail-breadcrumb { margin: 0 0 5px; color: #64748b; font-size: 11px; }
+    .detail-page-heading h1 { font-size: 22px; }
+    .detail-page-actions, .detail-hero-badges, .detail-hero-actions, .detail-document-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+    .detail-page-actions button, .detail-hero-actions button, .detail-document-actions button { min-height: 34px; padding: 7px 11px; font-size: 11px; }
+    .detail-page-actions .secondary, .detail-document-actions .secondary { color: #334155; background: white; border: 1px solid #dbe3ec; }
+    .detail-hero { display: flex; align-items: center; gap: 16px; padding: 16px; }
+    .detail-photo, .detail-photo-empty { width: 64px; height: 78px; flex: 0 0 64px; border: 1px solid #e4e9f0; border-radius: 11px; background: #f8fafc; object-fit: cover; }
+    .detail-photo-empty { display: grid; place-items: center; color: #94a3b8; font-size: 12px; }
+    .detail-hero-main { min-width: 0; flex: 1; }
+    .detail-hero-main h2 { margin: 0 0 6px; font-size: 17px; }
+    .detail-hero-badges { gap: 5px; }
+    .detail-chip { display: inline-flex; max-width: 100%; padding: 4px 8px; overflow-wrap: anywhere; border: 1px solid #e5eaf0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 10px; font-weight: 700; }
+    .detail-access { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+    .detail-access-note { max-width: 140px; color: #64748b; font-size: 10px; line-height: 1.5; }
+    .detail-access a { display: inline-flex; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #dbe3ec; border-radius: 8px; color: #334155; background: white; font-size: 11px; font-weight: 700; text-decoration: none; }
+    .detail-hero-actions .detail-verify-all { background: #15925b; }
+    .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 10px; }
+    .detail-section-heading h2 { font-size: 15px; }
+    .detail-section-heading p { margin: 3px 0 0; font-size: 11px; }
+    .detail-parent-stack { display: grid; gap: 14px; }
+    .detail-record-card h4 { margin: 12px 0 7px; color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
+    .detail-record-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 14px; }
+    .detail-record-card, .detail-document-card, .detail-payment-card { min-width: 0; padding: 14px; border: 1px solid #e4e9f0; border-radius: 12px; background: white; box-shadow: 0 6px 20px #16243a08; }
+    .detail-record-card h3, .detail-document-card h3, .detail-payment-card h3 { margin: 0; font-size: 12px; }
+    .detail-record-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid #edf0f4; }
+    .detail-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 16px; padding: 12px; border: 1px solid #edf0f4; border-radius: 9px; background: #fbfcfe; }
+    .detail-record-grid + .detail-record-grid { margin-top: 10px; }
+    .detail-record-item { min-width: 0; }
+    .detail-record-item dt { color: #64748b; font-size: 9px; }
+    .detail-record-item dd { margin: 3px 0 0; color: #172033; font-size: 11px; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .detail-record-item .detail-review-state { display: block; margin-top: 3px; color: #a16207; font-size: 9px; font-weight: 700; }
+    .detail-card-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #edf0f4; }
+    .detail-card-actions button { min-height: 30px; padding: 6px 9px; font-size: 10px; }
+    .detail-card-actions .detail-revision { background: #c62828; }
+    .detail-card-actions .detail-verified { background: #16965d; }
+    .detail-document-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .detail-document-card { display: grid; gap: 10px; }
+    .detail-document-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .detail-file-link { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 10px; border: 1px solid #edf0f4; border-radius: 8px; background: #fbfcfe; color: #475569; font-size: 10px; text-decoration: none; }
+    .detail-file-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-file-link:hover { color: #c2410c; }
+    .detail-status-banner { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 11px; }
+    .detail-payment-actions textarea { width: 100%; margin-top: 12px; }
+    .detail-readonly-notice { padding: 12px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; color: #92400e; font-size: 12px; }
+    #review-dialog.selection-only #review-items,
+    #review-dialog.selection-only #save-reviews-button,
+    #review-dialog.selection-only #payment-review-section,
+    #review-dialog.selection-only #selection-note,
+    #review-dialog.selection-only label[for="selection-note"] { display: none !important; }
+    #review-dialog.selection-only .selection-cancel { display: inline-flex; }
+    .selection-cancel { display: none; }
     #print-applicant-card { display: none; }
     #print-applicant-card .print-card-shell { padding: 24px; border: 2px solid #334155; border-radius: 12px; background: white; color: #172033; }
     #print-applicant-card .print-card-heading { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid #cbd5e1; }
@@ -217,6 +275,13 @@
       .file-setting { grid-template-columns: 1fr; }
       .dialog-content { padding: 17px; }
       .dialog-actions { flex-direction: column-reverse; }
+      .detail-page-heading { align-items: flex-start; flex-direction: column; }
+      .detail-page-actions { width: 100%; }
+      .detail-page-actions button { flex: 1; }
+      .detail-hero { align-items: flex-start; flex-wrap: wrap; }
+      .detail-access { width: 100%; justify-content: flex-start; padding-left: 80px; }
+      .detail-record-layout, .detail-document-grid { grid-template-columns: 1fr; }
+      .detail-record-grid { gap: 10px; padding: 10px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -273,7 +338,7 @@
         </div>
       </header>
 
-      <div class="admin-layout">
+      <div id="admin-layout" class="admin-layout">
         <nav class="card sidebar" aria-label="Navigasi admin">
           <button type="button" class="active" data-page-target="dashboard-page" data-permission-menu="dashboard">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
@@ -492,6 +557,89 @@
           </table>
         </div>
       </section>
+      <section id="applicant-detail-page" class="applicant-detail-page" hidden>
+        <header class="detail-page-heading">
+          <div>
+            <p class="detail-breadcrumb"><button id="detail-back-button" class="secondary" type="button">‹ Data Pendaftar SPMB</button> &nbsp;›&nbsp; Lihat</p>
+            <h1>Lihat Pendaftar SPMB</h1>
+          </div>
+          <div class="detail-page-actions">
+            <button id="detail-selection-button" type="button">Penetapan Kelulusan</button>
+            <button id="detail-print-button" class="secondary" type="button">Cetak Kartu</button>
+          </div>
+        </header>
+        <section class="card detail-hero">
+          <img id="detail-photo" class="detail-photo hidden" alt="">
+          <span id="detail-photo-empty" class="detail-photo-empty">Foto</span>
+          <div class="detail-hero-main">
+            <h2 id="detail-name"></h2>
+            <div class="detail-hero-badges">
+              <span id="detail-wave" class="detail-chip"></span>
+              <span id="detail-path" class="detail-chip"></span>
+              <span id="detail-major" class="detail-chip"></span>
+              <span id="detail-school" class="detail-chip"></span>
+              <span id="detail-registration-number" class="detail-chip"></span>
+              <span id="detail-doc-status" class="status-badge pending"></span>
+              <span id="detail-selection-status" class="status-badge pending"></span>
+              <span id="detail-reenrollment-status" class="status-badge neutral"></span>
+            </div>
+          </div>
+          <div class="detail-access">
+            <span class="detail-access-note">PIN portal tersimpan aman dan tidak dapat ditampilkan. Siswa masuk menggunakan kartu pendaftaran.</span>
+            <a id="detail-whatsapp" class="secondary" href="#" target="_blank" rel="noopener noreferrer" hidden>WhatsApp</a>
+          </div>
+          <div class="detail-hero-actions" data-detail-edit-actions>
+            <button id="detail-verify-all" class="detail-verify-all" type="button">✓ Verifikasi Semua (Data &amp; Berkas)</button>
+          </div>
+        </section>
+        <div id="detail-readonly-notice" class="detail-readonly-notice" hidden>Akun Anda hanya dapat melihat ringkasan. Rincian identitas dan tindakan verifikasi tidak tersedia untuk role ini.</div>
+        <div class="detail-section-heading">
+          <div><h2>Rincian Data Pendaftaran</h2><p>Verifikasi kelengkapan dan kebenaran data formulir.</p></div>
+        </div>
+        <div class="detail-record-layout">
+          <section class="detail-record-card">
+            <div class="detail-record-head"><h3>Data Calon Siswa</h3><span id="detail-student-status" class="status-badge pending"></span></div>
+            <div id="detail-student-data" class="detail-record-grid"></div>
+            <div class="detail-card-actions" data-detail-edit-actions>
+              <button class="detail-revision" type="button" data-detail-review-all="student" data-review-status="revision">✕ Minta Revisi Data</button>
+              <button class="detail-verified" type="button" data-detail-review-all="student" data-review-status="verified">✓ Terima Data</button>
+            </div>
+          </section>
+          <div class="detail-parent-stack">
+            <section class="detail-record-card">
+              <div class="detail-record-head"><h3>Data Orang Tua / Wali</h3><span id="detail-parent-status" class="status-badge pending"></span></div>
+              <h4>DATA AYAH KANDUNG</h4>
+              <div id="detail-father-data" class="detail-record-grid"></div>
+              <h4>DATA IBU KANDUNG</h4>
+              <div id="detail-mother-data" class="detail-record-grid"></div>
+              <h4>WALI, PENGHASILAN &amp; DOMISILI</h4>
+              <div id="detail-household-data" class="detail-record-grid"></div>
+              <div class="detail-card-actions" data-detail-edit-actions>
+                <button class="detail-revision" type="button" data-detail-review-all="parent" data-review-status="revision">✕ Minta Revisi Data</button>
+                <button class="detail-verified" type="button" data-detail-review-all="parent" data-review-status="verified">✓ Terima Data</button>
+              </div>
+            </section>
+          </div>
+        </div>
+        <section id="detail-documents-section">
+          <div class="detail-section-heading"><div><h2>Dokumen Pendaftaran</h2><p>Periksa dokumen unggahan dan berikan status verifikasi.</p></div></div>
+          <div id="detail-document-list" class="detail-document-grid"></div>
+        </section>
+        <section class="detail-payment-card">
+          <div class="detail-section-heading"><div><h2>Daftar Ulang &amp; Bukti Pembayaran</h2><p>Periksa konfirmasi pembayaran daftar ulang yang diunggah oleh calon peserta didik.</p></div><span id="detail-payment-status" class="status-badge neutral"></span></div>
+          <div id="detail-payment-info" class="detail-status-banner"></div>
+          <p id="detail-payment-note" class="muted"></p>
+          <p id="detail-payment-proof"></p>
+          <div class="detail-payment-actions" data-detail-edit-actions>
+            <textarea id="detail-payment-review-note" rows="2" maxlength="1000" placeholder="Catatan pembayaran untuk siswa"></textarea>
+            <div class="detail-card-actions">
+              <button id="detail-payment-revision" class="detail-revision" type="button">Minta Perbaikan Bukti</button>
+              <button id="detail-payment-approve" class="detail-verified" type="button">Setujui &amp; Selesaikan Daftar Ulang</button>
+            </div>
+          </div>
+        </section>
+        <p id="detail-status" class="status-line" role="status"></p>
+      </section>
         </div>
       </div>
     </section>
@@ -517,7 +665,7 @@
   <dialog id="review-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
-        <div><h2>Verifikasi dan Hasil Seleksi</h2><p id="review-registration-number"></p></div>
+        <div><h2 id="review-dialog-title">Verifikasi dan Hasil Seleksi</h2><p id="review-registration-number"></p></div>
         <button id="close-review-button" class="secondary" type="button" aria-label="Tutup">Tutup</button>
       </div>
       <div class="settings-grid">
@@ -539,7 +687,7 @@
         </div>
       </section>
       <p id="review-status" class="status-line" role="status"></p>
-      <div class="dialog-actions"><button id="save-selection-button" type="button">Simpan Hasil Seleksi</button></div>
+      <div class="dialog-actions"><button id="cancel-selection-button" class="secondary selection-cancel" type="button">Batal</button><button id="save-selection-button" type="button">Simpan Hasil Seleksi</button></div>
     </div>
   </dialog>
 
@@ -616,6 +764,9 @@
     const loginCard = document.getElementById('login-card');
     const dashboard = document.getElementById('dashboard');
     const applicationBody = document.getElementById('applications-body');
+    const applicantDetailPage = document.getElementById('applicant-detail-page');
+    const adminLayout = document.getElementById('admin-layout');
+    const adminSidebar = document.querySelector('.admin-layout .sidebar');
     const editDialog = document.getElementById('edit-dialog');
     const reviewDialog = document.getElementById('review-dialog');
     const profileDialog = document.getElementById('profile-dialog');
@@ -664,6 +815,7 @@
     let reviewingApplicant = null;
     let currentMonthly = [];
     let adminReviewConfig = null;
+    let currentDetailRegistrationNumber = '';
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -800,6 +952,13 @@
     function setAdminPage(pageId, anchorId) {
       const permissionMenu = pagePermissionMenu(pageId, anchorId);
       if (!permissionMenu || !canAdmin(permissionMenu, 'view')) return;
+      applicantDetailPage.hidden = true;
+      adminSidebar.hidden = false;
+      adminLayout.classList.remove('detail-layout-active');
+      currentDetailRegistrationNumber = '';
+      if (window.location.pathname.indexOf('/admin/pendaftar/') === 0) {
+        window.history.replaceState({ adminPage: pageId }, '', '/admin');
+      }
       document.querySelectorAll('.admin-page').forEach(function (page) { page.hidden = page.id !== pageId; });
       document.querySelectorAll('[data-page-target]').forEach(function (button) {
         button.classList.toggle('active', button.dataset.pageTarget === pageId &&
@@ -1567,29 +1726,11 @@
           actions.textContent = 'Hanya lihat';
         } else {
           actions.append(
-            createIconAction('Verifikasi berkas', '<path d="M8 3H5a2 2 0 0 0-2 2v15a1 1 0 0 0 1 1h13"/><path d="M9 3h7l4 4v5M9 3v5h7"/><path d="m14 18 2 2 5-5"/>', function () {
-              openReviewDialog(applicant, 'documents');
-            }, true),
-            createIconAction('Penetapan kelulusan', '<path d="m12 3 2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7L12 3Z"/><path d="M8.5 17.5 7 22l5-2 5 2-1.5-4.5"/>', function () {
-              openReviewDialog(applicant, 'selection');
-            }),
             createIconAction('Lihat dan verifikasi', '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/><path d="m17 18 1.5 1.5L22 16"/>', function () {
-              openReviewDialog(applicant, 'details');
-            }),
+              showApplicantDetail(applicant);
+            }, true),
             createIconAction('Cetak kartu', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
               printApplicantCard(applicant);
-            }),
-            createIconAction('Atur ulang PIN', '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-3 3 3 3m-6 0 3 3"/>', async function (button) {
-              if (!confirm('Buat PIN baru untuk ' + applicant.student_name + '? Sampaikan PIN tersebut secara langsung kepada siswa.')) return;
-              button.disabled = true;
-              try {
-                const result = await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/reset-pin', { method: 'POST' });
-                alert('PIN portal baru: ' + result.pin);
-              } catch (error) {
-                setStatus('applications-status', error.message, 'error');
-              } finally {
-                button.disabled = false;
-              }
             })
           );
         }
@@ -1598,6 +1739,12 @@
         applicationBody.appendChild(row);
       });
       filterApplications();
+      if (currentDetailRegistrationNumber) {
+        const detailApplicant = applicants.find(function (item) {
+          return item.registration_number === currentDetailRegistrationNumber;
+        });
+        if (detailApplicant) renderApplicantDetail(detailApplicant);
+      }
     }
 
     function makeCell(content) {
@@ -1619,6 +1766,332 @@
       badge.className = 'status-badge ' + tone;
       badge.textContent = status || '—';
       return badge;
+    }
+
+    function renderDetailValues(container, entries, reviews) {
+      container.replaceChildren();
+      entries.forEach(function (entry) {
+        const item = document.createElement('div');
+        item.className = 'detail-record-item';
+        const label = document.createElement('dt');
+        label.textContent = entry.label;
+        const value = document.createElement('dd');
+        value.textContent = entry.value || '—';
+        item.append(label, value);
+        const review = reviews[entry.key];
+        const reviewState = document.createElement('span');
+        reviewState.className = 'detail-review-state';
+        reviewState.textContent = review && review.status === 'verified' ? 'Terverifikasi'
+          : review && review.status === 'revision' ? 'Perlu perbaikan'
+            : 'Menunggu verifikasi';
+        item.appendChild(reviewState);
+        container.appendChild(item);
+      });
+    }
+
+    function summarizeFieldReviews(fields, applicant) {
+      const applicable = fields.filter(function (field) {
+        return Boolean(applicantValue(applicant, field));
+      });
+      if (!applicable.length) return 'Belum ada data untuk diverifikasi';
+      const reviews = applicant.field_reviews || {};
+      if (applicable.some(function (field) { return reviews[field.key] && reviews[field.key].status === 'revision'; })) {
+        return 'Perlu Perbaikan';
+      }
+      if (applicable.every(function (field) { return reviews[field.key] && reviews[field.key].status === 'verified'; })) {
+        return 'Terverifikasi';
+      }
+      return 'Menunggu Verifikasi';
+    }
+
+    function renderApplicantDetail(applicant) {
+      const readOnly = !canAdmin('applications', 'edit');
+      const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
+        return field.active !== false;
+      });
+      const studentFields = fields.filter(function (field) { return field.step === 2; });
+      const parentFields = fields.filter(function (field) { return field.step === 3; });
+      const reviews = applicant.field_reviews || {};
+      const studentPhoto = (applicant.files || []).find(function (file) { return file.key === 'studentPhoto'; });
+      const photo = document.getElementById('detail-photo');
+      photo.classList.toggle('hidden', !studentPhoto);
+      document.getElementById('detail-photo-empty').classList.toggle('hidden', Boolean(studentPhoto));
+      if (studentPhoto) {
+        photo.src = studentPhoto.url;
+        photo.alt = 'Foto ' + applicant.student_name;
+        photo.onerror = function () {
+          photo.classList.add('hidden');
+          document.getElementById('detail-photo-empty').classList.remove('hidden');
+        };
+      } else {
+        photo.removeAttribute('src');
+      }
+      document.getElementById('detail-name').textContent = applicant.student_name || 'Nama belum tersedia';
+      document.getElementById('detail-wave').textContent = applicant.wave || 'Gelombang belum ditentukan';
+      document.getElementById('detail-path').textContent = applicant.registration_path || 'Jalur belum ditentukan';
+      document.getElementById('detail-major').textContent = applicant.major || 'Program belum ditentukan';
+      document.getElementById('detail-school').textContent = 'Asal: ' + (applicant.school_origin || '—');
+      document.getElementById('detail-registration-number').textContent = applicant.registration_number || '';
+      setDetailStatusBadge('detail-doc-status', applicant.document_status);
+      setDetailStatusBadge('detail-selection-status', applicant.selection_status === 'Diterima'
+        ? 'Diterima / Lulus' : applicant.selection_status);
+      setDetailStatusBadge('detail-reenrollment-status', applicant.reenrollment_status || 'Belum Daftar Ulang');
+      const phone = String(applicant.student_phone || '').replace(/\D/g, '');
+      const wa = document.getElementById('detail-whatsapp');
+      if (phone) {
+        wa.href = 'https://wa.me/' + (phone.charAt(0) === '0' ? '62' + phone.slice(1) : phone.charAt(0) === '8' ? '62' + phone : phone);
+        wa.hidden = false;
+      } else {
+        wa.removeAttribute('href');
+        wa.hidden = true;
+      }
+
+      const studentEntries = studentFields.map(function (field) {
+        return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
+      });
+      const fatherFields = parentFields.filter(function (field) { return field.key.indexOf('father') === 0; });
+      const motherFields = parentFields.filter(function (field) { return field.key.indexOf('mother') === 0; });
+      const householdFields = parentFields.filter(function (field) {
+        return field.key.indexOf('father') !== 0 && field.key.indexOf('mother') !== 0;
+      });
+      renderDetailValues(document.getElementById('detail-student-data'), studentEntries, reviews);
+      renderDetailValues(document.getElementById('detail-father-data'), fatherFields.map(function (field) {
+        return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
+      }), reviews);
+      renderDetailValues(document.getElementById('detail-mother-data'), motherFields.map(function (field) {
+        return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
+      }), reviews);
+      renderDetailValues(document.getElementById('detail-household-data'), householdFields.map(function (field) {
+        return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
+      }), reviews);
+      setDetailStatusBadge('detail-student-status', summarizeFieldReviews(studentFields, applicant));
+      setDetailStatusBadge('detail-parent-status', summarizeFieldReviews(parentFields, applicant));
+      document.getElementById('detail-readonly-notice').hidden = !readOnly;
+      document.querySelectorAll('[data-detail-edit-actions]').forEach(function (element) { element.hidden = readOnly; });
+      document.getElementById('detail-selection-button').hidden = readOnly;
+      document.getElementById('detail-print-button').hidden = readOnly;
+      document.querySelector('.detail-record-layout').hidden = readOnly;
+      document.getElementById('detail-documents-section').hidden = readOnly;
+      document.querySelector('.detail-payment-card').hidden = readOnly;
+
+      const documentList = document.getElementById('detail-document-list');
+      documentList.replaceChildren();
+      const documentConfigs = (adminReviewConfig && adminReviewConfig.documentRequirements || []).filter(function (item) {
+        return item.active !== false && (!item.wave || item.wave === applicant.wave) &&
+          (!item.registrationPath || item.registrationPath === applicant.registration_path);
+      });
+      documentConfigs.forEach(function (config) {
+        const file = (applicant.files || []).find(function (item) { return item.key === config.key; });
+        if (!config.required && !file) return;
+        const review = reviews[config.key] || null;
+        const card = document.createElement('article');
+        card.className = 'detail-document-card';
+        const head = document.createElement('div');
+        head.className = 'detail-document-head';
+        const title = document.createElement('h3');
+        title.textContent = config.name;
+        head.appendChild(title);
+        head.appendChild(makeStatusBadge(file
+          ? review && review.status === 'revision' ? 'Perlu Perbaikan'
+            : review && review.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'
+          : 'Belum Diunggah', file
+            ? review && review.status === 'revision' ? 'revision'
+              : review && review.status === 'verified' ? 'verified' : 'pending'
+            : 'revision'));
+        const fileRow = document.createElement('div');
+        fileRow.className = 'detail-file-link';
+        if (file) {
+          const link = document.createElement('a');
+          link.href = file.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Lihat file · ' + file.name;
+          fileRow.appendChild(link);
+        } else {
+          fileRow.textContent = config.required ? 'Berkas wajib belum diunggah.' : 'Belum ada berkas.';
+        }
+        card.append(head, fileRow);
+        if (!readOnly) {
+          const actions = document.createElement('div');
+          actions.className = 'detail-document-actions';
+          actions.append(
+            createDetailReviewButton('✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'),
+            createDetailReviewButton('✓ Terima Dokumen', config.key, 'document', 'verified', 'detail-verified')
+          );
+          card.appendChild(actions);
+        }
+        documentList.appendChild(card);
+      });
+      if (!documentList.children.length) {
+        const empty = document.createElement('p');
+        empty.className = 'detail-status-banner';
+        empty.textContent = 'Belum ada dokumen tambahan yang perlu ditinjau.';
+        documentList.appendChild(empty);
+      }
+
+      const paymentStatus = applicant.payment_status || applicant.reenrollment_status || 'Belum Daftar Ulang';
+      setDetailStatusBadge('detail-payment-status', paymentStatus);
+      const activeConfig = siteConfig || adminReviewConfig || {};
+      const waveConfig = (activeConfig.registrationWaves || []).find(function (item) { return item.name === applicant.wave; });
+      document.getElementById('detail-payment-info').textContent = 'Rincian pembayaran · ' +
+        (waveConfig && waveConfig.reenrollmentFee ? 'Rp ' + Number(waveConfig.reenrollmentFee).toLocaleString('id-ID') : 'Nominal mengikuti informasi panitia.');
+      document.getElementById('detail-payment-note').textContent = applicant.payment_note || 'Tidak ada catatan khusus dari calon siswa / pendaftar.';
+      document.getElementById('detail-payment-review-note').value = applicant.payment_note || '';
+      const paymentProof = (applicant.files || []).find(function (file) { return file.key === 'paymentProof'; });
+      const proofContainer = document.getElementById('detail-payment-proof');
+      proofContainer.replaceChildren();
+      if (paymentProof) {
+        const proofLink = document.createElement('a');
+        proofLink.href = paymentProof.url;
+        proofLink.target = '_blank';
+        proofLink.rel = 'noopener noreferrer';
+        proofLink.textContent = 'Lihat lampiran bukti transfer · ' + paymentProof.name;
+        proofContainer.appendChild(proofLink);
+      } else {
+        proofContainer.textContent = 'Belum ada bukti transfer yang diunggah.';
+      }
+      document.getElementById('detail-payment-approve').disabled = !paymentProof;
+      document.querySelector('.detail-payment-actions').hidden = readOnly ||
+        !['Diterima', 'Diterima / Lulus'].includes(applicant.selection_status);
+      reviewingApplicant = applicant;
+    }
+
+    function setDetailStatusBadge(id, status) {
+      const element = document.getElementById(id);
+      element.className = 'status-badge ' + statusTone(status);
+      element.textContent = status || '—';
+    }
+
+    function createDetailReviewButton(label, key, type, status, extraClass) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = extraClass || 'secondary';
+      button.dataset.detailReviewKey = key;
+      button.dataset.detailReviewType = type;
+      button.dataset.reviewStatus = status;
+      button.textContent = label;
+      return button;
+    }
+
+    function showApplicantDetail(applicant, updateHistory) {
+      if (!canAdmin('applications', 'view')) return;
+      currentDetailRegistrationNumber = applicant.registration_number;
+      if (updateHistory !== false) {
+        window.history.pushState({ adminPage: 'applicant-detail', registrationNumber: applicant.registration_number },
+          '', '/admin/pendaftar/' + encodeURIComponent(applicant.registration_number));
+      }
+      document.querySelectorAll('.admin-page').forEach(function (page) { page.hidden = true; });
+      applicantDetailPage.hidden = false;
+      adminSidebar.hidden = true;
+      adminLayout.classList.add('detail-layout-active');
+      document.querySelectorAll('[data-page-target]').forEach(function (button) { button.classList.remove('active'); });
+      renderApplicantDetail(applicant);
+      animateAdminElement(applicantDetailPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showRouteFromLocation() {
+      const match = window.location.pathname.match(/^\/admin\/pendaftar\/(SPMB-\d{4}-\d{6})\/?$/i);
+      if (!match) {
+        if (!applicantDetailPage.hidden) setAdminPage('applications-page');
+        return;
+      }
+      const applicant = applicants.find(function (item) {
+        return item.registration_number.toUpperCase() === match[1].toUpperCase();
+      });
+      if (applicant) showApplicantDetail(applicant, false);
+      else if (currentUser && canAdmin('applications', 'view')) {
+        setAdminPage('applications-page');
+        setStatus('applications-status', 'Data pendaftar tidak ditemukan atau tidak dapat diakses.', 'error');
+      }
+    }
+
+    async function updateApplicantReview(applicant, itemKey, itemType, status, note) {
+      await api('/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/reviews', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemKey: itemKey, itemType: itemType, status: status, note: note || '' })
+      });
+    }
+
+    async function reviewDetailGroup(group, status) {
+      const step = group === 'student' ? 2 : 3;
+      const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
+        return field.active !== false && field.step === step && applicantValue(reviewingApplicant, field);
+      });
+      if (!fields.length) {
+        setStatus('detail-status', 'Tidak ada data terisi untuk diperiksa pada bagian ini.', 'error');
+        return;
+      }
+      let note = '';
+      if (status === 'revision') {
+        note = window.prompt('Tuliskan catatan perbaikan untuk siswa:');
+        if (note === null) return;
+        if (!note.trim()) return setStatus('detail-status', 'Catatan perbaikan wajib diisi.', 'error');
+      }
+      const button = applicantDetailPage.querySelector('[data-detail-review-all="' + group + '"][data-review-status="' + status + '"]');
+      button.disabled = true;
+      try {
+        for (const field of fields) await updateApplicantReview(reviewingApplicant, field.key, 'field', status, note);
+        await loadApplications();
+        setStatus('detail-status', status === 'verified' ? 'Data berhasil diverifikasi.' : 'Data dikembalikan untuk perbaikan.', 'success');
+      } catch (error) {
+        setStatus('detail-status', error.message || 'Status data gagal diperbarui.', 'error');
+        await loadApplications();
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function verifyAllApplicantData() {
+      if (!reviewingApplicant) return;
+      const button = document.getElementById('detail-verify-all');
+      const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
+        return field.active !== false && applicantValue(reviewingApplicant, field);
+      }).map(function (field) { return { key: field.key, type: 'field' }; });
+      const documents = (adminReviewConfig && adminReviewConfig.documentRequirements || []).filter(function (item) {
+        return item.active !== false && (!item.wave || item.wave === reviewingApplicant.wave) &&
+          (!item.registrationPath || item.registrationPath === reviewingApplicant.registration_path) &&
+          (item.required || (reviewingApplicant.files || []).some(function (file) { return file.key === item.key; })) &&
+          (reviewingApplicant.files || []).some(function (file) { return file.key === item.key; });
+      }).map(function (item) { return { key: item.key, type: 'document' }; });
+      const items = fields.concat(documents);
+      if (!items.length) return setStatus('detail-status', 'Belum ada data atau berkas untuk diverifikasi.', 'error');
+      button.disabled = true;
+      try {
+        for (const item of items) await updateApplicantReview(reviewingApplicant, item.key, item.type, 'verified', '');
+        await loadApplications();
+        setStatus('detail-status', 'Semua data terisi dan berkas yang diunggah berhasil diverifikasi.', 'success');
+      } catch (error) {
+        setStatus('detail-status', error.message || 'Verifikasi berhenti sebelum seluruh item selesai.', 'error');
+        await loadApplications();
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function updateDetailPayment(decision) {
+      if (!reviewingApplicant) return;
+      const button = document.getElementById(decision === 'approve' ? 'detail-payment-approve' : 'detail-payment-revision');
+      button.disabled = true;
+      try {
+        await api('/api/admin/applications/' + encodeURIComponent(reviewingApplicant.registration_number) + '/payment', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            decision: decision,
+            note: document.getElementById('detail-payment-review-note').value
+          })
+        });
+        await loadApplications();
+        setStatus('detail-status', decision === 'approve'
+          ? 'Pembayaran disetujui dan daftar ulang diselesaikan.'
+          : 'Bukti pembayaran dikembalikan untuk perbaikan.', 'success');
+      } catch (error) {
+        setStatus('detail-status', error.message || 'Status pembayaran gagal diperbarui.', 'error');
+      } finally {
+        button.disabled = false;
+      }
     }
 
     function createIconAction(label, pathMarkup, handler, primary) {
@@ -1658,11 +2131,18 @@
 
     function openReviewDialog(applicant, focusTarget) {
       reviewingApplicant = applicant;
+      const selectionOnly = focusTarget === 'selection';
+      reviewDialog.classList.toggle('selection-only', selectionOnly);
+      document.getElementById('review-dialog-title').textContent = selectionOnly
+        ? 'Penetapan Kelulusan' : 'Verifikasi dan Hasil Seleksi';
       document.getElementById('review-registration-number').textContent = applicant.registration_number + ' · ' + applicant.student_name;
       document.getElementById('selection-score').value = applicant.selection_score || '';
       document.getElementById('selection-decision').value =
         applicant.selection_status === 'Diterima' ? 'Diterima / Lulus' : applicant.selection_status;
       document.getElementById('selection-note').value = applicant.selection_note || '';
+      document.querySelector('label[for="selection-score"]').textContent = selectionOnly ? 'Nilai Ujian / Tes Seleksi' : 'Nilai seleksi (0–1000)';
+      document.querySelector('label[for="selection-decision"]').textContent = selectionOnly ? 'Keputusan Kelulusan *' : 'Keputusan';
+      document.getElementById('save-selection-button').textContent = selectionOnly ? 'Kirim' : 'Simpan Hasil Seleksi';
       document.getElementById('payment-review-note').value = applicant.payment_note || '';
       const content = document.getElementById('review-items');
       content.replaceChildren();
@@ -2255,6 +2735,55 @@
     document.getElementById('payment-approve-button').addEventListener('click', function () { updatePaymentReview('approve'); });
     document.getElementById('payment-revision-button').addEventListener('click', function () { updatePaymentReview('revision'); });
     document.getElementById('close-review-button').addEventListener('click', function () { reviewDialog.close(); });
+    document.getElementById('cancel-selection-button').addEventListener('click', function () { reviewDialog.close(); });
+    reviewDialog.addEventListener('close', function () {
+      reviewDialog.classList.remove('selection-only');
+      document.getElementById('review-dialog-title').textContent = 'Verifikasi dan Hasil Seleksi';
+      document.querySelector('label[for="selection-score"]').textContent = 'Nilai seleksi (0–1000)';
+      document.querySelector('label[for="selection-decision"]').textContent = 'Keputusan';
+      document.getElementById('save-selection-button').textContent = 'Simpan Hasil Seleksi';
+    });
+    document.getElementById('detail-back-button').addEventListener('click', function () {
+      setAdminPage('applications-page');
+    });
+    document.getElementById('detail-selection-button').addEventListener('click', function () {
+      if (reviewingApplicant) openReviewDialog(reviewingApplicant, 'selection');
+    });
+    document.getElementById('detail-print-button').addEventListener('click', function () {
+      if (reviewingApplicant) printApplicantCard(reviewingApplicant);
+    });
+    document.getElementById('detail-verify-all').addEventListener('click', verifyAllApplicantData);
+    applicantDetailPage.addEventListener('click', async function (event) {
+      const reviewButton = event.target.closest('[data-detail-review-key]');
+      if (reviewButton) {
+        const status = reviewButton.dataset.reviewStatus;
+        let note = '';
+        if (status === 'revision') {
+          note = window.prompt('Tuliskan catatan perbaikan untuk siswa:');
+          if (note === null) return;
+          if (!note.trim()) return setStatus('detail-status', 'Catatan perbaikan wajib diisi.', 'error');
+        }
+        reviewButton.disabled = true;
+        try {
+          await updateApplicantReview(reviewingApplicant, reviewButton.dataset.detailReviewKey,
+            reviewButton.dataset.detailReviewType, status, note);
+          await loadApplications();
+          setStatus('detail-status', status === 'verified' ? 'Verifikasi berhasil disimpan.' : 'Item dikembalikan untuk perbaikan.', 'success');
+        } catch (error) {
+          setStatus('detail-status', error.message || 'Status verifikasi gagal diperbarui.', 'error');
+        } finally {
+          reviewButton.disabled = false;
+        }
+        return;
+      }
+      const groupButton = event.target.closest('[data-detail-review-all]');
+      if (groupButton) {
+        reviewDetailGroup(groupButton.dataset.detailReviewAll, groupButton.dataset.reviewStatus);
+      }
+    });
+    document.getElementById('detail-payment-approve').addEventListener('click', function () { updateDetailPayment('approve'); });
+    document.getElementById('detail-payment-revision').addEventListener('click', function () { updateDetailPayment('revision'); });
+    window.addEventListener('popstate', showRouteFromLocation);
 
     document.getElementById('close-edit-button').addEventListener('click', function () { editDialog.close(); });
     document.getElementById('cancel-edit-button').addEventListener('click', function () { editDialog.close(); });
@@ -2433,6 +2962,7 @@
       currentUser = result.user;
       showDashboard();
       await loadAll();
+      showRouteFromLocation();
     }).catch(function () {
       showLogin();
     });

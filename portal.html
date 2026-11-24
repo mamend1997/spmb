@@ -12,17 +12,44 @@
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     .panel { border: 1px solid #e4e9f0; border-radius: 18px; background: #fff; box-shadow: 0 10px 32px #16243a0a; }
-    .status-card { min-height: 150px; border: 1px solid #e4e9f0; border-radius: 14px; padding: 16px; }
+    .status-card { min-height: 150px; border: 1px solid #e4e9f0; border-radius: 14px; padding: 16px; background: linear-gradient(145deg, #fff, #f8fafc); }
     .detail-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px 24px; }
     .detail-item dt { color: #64748b; font-size: 11px; }
     .detail-item dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 700; color: #172033; }
     .document-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e5eaf0; border-radius: 10px; padding: 11px 13px; font-size: 12px; }
+    .portal-identity { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; }
+    .portal-identity-main { display: flex; min-width: 0; align-items: center; gap: 14px; }
+    .portal-photo, .portal-photo-empty { width: 68px; height: 82px; flex: 0 0 68px; border: 1px solid #e4e9f0; border-radius: 12px; background: #f8fafc; object-fit: cover; }
+    .portal-photo[hidden], .portal-photo-empty[hidden], .reenrollment-cta[hidden] { display: none !important; }
+    .portal-photo-empty { display: grid; place-items: center; color: #94a3b8; font-size: 11px; }
+    .portal-badges { display: flex; flex-wrap: wrap; gap: 5px; }
+    .selection-result-panel { position: relative; display: flex; min-height: 160px; align-items: center; justify-content: space-between; gap: 20px; overflow: hidden; padding: 28px; border: 1px solid #b7eadb; border-radius: 22px; background: linear-gradient(110deg, #23b493, #058d7e 65%, #087d78); color: white; box-shadow: 0 12px 30px #05967d35; }
+    .selection-result-panel.pending { border-color: #fed7aa; background: linear-gradient(110deg, #fb923c, #ea580c 65%, #c2410c); box-shadow: 0 12px 30px #ea580c2c; }
+    .selection-result-panel.rejected { border-color: #fecaca; background: linear-gradient(110deg, #f87171, #dc2626 65%, #991b1b); box-shadow: 0 12px 30px #dc26262c; }
+    .selection-result-content { position: relative; z-index: 1; }
+    .selection-result-content h2 { max-width: 680px; color: white; font-size: clamp(20px, 3vw, 28px); font-weight: 800; line-height: 1.15; }
+    .selection-result-content p { max-width: 650px; color: rgb(255 255 255 / 90%); }
+    .selection-trophy { width: 108px; height: 108px; flex: 0 0 108px; color: #fde68a; opacity: .95; }
+    .reenrollment-cta { display: inline-flex; min-height: 38px; align-items: center; margin-top: 12px; padding: 9px 16px; border-radius: 999px; background: #f59e0b; color: white; font-size: 12px; font-weight: 800; text-decoration: none; }
+    .reenrollment-cta:hover { background: #d97706; }
+    .portal-status-panel { padding: 20px; }
+    .portal-status-heading { padding-bottom: 14px; border-bottom: 1px solid #edf0f4; }
+    .portal-status-cards { margin-top: 14px; }
+    .portal-step-card { border-radius: 13px; }
+    .portal-step-card.current { border-color: #a7f3d0; box-shadow: 0 5px 16px #10b98112; }
     #print-card { display: none; }
     @media (max-width: 700px) {
       .detail-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+      .portal-identity { align-items: flex-start; }
+      .selection-result-panel { min-height: 140px; padding: 20px; }
+      .selection-trophy { width: 68px; height: 68px; flex-basis: 68px; }
     }
     @media (max-width: 420px) {
       .detail-grid { grid-template-columns: 1fr; }
+      .portal-identity { flex-direction: column; }
+      .portal-identity .flex.flex-wrap { width: 100%; }
+      .selection-result-panel { align-items: flex-start; }
+      .selection-trophy { width: 44px; height: 44px; flex-basis: 44px; }
     }
     @media print {
       @page { size: A4; margin: 16mm; }
@@ -59,16 +86,19 @@
     </section>
 
     <section id="portal-content" class="hidden">
-      <header class="panel flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div>
-          <p class="text-xs font-bold uppercase tracking-wider text-orange-600">Calon Peserta Didik Baru</p>
-          <h1 id="portal-name" class="mt-1 text-2xl font-extrabold text-slate-900"></h1>
-          <p id="portal-registration" class="mt-1 text-sm text-slate-500"></p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span id="portal-wave" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
-            <span id="portal-path" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
-            <span id="portal-major" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
-            <span id="portal-school" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"></span>
+      <header class="panel portal-identity">
+        <div class="portal-identity-main">
+          <img id="portal-photo" class="portal-photo" alt="" hidden>
+          <span id="portal-photo-empty" class="portal-photo-empty">Foto siswa</span>
+          <div class="min-w-0">
+            <h1 id="portal-name" class="text-xl font-extrabold text-slate-900 sm:text-2xl"></h1>
+            <p id="portal-registration" class="mt-1 text-xs text-slate-500"></p>
+            <div class="portal-badges mt-2">
+              <span id="portal-wave" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
+              <span id="portal-path" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
+              <span id="portal-major" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
+              <span id="portal-school" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
+            </div>
           </div>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -83,44 +113,52 @@
         </div>
       </header>
 
-      <section class="panel mt-5 p-5 sm:p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3">
+      <section id="selection-result-panel" class="selection-result-panel mt-5">
+        <div class="selection-result-content">
+          <p id="selection-result-eyebrow" class="text-xs font-extrabold uppercase tracking-wider">Pengumuman Hasil Seleksi</p>
+          <h2 id="selection-result-title" class="mt-2"></h2>
+          <p id="selection-score-text" class="mt-2 text-sm"></p>
+          <p id="selection-note-text" class="mt-1 text-sm leading-6"></p>
+          <a id="reenrollment-cta" class="reenrollment-cta" href="#payment-panel" hidden>Daftar Ulang</a>
+        </div>
+        <svg class="selection-trophy" aria-hidden="true" viewBox="0 0 96 96" fill="none">
+          <path d="M29 12h38v20c0 17-8 27-19 27S29 49 29 32V12Z" fill="currentColor" opacity=".92"/>
+          <path d="M29 19H13v9c0 15 9 23 23 23M67 19h16v9c0 15-9 23-23 23M48 59v16m-17 8h34M36 75h24v8H36z" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="m48 20 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2-4.5-4.4 6.2-.9L48 20Z" fill="#b45309"/>
+        </svg>
+      </section>
+
+      <section class="panel portal-status-panel mt-5">
+        <div class="portal-status-heading flex flex-wrap items-center justify-between gap-3">
           <div><h2 class="text-lg font-extrabold text-slate-900">Alur & Status Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Pantau proses pendaftaran dari portal ini.</p></div>
           <span id="overall-status" class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700"></span>
         </div>
-        <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <article class="status-card">
+        <div class="portal-status-cards grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <article class="status-card portal-step-card">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 01</span>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Formulir Pendaftaran</h3>
             <p class="mt-1 text-xs font-semibold text-emerald-700">Terkirim & tersimpan</p>
             <p id="registered-at" class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400"></p>
           </article>
-          <article class="status-card">
+          <article class="status-card portal-step-card" id="verification-step-card">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 02</span>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Verifikasi Berkas</h3>
             <p id="document-status" class="mt-1 text-xs font-semibold text-amber-700"></p>
             <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Diperiksa oleh panitia</p>
           </article>
-          <article class="status-card">
+          <article class="status-card portal-step-card" id="selection-step-card">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 03</span>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Hasil Seleksi</h3>
             <p id="selection-status" class="mt-1 text-xs font-semibold text-amber-700"></p>
             <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Pengumuman resmi sekolah</p>
           </article>
-          <article class="status-card">
+          <article class="status-card portal-step-card" id="reenrollment-step-card">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 04</span>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Daftar Ulang</h3>
             <p id="reenrollment-status" class="mt-1 text-xs font-semibold text-slate-600"></p>
             <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Ikuti jadwal dari panitia</p>
           </article>
         </div>
-      </section>
-
-      <section id="selection-result-panel" class="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-5 sm:p-6">
-        <p class="text-xs font-extrabold uppercase tracking-wider text-orange-700">Pengumuman Hasil Seleksi</p>
-        <h2 id="selection-result-title" class="mt-2 text-xl font-extrabold text-slate-900"></h2>
-        <p id="selection-score-text" class="mt-2 text-sm text-slate-600"></p>
-        <p id="selection-note-text" class="mt-1 text-sm leading-6 text-slate-600"></p>
       </section>
 
       <section id="payment-panel" class="panel mt-5 hidden p-5 sm:p-6">
@@ -246,6 +284,20 @@
       activePin = pin;
       document.getElementById('login-panel').classList.add('hidden');
       document.getElementById('portal-content').classList.remove('hidden');
+      const portalPhoto = document.getElementById('portal-photo');
+      const portalPhotoEmpty = document.getElementById('portal-photo-empty');
+      portalPhoto.hidden = !application.studentPhotoUrl;
+      portalPhotoEmpty.hidden = Boolean(application.studentPhotoUrl);
+      if (application.studentPhotoUrl) {
+        portalPhoto.src = application.studentPhotoUrl;
+        portalPhoto.alt = 'Foto ' + application.student.name;
+        portalPhoto.onerror = function () {
+          portalPhoto.hidden = true;
+          portalPhotoEmpty.hidden = false;
+        };
+      } else {
+        portalPhoto.removeAttribute('src');
+      }
       showText('portal-name', application.student.name);
       showText('portal-registration', application.registrationNumber);
       showText('portal-wave', application.wave);
@@ -261,9 +313,22 @@
       showText('portal-address', application.address);
 
       const decision = application.selectionStatus || 'Menunggu Pengumuman';
-      showText('selection-result-title', decision === 'Diterima' ? 'Diterima / Lulus' : decision);
+      const isAccepted = ['Diterima', 'Diterima / Lulus'].includes(decision);
+      const isRejected = decision === 'Tidak Diterima';
+      const resultPanel = document.getElementById('selection-result-panel');
+      resultPanel.classList.toggle('pending', !isAccepted && !isRejected);
+      resultPanel.classList.toggle('rejected', isRejected);
+      showText('selection-result-title', isAccepted ? 'SELAMAT! ANDA DINYATAKAN LULUS SELEKSI'
+        : decision === 'Cadangan' ? 'ANDA MASUK DAFTAR CADANGAN'
+          : isRejected ? 'HASIL SELEKSI ANDA' : 'HASIL SELEKSI SEDANG DIPROSES');
+      showText('selection-result-eyebrow', isAccepted ? 'Pengumuman Hasil Seleksi' : 'Informasi Hasil Seleksi');
       showText('selection-score-text', application.selectionScore ? 'Nilai seleksi: ' + application.selectionScore : '');
       showText('selection-note-text', application.selectionNote || '');
+      const reenrollmentCta = document.getElementById('reenrollment-cta');
+      reenrollmentCta.hidden = !application.canPay;
+      document.getElementById('verification-step-card').classList.toggle('current', application.documentStatus !== 'Berkas Terverifikasi');
+      document.getElementById('selection-step-card').classList.toggle('current', isAccepted || isRejected || decision === 'Cadangan');
+      document.getElementById('reenrollment-step-card').classList.toggle('current', application.canPay);
       const paymentPanel = document.getElementById('payment-panel');
       paymentPanel.classList.toggle('hidden', !application.canPay);
       if (application.canPay) renderPaymentOptions(application);

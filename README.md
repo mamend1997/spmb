@@ -30,7 +30,7 @@ Buka `http://localhost:3000`. Untuk membuat akun Pemilik pertama, set `ADMIN_USE
    | `SHEET_SYNC_TOKEN` | Token acak minimal 32 karakter; harus sama dengan Script Property Apps Script |
 
 4. Railway menggunakan perintah start `npm start` dan mengambil versi Node dari `package.json` (`>=22.13`).
-5. Setelah deploy, beranda ada di `/`, formulir di `/pendaftaran`, portal admin di `/admin`, dan portal siswa di `/portal` pada domain Railway Anda.
+5. Setelah deploy, beranda ada di `/`, formulir di `/pendaftaran`, pencarian status pendaftar di `/pencarian`, portal admin di `/admin`, dan portal siswa di `/portal` pada domain Railway Anda.
 
 `ADMIN_USERNAME` dan `ADMIN_PASSWORD` hanya dipakai untuk membuat akun Pemilik saat tabel akun masih kosong. Setelah akun dibuat, perubahan nilai environment tersebut tidak mengganti password akun yang sudah tersimpan. Jangan menaruh password atau token rahasia di GitHub, kode frontend, atau spreadsheet. Unggahan identitas pendaftar disimpan privat pada volume Railway dan tidak disinkronkan ke Google Sheets.
 
@@ -55,6 +55,7 @@ Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronis
 - **Profil admin:** Setiap admin dapat mengubah nama tampilan dan foto profil dari menu avatar; foto PNG/JPG/WebP dibatasi 1 MB. Password diganti melalui dialog terpisah yang meminta password saat ini.
 - **Migrasi login:** setelah versi akun diterapkan, sesi token lama tidak berlaku. Pastikan `ADMIN_USERNAME` dan `ADMIN_PASSWORD` disetel di Railway sebelum deploy. Sesudah berhasil masuk, buat akun Pemilik cadangan; nilai `ADMIN_TOKEN` lama sudah tidak digunakan dan dapat dihapus.
 - **Portal siswa:** `/portal`. Pendaftar masuk menggunakan nomor pendaftaran dan PIN acak yang diberikan setelah formulir berhasil disimpan.
+- **Pencarian pendaftar:** `/pencarian`. Pencarian publik tersedia menggunakan NISN, NIK siswa, atau nomor pendaftaran; hanya status verifikasi berkas dan hasil seleksi yang ditampilkan. Endpoint membatasi jumlah pencarian per alamat IP.
 - **Master SPMB:** Pemilik mengatur label, urutan, tahap, kewajiban, dan pilihan field; dokumen; gelombang (tanggal, kuota, biaya pendaftaran dan daftar ulang); serta jalur dari sidebar admin. Field inti yang dinonaktifkan tetap tersimpan sebagai kolom SQLite agar data lama tidak hilang. Aplikasi memigrasikan tabel pendaftar lama di tempat dan mempertahankan relasi berkas serta antrean Google Sheets.
 - **Beranda:** Pemilik dapat mengunggah brosur PNG/JPG (maksimal 5 MB) melalui Pengaturan Situs. Tahapan Timeline Beranda juga dapat ditambah, dihapus, dan diurutkan; tiap tahap mendukung keterangan, jadwal, dan status. Urutan angka terkecil ditampilkan lebih dahulu. Jadwal bawaan sengaja bertuliskan “Jadwal segera diumumkan” agar tanggal resmi diisi oleh sekolah.
 - **Verifikasi dan seleksi:** Status pada daftar pendaftar hanya ringkasan; perubahan berkas dan hasil seleksi dilakukan dari aksi verifikasi/penetapan. Operator/Pemilik dapat meninjau tiap field/dokumen dengan catatan revisi, memberi nilai seleksi, serta menetapkan Diterima/Lulus, Cadangan, atau Tidak Diterima. Data dapat diekspor sebagai CSV atau workbook Excel `.xlsx`.

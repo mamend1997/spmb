@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f9fa">
+  <title>Pencarian Pendaftar | SMK PGRI Cikoneng</title>
+  <link rel="icon" type="image/png" href="/assets/logo-pgri-cikoneng.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-2">
+  <style>
+    body { font-family: "Plus Jakarta Sans", Arial, sans-serif; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .search-main { width: min(100% - 32px, 960px); margin: 0 auto; padding: 64px 0; }
+    .search-panel { padding: clamp(20px, 4vw, 32px); border: 1px solid #dbe3ec; border-radius: 12px; background: white; box-shadow: 0 2px 5px #1725540a; }
+    .search-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 5px; border-radius: 9px; background: #f1f5f9; }
+    .search-tab { min-height: 42px; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: #475569; font: inherit; font-size: 14px; cursor: pointer; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
+    .search-tab[aria-selected="true"] { background: white; color: #0f172a; box-shadow: 0 1px 3px #0f172a12; }
+    .search-tab:focus-visible, .search-submit:focus-visible { outline: 3px solid #bfdbfe; outline-offset: 2px; }
+    .search-label { display: block; margin: 30px 0 8px; color: #0f172a; font-size: 14px; font-weight: 700; }
+    .search-input { width: 100%; min-height: 50px; padding: 12px 15px; border: 1px solid #dbe3ec; border-radius: 8px; color: #172033; outline: none; transition: border-color .15s, box-shadow .15s; }
+    .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
+    .search-submit { display: flex; width: 100%; min-height: 54px; align-items: center; justify-content: center; gap: 12px; margin-top: 30px; border: 0; border-radius: 8px; background: #8fc2eb; color: #0f172a; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s ease, opacity .15s ease; }
+    .search-submit:hover { background: #78b5e5; }
+    .search-submit:disabled { cursor: wait; opacity: .7; }
+    .search-message { margin-top: 16px; font-size: 13px; line-height: 1.6; }
+    .search-result { margin-top: 20px; padding: 20px; border: 1px solid #dbeafe; border-radius: 10px; background: #f8fbff; }
+    .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .result-item { padding: 13px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; }
+    .result-item span { display: block; color: #64748b; font-size: 11px; }
+    .result-item strong { display: block; margin-top: 5px; color: #172033; font-size: 14px; }
+    @media (max-width: 560px) {
+      .search-main { padding: 34px 0; }
+      .search-tab { font-size: 12px; }
+      .result-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header id="site-header" class="no-print site-header">
+    <div class="site-header-inner">
+      <a href="/" class="site-brand" aria-label="SMK PGRI Cikoneng - Beranda">
+        <img src="/assets/logo-pgri-cikoneng.png" alt="" width="44" height="44">
+        <span>SMK PGRI <small>Cikoneng</small></span>
+      </a>
+      <nav class="site-nav" aria-label="Navigasi utama">
+        <a href="/">Beranda</a>
+        <a href="/pencarian" aria-current="page">Pencarian Pendaftar</a>
+        <a href="/dokumen">Dokumen</a>
+        <a href="/pendaftaran">Pendaftaran</a>
+        <a class="site-nav-login" href="/portal">Login Siswa</a>
+      </nav>
+    </div>
+  </header>
+  <main class="search-main">
+    <section class="search-panel" aria-labelledby="search-title">
+      <h1 id="search-title" class="sr-only">Pencarian Pendaftar SPMB</h1>
+      <form id="search-form" novalidate>
+        <div class="search-tabs" role="tablist" aria-label="Jenis pencarian">
+          <button class="search-tab" id="tab-nisn" type="button" role="tab" aria-selected="true" aria-controls="search-input" data-search-type="nisn">NISN</button>
+          <button class="search-tab" id="tab-nik" type="button" role="tab" aria-selected="false" aria-controls="search-input" data-search-type="nik" tabindex="-1">NIK</button>
+          <button class="search-tab" id="tab-registration" type="button" role="tab" aria-selected="false" aria-controls="search-input" data-search-type="registrationNumber" tabindex="-1">Nomor Pendaftaran</button>
+        </div>
+        <label id="search-label" class="search-label" for="search-input">Masukkan NISN</label>
+        <input id="search-input" class="search-input" name="identifier" type="text" inputmode="numeric" autocomplete="off" placeholder="Contoh: 0051234567" maxlength="10" aria-describedby="search-help" required>
+        <p id="search-help" class="mt-2 text-xs text-slate-500">Masukkan NISN 10 digit sesuai data pendaftaran.</p>
+        <button id="search-submit" class="search-submit" type="submit">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+          <span id="search-submit-label">Cari Data Pendaftar</span>
+        </button>
+      </form>
+      <p id="search-message" class="search-message hidden" role="status" aria-live="polite"></p>
+      <section id="search-result" class="search-result hidden" aria-labelledby="result-title" aria-live="polite">
+        <h2 id="result-title" class="text-base font-extrabold text-slate-900">Hasil pencarian</h2>
+        <p class="mt-1 text-xs text-slate-500">Informasi yang ditampilkan terbatas pada status pendaftaran.</p>
+        <div class="result-grid">
+          <div class="result-item"><span>Verifikasi berkas</span><strong id="result-documents"></strong></div>
+          <div class="result-item"><span>Hasil seleksi</span><strong id="result-selection"></strong></div>
+        </div>
+      </section>
+    </section>
+    <p class="mt-4 text-center text-xs leading-5 text-slate-500">Pencarian ini hanya menampilkan status berkas dan hasil seleksi, bukan rincian data pribadi. Untuk melihat data lengkap, gunakan <a class="font-bold text-orange-700 hover:underline" href="/portal">Login Siswa</a>.</p>
+  </main>
+  <script>
+    (function () {
+      const form = document.getElementById('search-form');
+      const input = document.getElementById('search-input');
+      const label = document.getElementById('search-label');
+      const help = document.getElementById('search-help');
+      const message = document.getElementById('search-message');
+      const result = document.getElementById('search-result');
+      const submit = document.getElementById('search-submit');
+      const submitLabel = document.getElementById('search-submit-label');
+      const searchTypes = {
+        nisn: { label: 'NISN', placeholder: 'Contoh: 0051234567', help: 'Masukkan NISN 10 digit sesuai data pendaftaran.', maxLength: 10, inputMode: 'numeric' },
+        nik: { label: 'NIK', placeholder: 'Contoh: 3201234567890001', help: 'Masukkan NIK siswa 16 digit sesuai data pendaftaran.', maxLength: 16, inputMode: 'numeric' },
+        registrationNumber: { label: 'Nomor Pendaftaran', placeholder: 'Contoh: SPMB-2027-000001', help: 'Masukkan nomor pendaftaran yang tertera pada kartu peserta.', maxLength: 16, inputMode: 'text' }
+      };
+      let activeType = 'nisn';
+
+      document.querySelectorAll('[data-search-type]').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          activeType = tab.dataset.searchType;
+          const settings = searchTypes[activeType];
+          document.querySelectorAll('[data-search-type]').forEach(function (item) {
+            const selected = item === tab;
+            item.setAttribute('aria-selected', String(selected));
+            item.tabIndex = selected ? 0 : -1;
+          });
+          label.textContent = 'Masukkan ' + settings.label;
+          help.textContent = settings.help;
+          input.placeholder = settings.placeholder;
+          input.maxLength = settings.maxLength;
+          input.inputMode = settings.inputMode;
+          input.value = '';
+          message.classList.add('hidden');
+          result.classList.add('hidden');
+          input.focus();
+        });
+        tab.addEventListener('keydown', function (event) {
+          const tabs = Array.from(document.querySelectorAll('[data-search-type]'));
+          const currentIndex = tabs.indexOf(tab);
+          const nextIndex = event.key === 'ArrowRight' || event.key === 'ArrowDown'
+            ? (currentIndex + 1) % tabs.length
+            : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+              ? (currentIndex - 1 + tabs.length) % tabs.length
+              : event.key === 'Home' ? 0
+                : event.key === 'End' ? tabs.length - 1 : -1;
+          if (nextIndex < 0) return;
+          event.preventDefault();
+          tabs[nextIndex].click();
+        });
+      });
+
+      input.addEventListener('input', function () {
+        if (activeType === 'nisn' || activeType === 'nik') {
+          input.value = input.value.replace(/\D/g, '');
+        } else {
+          input.value = input.value.toUpperCase().replace(/\s/g, '');
+        }
+      });
+
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        message.classList.add('hidden');
+        result.classList.add('hidden');
+        const identifier = input.value.trim();
+        if (!identifier) {
+          message.textContent = 'Masukkan ' + searchTypes[activeType].label + ' terlebih dahulu.';
+          message.className = 'search-message text-red-600';
+          input.focus();
+          return;
+        }
+        submit.disabled = true;
+        submitLabel.textContent = 'Mencari data...';
+        try {
+          const response = await fetch('/api/public/application-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ type: activeType, identifier: identifier })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || 'Pencarian belum berhasil. Silakan coba kembali.');
+          document.getElementById('result-documents').textContent = data.documentStatus || 'Belum tersedia';
+          document.getElementById('result-selection').textContent = data.selectionStatus || 'Belum tersedia';
+          result.classList.remove('hidden');
+          message.textContent = 'Data pendaftar ditemukan.';
+          message.className = 'search-message text-emerald-700';
+        } catch (error) {
+          message.textContent = error.message || 'Pencarian gagal. Periksa koneksi lalu coba kembali.';
+          message.className = 'search-message text-red-600';
+        } finally {
+          submit.disabled = false;
+          submitLabel.textContent = 'Cari Data Pendaftar';
+        }
+      });
+    }());
+  </script>
+</body>
+</html>
