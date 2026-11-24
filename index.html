@@ -98,7 +98,6 @@
   <main class="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
     <section id="beranda" class="home-hero no-print">
       <div class="hero-copy">
-        <span class="hero-eyebrow">PENERIMAAN MURID BARU <span id="hero-academic-year">2027/2028</span></span>
         <h1>Mulai langkah masa depanmu bersama SMK PGRI Cikoneng.</h1>
         <p>Daftar sebagai calon peserta didik baru secara online. Siapkan data diri dan dokumen, lalu pantau proses pendaftaran melalui portal siswa.</p>
         <div class="hero-actions">
@@ -139,7 +138,6 @@
 
     <section class="about-section no-print" aria-labelledby="about-title">
       <header class="about-heading">
-        <span class="section-eyebrow">MENGENAL SPMB</span>
         <h2 id="about-title">Tentang SPMB</h2>
         <p>SPMB SMK PGRI Cikoneng adalah proses penerimaan peserta didik yang terbuka, terukur, dan mudah diakses. Setiap tahap disampaikan dengan jelas agar calon siswa dan keluarga dapat mengikuti prosesnya dengan baik.</p>
       </header>
@@ -169,7 +167,6 @@
 
     <section id="timeline" class="timeline-section no-print" aria-labelledby="timeline-title">
       <header class="timeline-heading">
-        <span class="section-eyebrow">LANGKAH PENDAFTARAN</span>
         <h2 id="timeline-title">Timeline SPMB <span id="timeline-academic-year">2027/2028</span></h2>
         <p>Ikuti tahapan penerimaan peserta didik baru sesuai jadwal resmi sekolah.</p>
       </header>
@@ -178,7 +175,6 @@
 
     <section id="formulir" class="form-area">
       <div class="form-area-heading no-print">
-        <span>FORMULIR ONLINE</span>
         <h2>Formulir Pendaftaran SPMB</h2>
         <p>Isi data dengan lengkap dan benar. Anda dapat melanjutkan pengisian secara bertahap.</p>
       </div>
@@ -205,6 +201,7 @@
             <li id="step-indicator-3" class="step-item"><span class="step-number">3</span><span>Orang tua</span></li>
             <li id="step-indicator-4" class="step-item"><span class="step-number">4</span><span>Berkas</span></li>
           </ol>
+          <p class="mt-3 text-xs text-slate-400">Isian tersimpan sementara di browser ini dan dipulihkan saat halaman dimuat ulang. Berkas perlu dipilih kembali.</p>
         </div>
 
         <section id="form-step-1" class="form-step">
@@ -497,6 +494,7 @@
       registrationPaths: [{ name: 'Reguler / Umum', wave: '', active: true }]
     };
     const form = document.getElementById('spmb-form');
+    const formDraftStorageKey = 'spmb-registration-draft-v1';
     const stepNames = ['Pilihan', 'Data siswa', 'Orang tua / wali', 'Unggah berkas'];
     const stepFocusIds = ['wave', 'studentName', 'fatherNik', 'familyCardFile'];
     const maxFileSize = 2 * 1024 * 1024;
@@ -650,7 +648,6 @@
       siteConfig = Object.assign({}, DEFAULT_SITE_CONFIG, config);
       if (!Array.isArray(siteConfig.registrationWaves)) siteConfig.registrationWaves = DEFAULT_SITE_CONFIG.registrationWaves;
       if (!Array.isArray(siteConfig.timelineEvents)) siteConfig.timelineEvents = DEFAULT_SITE_CONFIG.timelineEvents;
-      document.getElementById('hero-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('brochure-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('timeline-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('page-title').textContent = siteConfig.pageTitle;
@@ -882,6 +879,61 @@
         console.error('Gagal memuat pengaturan pendaftaran:', error);
         applySpmbSiteConfig(DEFAULT_SITE_CONFIG);
       }
+      restoreFormDraft();
+    }
+
+    function saveFormDraft() {
+      const values = {};
+      form.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (control) {
+        if (control.type === 'file' || (control.closest('.field-row') && control.closest('.field-row').hidden)) return;
+        values[control.id] = control.type === 'checkbox' || control.type === 'radio'
+          ? { checked: control.checked, value: control.value }
+          : control.value;
+      });
+      try {
+        sessionStorage.setItem(formDraftStorageKey, JSON.stringify({
+          academicYear: siteConfig.academicYear,
+          activeStep: activeStepNumber,
+          values: values
+        }));
+      } catch (error) {
+        console.error('Draf formulir tidak dapat disimpan di browser:', error);
+      }
+    }
+
+    function restoreFormDraft() {
+      let draft;
+      try {
+        const savedDraft = sessionStorage.getItem(formDraftStorageKey);
+        if (!savedDraft) return;
+        draft = JSON.parse(savedDraft);
+      } catch (error) {
+        console.error('Draf formulir tidak dapat dibaca dari browser:', error);
+        return;
+      }
+      if (!draft || draft.academicYear !== siteConfig.academicYear || !draft.values) {
+        sessionStorage.removeItem(formDraftStorageKey);
+        return;
+      }
+
+      form.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (control) {
+        const savedValue = draft.values[control.id];
+        if (savedValue === undefined || control.type === 'file' || control.tagName === 'SELECT') return;
+        if (control.type === 'checkbox' || control.type === 'radio') {
+          control.checked = Boolean(savedValue.checked);
+        } else {
+          control.value = String(savedValue);
+        }
+      });
+      const wave = document.getElementById('wave');
+      if (draft.values.wave !== undefined) wave.value = String(draft.values.wave);
+      updateWaveFee();
+      form.querySelectorAll('select[id]').forEach(function (control) {
+        if (control.id === 'wave' || draft.values[control.id] === undefined) return;
+        control.value = String(draft.values[control.id]);
+      });
+      const step = Number(draft.activeStep);
+      setActiveStep(Number.isInteger(step) && step >= 1 && step <= formSteps.length ? step : 1, false);
     }
 
     function showModal(title, message, success, result) {
@@ -1055,15 +1107,21 @@
 
     document.getElementById('wave').addEventListener('change', updateWaveFee);
     document.getElementById('registrationPath').addEventListener('change', applyDocumentConfig);
+    form.addEventListener('input', saveFormDraft);
+    form.addEventListener('change', saveFormDraft);
     document.querySelectorAll('[data-step-next]').forEach(function (button) {
       button.addEventListener('click', function () {
         const stepNumber = Number(button.dataset.stepNext);
-        if (validateCurrentStep(stepNumber)) setActiveStep(stepNumber + 1, true);
+        if (validateCurrentStep(stepNumber)) {
+          setActiveStep(stepNumber + 1, true);
+          saveFormDraft();
+        }
       });
     });
     document.querySelectorAll('[data-step-back]').forEach(function (button) {
       button.addEventListener('click', function () {
         setActiveStep(Number(button.dataset.stepBack) - 1, true);
+        saveFormDraft();
       });
     });
     document.getElementById('download-card-button').addEventListener('click', function () {
@@ -1112,6 +1170,7 @@
         if (!result.registrationNumber || !result.portalPin || !result.summary) {
           throw new Error('Data tersimpan, tetapi kartu peserta belum dapat dibuat. Hubungi panitia.');
         }
+        sessionStorage.removeItem(formDraftStorageKey);
         form.reset();
         setActiveStep(1, false);
         showModal('Pendaftaran Berhasil', result.message || 'Pendaftaran berhasil disimpan.', true, result);
