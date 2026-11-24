@@ -168,6 +168,9 @@
     .detail-page-actions, .detail-hero-badges, .detail-hero-actions, .detail-document-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
     .detail-page-actions button, .detail-hero-actions button, .detail-document-actions button { min-height: 34px; padding: 7px 11px; font-size: 12px; }
     .detail-page-actions .secondary, .detail-document-actions .secondary { color: #334155; background: white; border: 1px solid #dbe3ec; }
+    .detail-page-actions .reset-pin-button { color: #b42318; background: #fef2f2; border: 1px solid #fecaca; }
+    .detail-page-actions .reset-pin-button:hover { background: #fee2e2; }
+    .portal-pin-value { display: block; margin: 18px 0; padding: 16px; border: 1px dashed #86efac; border-radius: 12px; color: #047857; background: #f0fdf4; font-size: 28px; font-weight: 800; letter-spacing: .2em; text-align: center; }
     .detail-hero { display: flex; align-items: center; gap: 16px; padding: 16px; }
     .detail-photo, .detail-photo-empty { width: 64px; height: 78px; flex: 0 0 64px; border: 1px solid #e4e9f0; border-radius: 11px; background: #f8fafc; object-fit: cover; }
     .detail-photo-empty { display: grid; place-items: center; color: #94a3b8; font-size: 12px; }
@@ -311,10 +314,10 @@
 
     <section id="dashboard" class="hidden">
       <header class="card topbar site-header admin-topbar">
-        <a class="admin-brand" href="/" aria-label="SMK PGRI Cikoneng">
+        <div class="admin-brand">
           <img src="/assets/logo-pgri-cikoneng.png" width="44" height="44" alt="">
           <span>SMK PGRI CIKONENG</span>
-        </a>
+        </div>
         <div class="profile-control">
           <button id="profile-trigger" class="profile-trigger" type="button" aria-label="Buka menu akun" aria-expanded="false" aria-controls="profile-menu">
             <img id="profile-avatar-image" alt="" hidden>
@@ -568,6 +571,8 @@
           </div>
           <div class="detail-page-actions">
             <button id="detail-selection-button" type="button">Penetapan Kelulusan</button>
+            <button id="detail-view-pin-button" class="secondary" type="button">Lihat PIN</button>
+            <button id="detail-reset-pin-button" class="reset-pin-button" type="button">Reset PIN</button>
             <button id="detail-print-button" class="secondary" type="button">Cetak Kartu</button>
           </div>
         </header>
@@ -728,6 +733,37 @@
     </div>
   </dialog>
 
+  <dialog id="reset-pin-confirm-dialog" aria-labelledby="reset-pin-confirm-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="reset-pin-confirm-title">Reset PIN Portal?</h2>
+          <p id="reset-pin-applicant"></p>
+        </div>
+      </div>
+      <p>PIN lama akan langsung tidak berlaku. PIN baru hanya ditampilkan setelah reset berhasil.</p>
+      <p id="reset-pin-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-reset-pin" class="secondary" type="button">Batal</button>
+        <button id="confirm-reset-pin" type="button" class="reset-pin-button">Reset PIN</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="portal-pin-dialog" aria-labelledby="portal-pin-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="portal-pin-title">PIN Portal Siswa</h2>
+          <p id="portal-pin-context"></p>
+        </div>
+        <button id="close-portal-pin" class="secondary" type="button">Tutup</button>
+      </div>
+      <p id="portal-pin-message"></p>
+      <output id="portal-pin-value" class="portal-pin-value" hidden></output>
+    </div>
+  </dialog>
+
   <section id="print-applicant-card" aria-hidden="true">
     <div class="print-card-shell">
       <div class="print-card-heading">
@@ -808,6 +844,8 @@
     const reviewDialog = document.getElementById('review-dialog');
     const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
     const revisionNoteDialog = document.getElementById('revision-note-dialog');
+    const resetPinConfirmDialog = document.getElementById('reset-pin-confirm-dialog');
+    const portalPinDialog = document.getElementById('portal-pin-dialog');
     const profileDialog = document.getElementById('profile-dialog');
     const passwordDialog = document.getElementById('password-dialog');
     const programs = [
@@ -857,6 +895,8 @@
     let currentDetailRegistrationNumber = '';
     let deletingApplicant = null;
     let pendingRevisionReview = null;
+    let issuedPortalPin = '';
+    let issuedPinRegistrationNumber = '';
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -887,6 +927,8 @@
 
     function showLogin() {
       currentUser = null;
+      issuedPortalPin = '';
+      issuedPinRegistrationNumber = '';
       closeProfileMenu();
       dashboard.classList.add('hidden');
       loginCard.classList.remove('hidden');
@@ -1031,6 +1073,10 @@
       const path = adminPagePath(pageId, anchorId);
       if (updateHistory !== false && window.location.pathname !== path) {
         window.history.pushState({ adminPage: pageId, masterAnchor: anchorId || '' }, '', path);
+      }
+      if (!applicantDetailPage.hidden) {
+        issuedPortalPin = '';
+        issuedPinRegistrationNumber = '';
       }
       applicantDetailPage.hidden = true;
       adminSidebar.hidden = false;
@@ -1962,6 +2008,8 @@
       document.getElementById('detail-readonly-notice').hidden = !readOnly;
       document.querySelectorAll('[data-detail-edit-actions]').forEach(function (element) { element.hidden = readOnly; });
       document.getElementById('detail-selection-button').hidden = readOnly;
+      document.getElementById('detail-view-pin-button').hidden = readOnly;
+      document.getElementById('detail-reset-pin-button').hidden = readOnly;
       document.getElementById('detail-print-button').hidden = readOnly;
       document.querySelector('.detail-record-layout').hidden = readOnly;
       document.getElementById('detail-documents-section').hidden = readOnly;
@@ -2090,6 +2138,10 @@
 
     function showApplicantDetail(applicant, updateHistory) {
       if (!canAdmin('applications', 'view')) return;
+      if (issuedPinRegistrationNumber && issuedPinRegistrationNumber !== applicant.registration_number) {
+        issuedPortalPin = '';
+        issuedPinRegistrationNumber = '';
+      }
       currentDetailRegistrationNumber = applicant.registration_number;
       if (updateHistory !== false) {
         window.history.pushState({ adminPage: 'applicant-detail', registrationNumber: applicant.registration_number },
@@ -2288,6 +2340,53 @@
         applicant.student_name + ' · ' + applicant.registration_number;
       setStatus('delete-confirm-status', '', '');
       deleteConfirmDialog.showModal();
+    }
+
+    function openPortalPinDialog() {
+      if (!reviewingApplicant) return;
+      const hasNewPin = issuedPinRegistrationNumber === reviewingApplicant.registration_number && /^\d{6}$/.test(issuedPortalPin);
+      document.getElementById('portal-pin-context').textContent =
+        reviewingApplicant.student_name + ' · ' + reviewingApplicant.registration_number;
+      document.getElementById('portal-pin-message').textContent = hasNewPin
+        ? 'PIN baru tersedia selama sesi admin ini. Sampaikan kepada siswa melalui saluran yang aman.'
+        : 'PIN yang saat ini digunakan tidak dapat ditampilkan karena hanya tersimpan sebagai hash. Gunakan Reset PIN untuk membuat PIN baru.';
+      const pinOutput = document.getElementById('portal-pin-value');
+      pinOutput.textContent = hasNewPin ? issuedPortalPin : '';
+      pinOutput.hidden = !hasNewPin;
+      portalPinDialog.showModal();
+    }
+
+    function openResetPinConfirmation() {
+      if (!reviewingApplicant || !canAdmin('applications', 'edit')) return;
+      document.getElementById('reset-pin-applicant').textContent =
+        reviewingApplicant.student_name + ' · ' + reviewingApplicant.registration_number;
+      setStatus('reset-pin-status', '', '');
+      resetPinConfirmDialog.showModal();
+    }
+
+    async function resetPortalPin() {
+      if (!reviewingApplicant || !canAdmin('applications', 'edit')) return;
+      const button = document.getElementById('confirm-reset-pin');
+      const cancelButton = document.getElementById('cancel-reset-pin');
+      button.disabled = true;
+      cancelButton.disabled = true;
+      setStatus('reset-pin-status', 'Membuat PIN baru...', '');
+      try {
+        const result = await api('/api/admin/applications/' +
+          encodeURIComponent(reviewingApplicant.registration_number) + '/reset-pin', { method: 'POST' });
+        const pin = String(result && result.pin || '');
+        if (!/^\d{6}$/.test(pin)) throw new Error('PIN baru tidak diterima dengan format yang valid.');
+        issuedPortalPin = pin;
+        issuedPinRegistrationNumber = reviewingApplicant.registration_number;
+        resetPinConfirmDialog.close();
+        openPortalPinDialog();
+        setStatus('detail-status', 'PIN portal berhasil direset. Siswa perlu menggunakan PIN baru.', 'success');
+      } catch (error) {
+        setStatus('reset-pin-status', error.message || 'PIN portal gagal direset.', 'error');
+      } finally {
+        button.disabled = false;
+        cancelButton.disabled = false;
+      }
     }
 
     async function deleteApplicant() {
@@ -2957,6 +3056,14 @@
     document.getElementById('detail-selection-button').addEventListener('click', function () {
       if (reviewingApplicant) openReviewDialog(reviewingApplicant, 'selection');
     });
+    document.getElementById('detail-view-pin-button').addEventListener('click', openPortalPinDialog);
+    document.getElementById('detail-reset-pin-button').addEventListener('click', openResetPinConfirmation);
+    document.getElementById('cancel-reset-pin').addEventListener('click', function () { resetPinConfirmDialog.close(); });
+    document.getElementById('confirm-reset-pin').addEventListener('click', resetPortalPin);
+    resetPinConfirmDialog.addEventListener('cancel', function (event) {
+      if (document.getElementById('confirm-reset-pin').disabled) event.preventDefault();
+    });
+    document.getElementById('close-portal-pin').addEventListener('click', function () { portalPinDialog.close(); });
     document.getElementById('detail-print-button').addEventListener('click', function () {
       if (reviewingApplicant) printApplicantCard(reviewingApplicant);
     });
