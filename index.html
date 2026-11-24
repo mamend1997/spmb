@@ -143,6 +143,14 @@
               </div>
             </div>
             <div class="field-row">
+              <label class="field-label" for="registrationPath">Jalur Pendaftaran <span class="required-mark">*</span></label>
+              <div class="select-wrap">
+                <select class="field-control field-select" id="registrationPath" name="registrationPath" required>
+                  <option value="">Pilih Jalur Pendaftaran...</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
               <label class="field-label" for="major">Program Studi / Konsentrasi Keahlian <span class="required-mark">*</span></label>
               <div class="select-wrap">
                 <select class="field-control field-select" id="major" name="major" required>
@@ -220,7 +228,7 @@
             </div>
             <div class="field-row">
               <label class="field-label" for="studentPhoto">Pas Foto Calon Siswa (3×4)</label>
-              <div><input class="field-control file-input" id="studentPhoto" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><p class="helper">Opsional · JPG/PNG · maksimal 2 MB</p></div>
+              <div>              <input class="field-control file-input" id="studentPhoto" data-upload-key="studentPhoto" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><p class="helper">Opsional · JPG/PNG · maksimal 2 MB</p></div>
             </div>
           </div>
           <div class="no-print flex flex-col gap-3 px-5 py-7 sm:flex-row sm:justify-between">
@@ -302,23 +310,23 @@
           <div>
             <div class="field-row">
               <label class="field-label" for="familyCardFile">Kartu Keluarga (KK)</label>
-              <input class="field-control file-input" id="familyCardFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <input class="field-control file-input" id="familyCardFile" data-upload-key="familyCardFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
             </div>
             <div class="field-row">
               <label class="field-label" for="birthCertificate">Akta Kelahiran</label>
-              <input class="field-control file-input" id="birthCertificate" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <input class="field-control file-input" id="birthCertificate" data-upload-key="birthCertificate" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
             </div>
             <div class="field-row">
               <label class="field-label" for="diploma">Ijazah / Surat Keterangan Lulus (SKL)</label>
-              <input class="field-control file-input" id="diploma" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <input class="field-control file-input" id="diploma" data-upload-key="diploma" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
             </div>
             <div class="field-row">
               <label class="field-label" for="reportCard">Rapor Terakhir</label>
-              <input class="field-control file-input" id="reportCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <input class="field-control file-input" id="reportCard" data-upload-key="reportCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
             </div>
             <div class="field-row">
               <label class="field-label" for="sktm">SKTM (jika diperlukan)</label>
-              <input class="field-control file-input" id="sktm" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <input class="field-control file-input" id="sktm" data-upload-key="sktm" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
             </div>
           </div>
           <div class="no-print px-5 py-8">
@@ -404,19 +412,12 @@
       scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
       contactLabel: 'Contact Person SPMB',
       contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
-      registrationWaves: [{ name: 'Gelombang 1', fee: '', status: 'open' }]
+      registrationWaves: [{ name: 'Gelombang 1', fee: '', status: 'open' }],
+      registrationPaths: [{ name: 'Reguler / Umum', wave: '', active: true }]
     };
     const form = document.getElementById('spmb-form');
     const stepNames = ['Pilihan', 'Data siswa', 'Orang tua / wali', 'Unggah berkas'];
     const stepFocusIds = ['wave', 'studentName', 'fatherNik', 'familyCardFile'];
-    const uploadInputFields = {
-      studentPhoto: 'studentPhoto',
-      familyCardFile: 'familyCardFile',
-      birthCertificate: 'birthCertificate',
-      diploma: 'diploma',
-      reportCard: 'reportCard',
-      sktm: 'sktm'
-    };
     const maxFileSize = 2 * 1024 * 1024;
     const formSteps = [1, 2, 3, 4].map(function (number) {
       return document.getElementById('form-step-' + number);
@@ -431,13 +432,14 @@
     const formError = document.getElementById('form-error');
     const modalCloseButton = document.getElementById('modal-close');
     let siteConfig = DEFAULT_SITE_CONFIG;
+    let activeStepNumber = 1;
 
     function renderRegistrationWaves(waves) {
       const select = document.getElementById('wave');
       const selectedValue = select.value;
       select.replaceChildren(new Option('Pilih Gelombang Pendaftaran...', ''));
       let openWaves = 0;
-      waves.forEach(function (wave) {
+      waves.filter(function (wave) { return wave.active !== false; }).forEach(function (wave) {
         const option = new Option(wave.name + (wave.status === 'open' ? '' : ' (Ditutup)'), wave.name);
         option.disabled = wave.status !== 'open';
         select.appendChild(option);
@@ -446,6 +448,7 @@
       if (selectedValue && waves.some(function (wave) { return wave.name === selectedValue && wave.status === 'open'; })) {
         select.value = selectedValue;
       }
+      renderRegistrationPaths();
       if (!openWaves) {
         select.options[0].textContent = 'Pendaftaran belum dibuka';
         select.required = true;
@@ -465,6 +468,25 @@
         : wave.fee
           ? 'Biaya pendaftaran: Rp ' + Number(wave.fee).toLocaleString('id-ID')
           : 'Informasi biaya ditetapkan oleh panitia.';
+      renderRegistrationPaths();
+      applyDocumentConfig();
+    }
+
+    function renderRegistrationPaths() {
+      const select = document.getElementById('registrationPath');
+      if (!select) return;
+      const selectedValue = select.value;
+      const waveName = document.getElementById('wave').value;
+      const field = (siteConfig.formFields || []).find(function (item) { return item.key === 'registrationPath'; });
+      const paths = (siteConfig.registrationPaths || []).filter(function (item) {
+        return item.active !== false && (!item.wave || item.wave === waveName);
+      });
+      select.replaceChildren(new Option('Pilih Jalur Pendaftaran...', ''));
+      paths.forEach(function (item) { select.appendChild(new Option(item.name, item.name)); });
+      if (paths.some(function (item) { return item.name === selectedValue; })) select.value = selectedValue;
+      select.required = field ? field.active !== false && field.required === true : true;
+      select.disabled = field ? field.active === false : false;
+      select.closest('.field-row').hidden = field ? field.active === false : false;
     }
 
     function applySpmbSiteConfig(config) {
@@ -482,6 +504,184 @@
       document.getElementById('page-description').content =
         siteConfig.pageTitle + ' SMK PGRI Cikoneng Tahun Ajaran ' + siteConfig.academicYear + '.';
       renderRegistrationWaves(siteConfig.registrationWaves);
+      renderConfiguredForm();
+      setActiveStep(activeStepNumber, false);
+    }
+
+    function fieldOptions(field) {
+      if (field.key === 'wave') return [];
+      if (field.key === 'registrationPath') return [];
+      if (field.key === 'major' && (!field.options || !field.options.length)) {
+        return [
+          'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
+          'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
+          'BISNIS DIGITAL'
+        ];
+      }
+      return field.options || [];
+    }
+
+    function setSelectOptions(select, field) {
+      const currentValue = select.value;
+      const placeholder = field.placeholder || 'Pilih ' + field.label + '...';
+      select.replaceChildren(new Option(placeholder, ''));
+      fieldOptions(field).forEach(function (value) { select.appendChild(new Option(value, value)); });
+      if (Array.from(select.options).some(function (option) { return option.value === currentValue; })) select.value = currentValue;
+    }
+
+    function renderConfiguredForm() {
+      const fields = Array.isArray(siteConfig.formFields) ? siteConfig.formFields : [];
+      const customRows = document.querySelectorAll('.custom-form-field');
+      customRows.forEach(function (row) { row.remove(); });
+      fields.forEach(function (field) {
+        if (field.custom) {
+          if (field.active) createCustomFieldRow(field);
+          return;
+        }
+        const control = document.getElementById(field.key);
+        if (!control || control.type === 'file') return;
+        const row = control.closest('.field-row');
+        if (!row) return;
+        row.hidden = field.active === false;
+        control.disabled = field.active === false;
+        control.required = field.active !== false && field.required === true;
+        const label = row.querySelector('.field-label');
+        if (label) {
+          const mark = label.querySelector('.required-mark');
+          label.firstChild.textContent = field.label + ' ';
+          if (mark) mark.hidden = !control.required;
+        }
+        if (field.placeholder) control.placeholder = field.placeholder;
+        if (control.tagName === 'SELECT' && !['wave', 'registrationPath'].includes(field.key)) setSelectOptions(control, field);
+        const helper = row.querySelector('.helper');
+        if (helper && field.helpText) helper.textContent = field.helpText;
+      });
+      const rows = new Map();
+      fields.filter(function (field) { return field.active !== false; }).forEach(function (field) {
+        const control = document.getElementById(field.key);
+        const row = control && control.closest('.field-row');
+        if (row) rows.set(row, { step: field.step, order: field.order });
+        else if (field.custom) {
+          const customRow = document.querySelector('[data-custom-key="' + field.key + '"]');
+          if (customRow) rows.set(customRow, { step: field.step, order: field.order });
+        }
+      });
+      [1, 2, 3].forEach(function (stepNumber) {
+        const step = document.getElementById('form-step-' + stepNumber);
+        const parent = step.querySelector('.field-row').parentElement;
+        Array.from(rows.entries()).filter(function (entry) {
+          return entry[1].step === stepNumber && entry[0].parentElement === parent;
+        }).sort(function (a, b) { return a[1].order - b[1].order; })
+          .forEach(function (entry) { parent.appendChild(entry[0]); });
+        parent.querySelectorAll('.file-input').forEach(function (input) { parent.appendChild(input.closest('.field-row')); });
+      });
+      renderRegistrationPaths();
+      applyDocumentConfig();
+    }
+
+    function createCustomFieldRow(field) {
+      const row = document.createElement('div');
+      row.className = 'field-row custom-form-field';
+      row.dataset.customKey = field.key;
+      const label = document.createElement('label');
+      label.className = 'field-label';
+      label.htmlFor = 'custom-' + field.key;
+      label.append(document.createTextNode(field.label + ' '));
+      if (field.required) {
+        const mark = document.createElement('span');
+        mark.className = 'required-mark';
+        mark.textContent = '*';
+        label.appendChild(mark);
+      }
+      const wrapper = document.createElement('div');
+      let control;
+      if (field.type === 'textarea') {
+        control = document.createElement('textarea');
+        control.rows = 3;
+      } else if (field.type === 'select') {
+        control = document.createElement('select');
+        control.className = 'field-control field-select';
+        control.appendChild(new Option(field.placeholder || 'Pilih ' + field.label + '...', ''));
+        fieldOptions(field).forEach(function (value) { control.appendChild(new Option(value, value)); });
+      } else {
+        control = document.createElement('input');
+        control.type = ['number', 'tel'].includes(field.type) ? 'text' : field.type;
+        if (field.type === 'number' || field.type === 'tel') control.inputMode = 'numeric';
+      }
+      control.id = 'custom-' + field.key;
+      control.name = field.key;
+      control.dataset.customField = field.key;
+      control.classList.add('field-control');
+      control.required = field.required;
+      control.placeholder = field.placeholder || '';
+      wrapper.appendChild(control);
+      if (field.helpText) {
+        const helper = document.createElement('p');
+        helper.className = 'helper';
+        helper.textContent = field.helpText;
+        wrapper.appendChild(helper);
+      }
+      row.append(label, wrapper);
+      const firstField = document.querySelector('#form-step-' + field.step + ' .field-row');
+      if (firstField) firstField.parentElement.appendChild(row);
+    }
+
+    function applyDocumentConfig() {
+      const documents = Array.isArray(siteConfig.documentRequirements) ? siteConfig.documentRequirements : [];
+      const existingRows = new Set();
+      documents.forEach(function (documentConfig) {
+        let input = document.getElementById(documentConfig.key);
+        if (!input || input.type !== 'file') input = document.querySelector('[data-upload-key="' + documentConfig.key + '"]');
+        if (!input) {
+          const row = document.createElement('div');
+          row.className = 'field-row dynamic-document';
+          row.dataset.documentKey = documentConfig.key;
+          const label = document.createElement('label');
+          label.className = 'field-label';
+          label.htmlFor = 'upload-' + documentConfig.key;
+          const wrapper = document.createElement('div');
+          input = document.createElement('input');
+          input.id = 'upload-' + documentConfig.key;
+          input.type = 'file';
+          input.className = 'field-control file-input';
+          input.dataset.uploadKey = documentConfig.key;
+          const helper = document.createElement('p');
+          helper.className = 'helper';
+          wrapper.append(input, helper);
+          row.append(label, wrapper);
+          document.getElementById('form-step-4').querySelector('.field-row').parentElement.appendChild(row);
+        }
+        const row = input.closest('.field-row');
+        if (!row) return;
+        existingRows.add(row);
+        const isScopedIn = (!documentConfig.wave || documentConfig.wave === document.getElementById('wave').value) &&
+          (!documentConfig.registrationPath || documentConfig.registrationPath === document.getElementById('registrationPath').value);
+        row.hidden = documentConfig.active === false || !isScopedIn;
+        input.required = documentConfig.active !== false && isScopedIn && documentConfig.required === true;
+        input.disabled = documentConfig.active === false || !isScopedIn;
+        input.dataset.maxKb = String(documentConfig.maxKB || 2048);
+        input.accept = documentConfig.extensions.map(function (extension) { return '.' + extension; }).join(',');
+        const label = row.querySelector('.field-label');
+        if (label) {
+          label.firstChild.textContent = documentConfig.name + ' ';
+          let mark = label.querySelector('.required-mark');
+          if (input.required && !mark) {
+            mark = document.createElement('span');
+            mark.className = 'required-mark';
+            mark.textContent = '*';
+            label.appendChild(mark);
+          } else if (mark) {
+            mark.hidden = !input.required;
+          }
+        }
+        const helper = row.querySelector('.helper');
+        if (helper) helper.textContent = [documentConfig.description, input.required ? 'Wajib diunggah' : 'Opsional',
+          documentConfig.extensions.map(function (extension) { return extension.toUpperCase(); }).join('/'),
+          'maks. ' + (documentConfig.maxKB || 2048) + ' KB'].filter(Boolean).join(' · ');
+      });
+      document.querySelectorAll('#form-step-4 .field-row').forEach(function (row) {
+        if (row.querySelector('[data-upload-key]') && !existingRows.has(row)) row.hidden = true;
+      });
     }
 
     async function loadPublicConfig() {
@@ -524,11 +724,12 @@
     }
 
     function setActiveStep(stepNumber, moveFocus) {
+      activeStepNumber = stepNumber;
       formSteps.forEach(function (step, index) {
         const isActive = index + 1 === stepNumber;
         step.hidden = !isActive;
         step.querySelectorAll('input, select, textarea').forEach(function (control) {
-          control.disabled = !isActive;
+          control.disabled = !isActive || Boolean(control.closest('.field-row') && control.closest('.field-row').hidden);
         });
       });
 
@@ -567,8 +768,17 @@
 
     function validateFiles(step) {
       for (const input of step.querySelectorAll('.file-input')) {
+        if (input.disabled) continue;
         const file = input.files[0];
-        if (!file) continue;
+        if (!file) {
+          if (input.required) {
+            input.setCustomValidity('Berkas ini wajib diunggah.');
+            input.reportValidity();
+            input.setCustomValidity('');
+            return false;
+          }
+          continue;
+        }
         const type = file.type || mimeFromFileName(file.name);
         const allowed = input.id === 'studentPhoto'
           ? ['image/jpeg', 'image/png']
@@ -579,8 +789,9 @@
           input.setCustomValidity('');
           return false;
         }
-        if (!file.size || file.size > maxFileSize) {
-          input.setCustomValidity('Ukuran setiap berkas maksimal 2 MB.');
+        const maxKB = Number(input.dataset.maxKb || 2048);
+        if (!file.size || file.size > Math.min(maxFileSize, maxKB * 1024)) {
+          input.setCustomValidity('Ukuran berkas maksimal ' + Math.min(maxFileSize, maxKB * 1024) / 1024 + ' KB.');
           input.reportValidity();
           input.setCustomValidity('');
           return false;
@@ -611,8 +822,10 @@
 
     async function collectUploads() {
       const uploads = {};
-      for (const key of Object.keys(uploadInputFields)) {
-        const file = document.getElementById(uploadInputFields[key]).files[0];
+      for (const input of document.querySelectorAll('.file-input[data-upload-key]')) {
+        if (input.disabled || input.closest('.field-row').hidden) continue;
+        const key = input.dataset.uploadKey;
+        const file = input.files[0];
         if (!file) continue;
         uploads[key] = {
           name: file.name,
@@ -652,6 +865,7 @@
     });
 
     document.getElementById('wave').addEventListener('change', updateWaveFee);
+    document.getElementById('registrationPath').addEventListener('change', applyDocumentConfig);
     document.querySelectorAll('[data-step-next]').forEach(function (button) {
       button.addEventListener('click', function () {
         const stepNumber = Number(button.dataset.stepNext);
@@ -684,6 +898,10 @@
         });
         payload = Object.fromEntries(new FormData(form).entries());
         payload.uploads = await collectUploads();
+        payload.customData = {};
+        document.querySelectorAll('[data-custom-field]').forEach(function (control) {
+          payload.customData[control.dataset.customField] = control.value;
+        });
       } catch (error) {
         formError.textContent = error.message || 'Berkas tidak dapat dibaca.';
         formError.classList.remove('hidden');

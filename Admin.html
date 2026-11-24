@@ -29,6 +29,24 @@
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 18px 20px; }
     .topbar p { margin: 5px 0 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .admin-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; }
+    .sidebar { align-self: start; position: sticky; top: 16px; display: grid; gap: 5px; padding: 12px; }
+    .sidebar button { width: 100%; text-align: left; color: #475467; background: transparent; }
+    .sidebar button.active, .sidebar button:hover { color: #c2410c; background: #fff7ed; }
+    .admin-pages { min-width: 0; }
+    .admin-page[hidden] { display: none !important; }
+    .chart { display: grid; grid-template-columns: repeat(12, minmax(22px, 1fr)); align-items: end; gap: 10px; height: 190px; margin-top: 20px; padding: 12px 4px 0; border-bottom: 1px solid #e4e9f0; }
+    .chart-column { display: grid; grid-template-rows: 1fr auto; align-items: end; height: 100%; gap: 8px; text-align: center; }
+    .chart-bar-wrap { display: flex; align-items: end; justify-content: center; height: 100%; }
+    .chart-bar { width: min(100%, 28px); min-height: 2px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg,#fb923c,#ea580c); }
+    .chart-label { color: #667085; font-size: 10px; }
+    .master-group { margin-top: 20px; padding-top: 14px; border-top: 1px solid #edf0f4; }
+    .master-row { display: grid; grid-template-columns: minmax(130px,1fr) minmax(120px,.8fr) minmax(90px,.5fr) auto; align-items: end; gap: 8px; margin-top: 9px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
+    .master-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 11px; font-weight: 700; }
+    .master-row .check-control { display: flex; align-items: center; gap: 6px; min-height: 42px; font-size: 11px; }
+    .master-row .check-control input { width: auto; min-height: auto; }
+    .review-item { margin-top: 12px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
+    .review-controls { display: grid; grid-template-columns: minmax(150px,.8fr) minmax(180px,1fr); gap: 8px; margin-top: 8px; }
     .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
     .metric { padding: 17px; }
     .metric span { display: block; color: #667085; font-size: 12px; }
@@ -71,7 +89,7 @@
     .edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 12px; }
     .edit-grid .wide { grid-column: 1 / -1; }
     .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-    @media (max-width: 900px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 900px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .admin-layout { grid-template-columns: 1fr; } .sidebar { position: static; display:flex; overflow:auto; } .sidebar button { min-width: max-content; width:auto; } }
     @media (max-width: 640px) {
       body { padding: 12px 10px 32px; }
       .login-card { margin: 8vh auto; padding: 22px; }
@@ -86,10 +104,14 @@
       .filters, .settings-grid, .edit-grid { grid-template-columns: 1fr; }
       .settings-grid .wide, .edit-grid .wide { grid-column: auto; }
       .wave-row { grid-template-columns: 1fr; }
+      .master-row, .review-controls { grid-template-columns: 1fr; }
+      .chart { gap: 4px; }
+      .chart-label { font-size: 8px; }
       .file-setting { grid-template-columns: 1fr; }
       .dialog-content { padding: 17px; }
       .dialog-actions { flex-direction: column-reverse; }
     }
+
   </style>
 </head>
 <body>
@@ -120,15 +142,34 @@
         </div>
       </header>
 
+      <div class="admin-layout">
+        <nav class="card sidebar" aria-label="Navigasi admin">
+          <button type="button" class="active" data-page-target="dashboard-page">Dashboard</button>
+          <button type="button" data-page-target="applications-page">Data Pendaftar</button>
+          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-fields">Master · Form Pendaftaran</button>
+          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-waves">Master · Gelombang</button>
+          <button type="button" data-page-target="master-page" data-admin-roles="owner" data-master-anchor="master-paths">Master · Jalur</button>
+          <button type="button" data-page-target="accounts-page" data-admin-roles="owner">Manajemen Akun</button>
+        </nav>
+        <div class="admin-pages">
+        <section id="dashboard-page" class="admin-page">
       <div class="metrics" aria-label="Ringkasan pendaftar">
         <div class="card metric"><span>Total pendaftar</span><strong id="metric-total">0</strong></div>
         <div class="card metric"><span>Menunggu verifikasi</span><strong id="metric-pending">0</strong></div>
         <div class="card metric"><span>Berkas terverifikasi</span><strong id="metric-verified">0</strong></div>
         <div class="card metric"><span>Perlu perbaikan</span><strong id="metric-revisions">0</strong></div>
         <div class="card metric"><span>Diterima</span><strong id="metric-accepted">0</strong></div>
+        <div class="card metric"><span>Menunggu pembayaran</span><strong id="metric-payment-pending">0</strong></div>
+        <div class="card metric"><span>Daftar ulang selesai</span><strong id="metric-reenrolled">0</strong></div>
       </div>
 
       <section class="card section">
+        <div class="section-heading"><div><h2>Grafik Pendaftar Bulanan</h2><p id="chart-year">Tahun ajaran aktif</p></div></div>
+        <div id="monthly-chart" class="chart" role="img" aria-label="Grafik jumlah pendaftar per bulan"></div>
+      </section>
+      </section>
+
+      <section id="applications-page" class="card section admin-page" hidden>
         <div class="section-heading">
           <div><h2>Data Pendaftar</h2><p id="application-count">Memuat rekap...</p></div>
           <button id="retry-sync-button" class="secondary" data-admin-roles="owner,operator" type="button">Coba Sinkronkan Sheet Lagi</button>
@@ -154,8 +195,8 @@
         </div>
       </section>
 
-      <details id="settings-section" class="card section" data-admin-roles="owner">
-        <summary>Pengaturan Halaman dan Gelombang</summary>
+      <details id="master-page" class="card section admin-page" hidden>
+        <summary>Master Data SPMB</summary>
         <p>Pengaturan disimpan di SQLite pada volume Railway dan langsung digunakan halaman pendaftaran.</p>
         <form id="settings-form">
           <div class="settings-grid">
@@ -174,9 +215,41 @@
               <a id="scholarship-pdf-current" href="#" target="_blank" rel="noopener noreferrer">Lihat file saat ini</a>
             </div>
             <div class="wide">
-              <label>Gelombang pendaftaran</label>
+              <h2 id="master-fields" class="master-group">Form Pendaftaran · Field</h2>
+              <p>Aktifkan field yang dipakai, tentukan wajib/opsional, urutan, tahap, dan pilihan dropdown. Jenis input field bawaan dikunci; jenis field tambahan dapat dipilih.</p>
+              <div id="form-fields-list"></div>
+              <button id="add-form-field-button" class="secondary" type="button" style="margin-top:10px">Tambah Field</button>
+            </div>
+            <div class="wide master-group">
+              <h2>Dokumen Tambahan</h2>
+              <p>Pengaturan berlaku pada formulir baru; dokumen pendaftar lama tetap tersimpan.</p>
+              <div id="document-list"></div>
+              <button id="add-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen</button>
+            </div>
+            <div class="wide master-group">
+              <label id="master-waves">Gelombang pendaftaran</label>
               <div id="wave-list"></div>
               <button id="add-wave-button" class="secondary" type="button" style="margin-top:10px">Tambah Gelombang</button>
+            </div>
+            <div class="wide master-group">
+              <label id="master-paths">Jalur pendaftaran</label>
+              <div id="path-list"></div>
+              <button id="add-path-button" class="secondary" type="button" style="margin-top:10px">Tambah Jalur</button>
+            </div>
+            <div class="wide master-group">
+              <h2>Metode Pembayaran Daftar Ulang</h2>
+              <div class="settings-grid">
+                <label><input id="bank-enabled" type="checkbox"> Aktifkan transfer bank</label>
+                <label><input id="qris-enabled" type="checkbox"> Aktifkan QRIS manual</label>
+                <label><input id="gateway-enabled" type="checkbox"> Tampilkan tautan payment gateway</label>
+                <div><label for="bank-name">Nama Bank</label><input id="bank-name" maxlength="80"></div>
+                <div><label for="bank-account-number">Nomor Rekening</label><input id="bank-account-number" maxlength="40"></div>
+                <div><label for="bank-account-name">Atas Nama</label><input id="bank-account-name" maxlength="100"></div>
+                <div><label for="gateway-provider">Provider Gateway</label><input id="gateway-provider" value="Qiospay" maxlength="40"></div>
+                <div class="wide"><label for="gateway-url">Tautan checkout Qiospay (HTTPS)</label><input id="gateway-url" type="url" placeholder="https://..."></div>
+                <div class="wide"><label>Gambar QRIS (PNG/JPG)</label><div class="file-setting"><input id="payment-qr-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><button type="button" class="secondary upload-button" data-asset="paymentQr">Unggah QRIS</button></div><a id="payment-qr-current" href="#" target="_blank" rel="noopener noreferrer">Lihat QRIS saat ini</a></div>
+                <div class="wide"><label for="payment-instructions">Petunjuk pembayaran</label><textarea id="payment-instructions" rows="3" maxlength="1000"></textarea></div>
+              </div>
             </div>
           </div>
           <button id="save-settings-button" type="submit" style="margin-top:18px">Simpan Pengaturan</button>
@@ -184,7 +257,7 @@
         <p id="settings-status" class="status-line" role="status"></p>
       </details>
 
-      <section id="accounts-section" class="card section" data-admin-roles="owner">
+      <section id="accounts-page" class="card section admin-page" hidden>
         <div class="section-heading">
           <div><h2>Manajemen Akun</h2><p>Pemilik dapat membuat akun, mengubah peran, menonaktifkan akun, atau mengatur ulang password.</p></div>
           <button id="reload-users-button" class="secondary" type="button">Muat Ulang Akun</button>
@@ -206,6 +279,8 @@
           </table>
         </div>
       </section>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -223,6 +298,35 @@
           <button id="save-edit-button" type="submit">Simpan Perubahan</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <dialog id="review-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2>Verifikasi dan Hasil Seleksi</h2><p id="review-registration-number"></p></div>
+        <button id="close-review-button" class="secondary" type="button" aria-label="Tutup">Tutup</button>
+      </div>
+      <div class="settings-grid">
+        <div><label for="selection-score">Nilai seleksi (0–1000)</label><input id="selection-score" type="number" min="0" max="1000" step="0.01"></div>
+        <div><label for="selection-decision">Keputusan</label><select id="selection-decision"><option>Menunggu Pengumuman</option><option>Diterima / Lulus</option><option>Cadangan</option><option>Tidak Diterima</option></select></div>
+        <div class="wide"><label for="selection-note">Catatan hasil seleksi</label><textarea id="selection-note" rows="2" maxlength="1000"></textarea></div>
+      </div>
+      <div id="review-items"></div>
+      <div class="dialog-actions"><button id="save-reviews-button" class="secondary" type="button">Simpan Verifikasi Field / Dokumen</button></div>
+      <section id="payment-review-section" class="master-group">
+        <h3>Pembayaran Daftar Ulang</h3>
+        <p id="payment-review-status"></p>
+        <p id="payment-proof-link"></p>
+        <label for="payment-review-note">Catatan untuk siswa</label>
+        <textarea id="payment-review-note" rows="2" maxlength="1000"></textarea>
+        <div class="dialog-actions">
+          <button id="payment-revision-button" class="secondary" type="button">Minta Perbaikan Bukti</button>
+          <button id="payment-approve-button" type="button">Setujui & Selesaikan Daftar Ulang</button>
+        </div>
+      </section>
+      <p id="review-status" class="status-line" role="status"></p>
+      <div class="dialog-actions"><button id="save-selection-button" type="button">Simpan Hasil Seleksi</button></div>
     </div>
   </dialog>
 
@@ -253,6 +357,7 @@
     const dashboard = document.getElementById('dashboard');
     const applicationBody = document.getElementById('applications-body');
     const editDialog = document.getElementById('edit-dialog');
+    const reviewDialog = document.getElementById('review-dialog');
     const passwordDialog = document.getElementById('password-dialog');
     const programs = [
       'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
@@ -293,6 +398,9 @@
     let applicants = [];
     let editingRegistrationNumber = '';
     let currentUser = null;
+    let reviewingApplicant = null;
+    let currentMonthly = [];
+    let adminReviewConfig = null;
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -343,6 +451,22 @@
       } else {
         document.getElementById('application-search').placeholder = 'Cari nama, nomor pendaftaran, NISN';
       }
+      if (currentUser.role === 'viewer' && !document.getElementById('dashboard-page').hidden) setAdminPage('dashboard-page');
+    }
+
+    function setAdminPage(pageId, anchorId) {
+      document.querySelectorAll('.admin-page').forEach(function (page) { page.hidden = page.id !== pageId; });
+      document.querySelectorAll('[data-page-target]').forEach(function (button) {
+        button.classList.toggle('active', button.dataset.pageTarget === pageId &&
+          (!anchorId || button.dataset.masterAnchor === anchorId));
+      });
+      if (pageId === 'master-page') {
+        document.getElementById('master-page').open = true;
+        if (anchorId) setTimeout(function () {
+          const anchor = document.getElementById(anchorId);
+          if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 0);
+      }
     }
 
     function makeOption(value, label) {
@@ -350,6 +474,39 @@
       option.value = value;
       option.textContent = label;
       return option;
+    }
+
+    function renderMonthlyChart(monthly, academicYear) {
+      const chart = document.getElementById('monthly-chart');
+      chart.replaceChildren();
+      const values = new Map((monthly || []).map(function (item) { return [item.month, Number(item.count)]; }));
+      const startYear = Number((academicYear || siteConfig && siteConfig.academicYear || '2027/2028').slice(0, 4));
+      const months = [];
+      for (let offset = 0; offset < 12; offset += 1) {
+        const monthIndex = 6 + offset;
+        const year = startYear + Math.floor(monthIndex / 12);
+        const month = monthIndex % 12 + 1;
+        const key = year + '-' + String(month).padStart(2, '0');
+        months.push({ key: key, label: new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'short' }) });
+      }
+      const maximum = Math.max(1, ...months.map(function (item) { return values.get(item.key) || 0; }));
+      months.forEach(function (item) {
+        const count = values.get(item.key) || 0;
+        const column = document.createElement('div');
+        column.className = 'chart-column';
+        const wrap = document.createElement('div');
+        wrap.className = 'chart-bar-wrap';
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = Math.max(2, count / maximum * 100) + '%';
+        bar.title = count + ' pendaftar';
+        wrap.appendChild(bar);
+        const label = document.createElement('span');
+        label.className = 'chart-label';
+        label.textContent = item.label;
+        column.append(wrap, label);
+        chart.appendChild(column);
+      });
     }
 
     function renderWaveRows(waves) {
@@ -365,6 +522,25 @@
         name.required = true;
         name.value = wave.name;
         name.setAttribute('aria-label', 'Nama gelombang');
+        const academicYear = document.createElement('input');
+        academicYear.dataset.waveYear = 'true';
+        academicYear.placeholder = '2027/2028';
+        academicYear.value = wave.academicYear || '';
+        const openDate = document.createElement('input');
+        openDate.type = 'date';
+        openDate.dataset.waveOpen = 'true';
+        openDate.value = wave.openDate || '';
+        const closeDate = document.createElement('input');
+        closeDate.type = 'date';
+        closeDate.dataset.waveClose = 'true';
+        closeDate.value = wave.closeDate || '';
+        const quota = document.createElement('input');
+        quota.type = 'number';
+        quota.min = '0';
+        quota.max = '100000';
+        quota.dataset.waveQuota = 'true';
+        quota.placeholder = '0 = tanpa batas';
+        quota.value = wave.quota || '';
         const fee = document.createElement('input');
         fee.dataset.waveFee = 'true';
         fee.type = 'number';
@@ -373,6 +549,17 @@
         fee.placeholder = 'Biaya (opsional)';
         fee.value = wave.fee || '';
         fee.setAttribute('aria-label', 'Biaya gelombang dalam rupiah');
+        const reenrollmentFee = document.createElement('input');
+        reenrollmentFee.type = 'number';
+        reenrollmentFee.min = '0';
+        reenrollmentFee.max = '999999999';
+        reenrollmentFee.dataset.waveReenrollmentFee = 'true';
+        reenrollmentFee.placeholder = 'Biaya daftar ulang';
+        reenrollmentFee.value = wave.reenrollmentFee || '';
+        const announcementDate = document.createElement('input');
+        announcementDate.type = 'date';
+        announcementDate.dataset.waveAnnouncement = 'true';
+        announcementDate.value = wave.announcementDate || '';
         const status = document.createElement('select');
         status.dataset.waveStatus = 'true';
         status.append(makeOption('open', 'Dibuka'), makeOption('closed', 'Ditutup'));
@@ -381,6 +568,11 @@
         const nameGroup = makeLabeledControl('Nama gelombang', name);
         const feeGroup = makeLabeledControl('Biaya (Rp)', fee);
         const statusGroup = makeLabeledControl('Status', status);
+        const notes = document.createElement('input');
+        notes.dataset.waveNotes = 'true';
+        notes.maxLength = 500;
+        notes.value = wave.notes || '';
+        notes.placeholder = 'Catatan';
         const remove = document.createElement('button');
         remove.className = 'secondary';
         remove.type = 'button';
@@ -392,7 +584,19 @@
           }
           row.remove();
         });
-        row.append(nameGroup, feeGroup, statusGroup, remove);
+        row.append(
+          nameGroup,
+          makeLabeledControl('Tahun ajaran', academicYear),
+          makeLabeledControl('Mulai', openDate),
+          makeLabeledControl('Tutup', closeDate),
+          makeLabeledControl('Kuota', quota),
+          feeGroup,
+          makeLabeledControl('Biaya daftar ulang (Rp)', reenrollmentFee),
+          makeLabeledControl('Pengumuman', announcementDate),
+          statusGroup,
+          makeLabeledControl('Catatan', notes),
+          remove
+        );
         list.appendChild(row);
       });
     }
@@ -409,8 +613,255 @@
       return Array.from(document.querySelectorAll('[data-wave]')).map(function (row) {
         return {
           name: row.querySelector('[data-wave-name]').value.trim(),
+          academicYear: row.querySelector('[data-wave-year]').value.trim(),
+          openDate: row.querySelector('[data-wave-open]').value,
+          closeDate: row.querySelector('[data-wave-close]').value,
+          announcementDate: row.querySelector('[data-wave-announcement]').value,
+          quota: Number(row.querySelector('[data-wave-quota]').value || 0),
           fee: row.querySelector('[data-wave-fee]').value,
-          status: row.querySelector('[data-wave-status]').value
+          reenrollmentFee: row.querySelector('[data-wave-reenrollment-fee]').value,
+          order: Array.from(row.parentElement.children).indexOf(row) + 1,
+          status: row.querySelector('[data-wave-status]').value,
+          notes: row.querySelector('[data-wave-notes]').value
+        };
+      });
+    }
+
+    function renderRegistrationPathsAdmin(paths) {
+      const list = document.getElementById('path-list');
+      list.replaceChildren();
+      paths.forEach(function (item) {
+        const row = document.createElement('div');
+        row.className = 'master-row';
+        row.dataset.registrationPath = 'true';
+        const name = document.createElement('input');
+        name.dataset.pathName = 'true';
+        name.maxLength = 80;
+        name.required = true;
+        name.value = item.name;
+        const wave = document.createElement('select');
+        wave.dataset.pathWave = 'true';
+        wave.appendChild(makeOption('', 'Semua gelombang'));
+        (siteConfig.registrationWaves || []).forEach(function (waveConfig) {
+          wave.appendChild(makeOption(waveConfig.name, waveConfig.name));
+        });
+        wave.value = item.wave || '';
+        const quota = document.createElement('input');
+        quota.type = 'number';
+        quota.min = '0';
+        quota.max = '100000';
+        quota.dataset.pathQuota = 'true';
+        quota.placeholder = '0 = tanpa batas';
+        quota.value = item.quota || '';
+        const description = document.createElement('input');
+        description.dataset.pathDescription = 'true';
+        description.maxLength = 500;
+        description.placeholder = 'Deskripsi jalur';
+        description.value = item.description || '';
+        const requirements = document.createElement('input');
+        requirements.dataset.pathRequirements = 'true';
+        requirements.maxLength = 1000;
+        requirements.placeholder = 'Persyaratan jalur';
+        requirements.value = item.requirements || '';
+        const active = document.createElement('input');
+        active.type = 'checkbox';
+        active.dataset.pathActive = 'true';
+        active.checked = item.active !== false;
+        const remove = document.createElement('button');
+        remove.className = 'secondary';
+        remove.type = 'button';
+        remove.textContent = 'Hapus';
+        remove.addEventListener('click', function () { row.remove(); });
+        row.append(
+          makeLabeledControl('Nama jalur', name),
+          makeLabeledControl('Gelombang', wave),
+          makeLabeledControl('Kuota', quota),
+          makeLabeledControl('Deskripsi', description),
+          makeLabeledControl('Persyaratan', requirements),
+          makeLabeledControl('Aktif', active),
+          remove
+        );
+        list.appendChild(row);
+      });
+    }
+
+    function getRegistrationPathRows() {
+      return Array.from(document.querySelectorAll('[data-registration-path]')).map(function (row, index) {
+        return {
+          name: row.querySelector('[data-path-name]').value.trim(),
+          wave: row.querySelector('[data-path-wave]').value,
+          quota: Number(row.querySelector('[data-path-quota]').value || 0),
+          description: row.querySelector('[data-path-description]').value.trim(),
+          requirements: row.querySelector('[data-path-requirements]').value.trim(),
+          active: row.querySelector('[data-path-active]').checked,
+          order: index + 1
+        };
+      });
+    }
+
+    function renderFormFieldRows(fields) {
+      const list = document.getElementById('form-fields-list');
+      list.replaceChildren();
+      fields.forEach(function (field) {
+        const row = document.createElement('div');
+        row.className = 'master-row';
+        row.dataset.formField = 'true';
+        row.dataset.formFieldKey = field.key;
+        row.dataset.isCustom = String(Boolean(field.custom));
+        const label = document.createElement('input');
+        label.dataset.fieldLabel = 'true';
+        label.maxLength = 100;
+        label.required = true;
+        label.value = field.label;
+        const type = document.createElement('select');
+        type.dataset.fieldType = 'true';
+        ['text', 'number', 'tel', 'email', 'date', 'textarea', 'select'].forEach(function (value) {
+          type.appendChild(makeOption(value, value));
+        });
+        type.value = field.type;
+        type.disabled = !field.custom;
+        const step = document.createElement('select');
+        step.dataset.fieldStep = 'true';
+        [['1', 'Tahap 1 · Pilihan'], ['2', 'Tahap 2 · Siswa'], ['3', 'Tahap 3 · Orang tua'], ['4', 'Tahap 4 · Lainnya']]
+          .forEach(function (item) { step.appendChild(makeOption(item[0], item[1])); });
+        step.value = String(field.step);
+        const order = document.createElement('input');
+        order.dataset.fieldOrder = 'true';
+        order.type = 'number';
+        order.min = '1';
+        order.max = '1000';
+        order.value = field.order;
+        const options = document.createElement('input');
+        options.dataset.fieldOptions = 'true';
+        options.maxLength = 1000;
+        options.placeholder = 'Pilihan dropdown, pisahkan dengan koma';
+        options.value = (field.options || []).join(', ');
+        options.disabled = ['wave', 'registrationPath'].includes(field.key);
+        const placeholder = document.createElement('input');
+        placeholder.dataset.fieldPlaceholder = 'true';
+        placeholder.maxLength = 150;
+        placeholder.placeholder = 'Placeholder';
+        placeholder.value = field.placeholder || '';
+        const helpText = document.createElement('input');
+        helpText.dataset.fieldHelp = 'true';
+        helpText.maxLength = 250;
+        helpText.placeholder = 'Keterangan bantuan';
+        helpText.value = field.helpText || '';
+        const required = document.createElement('input');
+        required.type = 'checkbox';
+        required.dataset.fieldRequired = 'true';
+        required.checked = field.required;
+        const active = document.createElement('input');
+        active.type = 'checkbox';
+        active.dataset.fieldActive = 'true';
+        active.checked = field.active;
+        const remove = document.createElement('button');
+        remove.className = 'secondary';
+        remove.type = 'button';
+        remove.textContent = field.custom ? 'Hapus' : 'Nonaktifkan';
+        remove.disabled = !field.custom;
+        remove.addEventListener('click', function () { row.remove(); });
+        row.append(
+          makeLabeledControl(field.key + ' · Label', label),
+          makeLabeledControl('Jenis', type),
+          makeLabeledControl('Tahap', step),
+          makeLabeledControl('Urutan', order),
+          makeLabeledControl('Pilihan', options),
+          makeLabeledControl('Placeholder', placeholder),
+          makeLabeledControl('Bantuan', helpText),
+          makeLabeledControl('Wajib', required),
+          makeLabeledControl('Aktif', active),
+          remove
+        );
+        list.appendChild(row);
+      });
+    }
+
+    function getFormFieldRows() {
+      return Array.from(document.querySelectorAll('[data-form-field]')).map(function (row, index) {
+        return {
+          key: row.dataset.formFieldKey,
+          label: row.querySelector('[data-field-label]').value.trim(),
+          type: row.querySelector('[data-field-type]').value,
+          step: Number(row.querySelector('[data-field-step]').value),
+          order: Number(row.querySelector('[data-field-order]').value || index + 1),
+          options: row.querySelector('[data-field-options]').value.split(',').map(function (value) { return value.trim(); }).filter(Boolean),
+          placeholder: row.querySelector('[data-field-placeholder]').value.trim(),
+          helpText: row.querySelector('[data-field-help]').value.trim(),
+          required: row.querySelector('[data-field-required]').checked,
+          active: row.querySelector('[data-field-active]').checked
+        };
+      });
+    }
+
+    function renderDocumentRows(documents) {
+      const list = document.getElementById('document-list');
+      list.replaceChildren();
+      documents.forEach(function (documentConfig) {
+        const row = document.createElement('div');
+        row.className = 'master-row';
+        row.dataset.document = 'true';
+        const key = document.createElement('input');
+        key.dataset.documentKey = 'true';
+        key.maxLength = 40;
+        key.required = true;
+        key.value = documentConfig.key;
+        const name = document.createElement('input');
+        name.dataset.documentName = 'true';
+        name.maxLength = 100;
+        name.required = true;
+        name.value = documentConfig.name;
+        const maxKB = document.createElement('input');
+        maxKB.dataset.documentMax = 'true';
+        maxKB.type = 'number';
+        maxKB.min = '1';
+        maxKB.max = '2048';
+        maxKB.value = documentConfig.maxKB || 2048;
+        const extensions = document.createElement('input');
+        extensions.dataset.documentExtensions = 'true';
+        extensions.value = (documentConfig.extensions || []).join(', ');
+        extensions.placeholder = 'pdf, jpg, png';
+        const required = document.createElement('input');
+        required.type = 'checkbox';
+        required.dataset.documentRequired = 'true';
+        required.checked = documentConfig.required;
+        const active = document.createElement('input');
+        active.type = 'checkbox';
+        active.dataset.documentActive = 'true';
+        active.checked = documentConfig.active;
+        const remove = document.createElement('button');
+        remove.className = 'secondary';
+        remove.type = 'button';
+        remove.textContent = 'Hapus';
+        remove.addEventListener('click', function () { row.remove(); });
+        row.append(
+          makeLabeledControl('Kunci (unik)', key),
+          makeLabeledControl('Nama dokumen', name),
+          makeLabeledControl('Maks. KB', maxKB),
+          makeLabeledControl('Ekstensi', extensions),
+          makeLabeledControl('Wajib', required),
+          makeLabeledControl('Aktif', active),
+          remove
+        );
+        list.appendChild(row);
+      });
+    }
+
+    function getDocumentRows() {
+      return Array.from(document.querySelectorAll('[data-document]')).map(function (row, index) {
+        const key = row.querySelector('[data-document-key]').value.trim();
+        const original = (siteConfig.documentRequirements || []).find(function (item) { return item.key === key; }) || {};
+        return {
+          key: key,
+          name: row.querySelector('[data-document-name]').value.trim(),
+          maxKB: Number(row.querySelector('[data-document-max]').value || 2048),
+          extensions: row.querySelector('[data-document-extensions]').value.split(',').map(function (value) { return value.trim().replace(/^\./, '').toLowerCase(); }).filter(Boolean),
+          required: row.querySelector('[data-document-required]').checked,
+          active: row.querySelector('[data-document-active]').checked,
+          order: index + 1,
+          description: original.description || '',
+          wave: original.wave || '',
+          registrationPath: original.registrationPath || ''
         };
       });
     }
@@ -422,6 +873,20 @@
       document.getElementById('contact-label').value = config.contactLabel;
       document.getElementById('contact-url').value = config.contactUrl;
       renderWaveRows(config.registrationWaves || []);
+      renderRegistrationPathsAdmin(config.registrationPaths || []);
+      renderFormFieldRows(config.formFields || []);
+      renderDocumentRows(config.documentRequirements || []);
+      const payment = config.paymentSettings || {};
+      document.getElementById('bank-enabled').checked = payment.bankEnabled !== false;
+      document.getElementById('bank-name').value = payment.bankName || '';
+      document.getElementById('bank-account-number').value = payment.bankAccountNumber || '';
+      document.getElementById('bank-account-name').value = payment.bankAccountName || '';
+      document.getElementById('qris-enabled').checked = payment.qrisEnabled !== false;
+      document.getElementById('gateway-enabled').checked = payment.gatewayEnabled !== false;
+      document.getElementById('gateway-provider').value = payment.gatewayProvider || 'Qiospay';
+      document.getElementById('gateway-url').value = payment.gatewayUrl || '';
+      document.getElementById('payment-instructions').value = payment.instructions || '';
+      setCurrentFile('payment-qr-current', payment.qrisImageUrl);
       setCurrentFile('form-pdf-current', config.formPdfUrl);
       setCurrentFile('scholarship-pdf-current', config.scholarshipPdfUrl);
     }
@@ -441,6 +906,8 @@
 
     function renderApplications(data) {
       applicants = data.applicants || [];
+      currentMonthly = data.monthly || [];
+      adminReviewConfig = data.reviewConfig || null;
       const readOnly = currentUser.role === 'viewer';
       const totals = data.totals || {};
       document.getElementById('metric-total').textContent = Number(totals.total || 0).toLocaleString('id-ID');
@@ -448,6 +915,10 @@
       document.getElementById('metric-verified').textContent = Number(totals.verified || 0).toLocaleString('id-ID');
       document.getElementById('metric-revisions').textContent = Number(totals.revisions || 0).toLocaleString('id-ID');
       document.getElementById('metric-accepted').textContent = Number(totals.accepted || 0).toLocaleString('id-ID');
+      document.getElementById('metric-payment-pending').textContent = Number(totals.paymentPending || 0).toLocaleString('id-ID');
+      document.getElementById('metric-reenrolled').textContent = Number(totals.reEnrolled || 0).toLocaleString('id-ID');
+      document.getElementById('chart-year').textContent = 'Tahun ajaran ' + (data.academicYear || (siteConfig && siteConfig.academicYear) || '');
+      renderMonthlyChart(currentMonthly, data.academicYear);
       document.getElementById('application-count').textContent = applicants.length + ' data terbaru ditampilkan. Total keseluruhan: ' + Number(totals.total || 0).toLocaleString('id-ID') + '.';
       applicationBody.replaceChildren();
       if (!applicants.length) {
@@ -475,7 +946,7 @@
         }
 
         const wave = document.createElement('td');
-        wave.textContent = applicant.wave + ' · ' + applicant.major;
+        wave.textContent = applicant.wave + (applicant.registration_path ? ' · ' + applicant.registration_path : '') + ' · ' + applicant.major;
         const date = document.createElement('td');
         date.textContent = new Date(applicant.created_at).toLocaleString('id-ID');
         const files = document.createElement('td');
@@ -495,10 +966,10 @@
           : statusSelect(['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'], applicant.document_status);
         const selectionStatus = readOnly
           ? document.createTextNode(applicant.selection_status)
-          : statusSelect(['Menunggu Pengumuman', 'Diterima', 'Tidak Diterima'], applicant.selection_status);
+        : statusSelect(['Menunggu Pengumuman', 'Diterima / Lulus', 'Cadangan', 'Tidak Diterima'], applicant.selection_status === 'Diterima' ? 'Diterima / Lulus' : applicant.selection_status);
         const reenrollmentStatus = readOnly
           ? document.createTextNode(applicant.reenrollment_status)
-          : statusSelect(['Belum Daftar Ulang', 'Daftar Ulang Selesai'], applicant.reenrollment_status);
+          : document.createTextNode(applicant.reenrollment_status + (applicant.payment_status ? ' · ' + applicant.payment_status : ''));
         const syncStatus = document.createElement('td');
         syncStatus.textContent = applicant.sheet_sync_status === 'synced' ? 'Tersinkron' : 'Menunggu sync';
         const actions = document.createElement('td');
@@ -516,8 +987,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   documentStatus: documentStatus.value,
-                  selectionStatus: selectionStatus.value,
-                  reenrollmentStatus: reenrollmentStatus.value
+                  selectionStatus: selectionStatus.value
                 })
               });
               if (await loadApplications()) {
@@ -533,6 +1003,10 @@
           edit.className = 'secondary';
           edit.textContent = 'Edit Data';
           edit.addEventListener('click', function () { openEditDialog(applicant); });
+          const review = document.createElement('button');
+          review.className = 'secondary';
+          review.textContent = 'Verifikasi Detail';
+          review.addEventListener('click', function () { openReviewDialog(applicant); });
           const resetPin = document.createElement('button');
           resetPin.className = 'secondary';
           resetPin.textContent = 'Atur Ulang PIN';
@@ -548,7 +1022,7 @@
               resetPin.disabled = false;
             }
           });
-          actions.append(save, edit, resetPin);
+          actions.append(review, save, edit, resetPin);
         }
         [applicantCell, wave, date, files, makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), syncStatus, actions]
           .forEach(function (cell) { row.appendChild(cell); });
@@ -563,6 +1037,96 @@
       return cell;
     }
 
+    function applicantValue(applicant, field) {
+      if (field.custom) return (applicant.custom_data || {})[field.key] || '';
+      const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+      return applicant[column] || '';
+    }
+
+    function openReviewDialog(applicant) {
+      reviewingApplicant = applicant;
+      document.getElementById('review-registration-number').textContent = applicant.registration_number + ' · ' + applicant.student_name;
+      document.getElementById('selection-score').value = applicant.selection_score || '';
+      document.getElementById('selection-decision').value =
+        applicant.selection_status === 'Diterima' ? 'Diterima / Lulus' : applicant.selection_status;
+      document.getElementById('selection-note').value = applicant.selection_note || '';
+      document.getElementById('payment-review-note').value = applicant.payment_note || '';
+      const content = document.getElementById('review-items');
+      content.replaceChildren();
+      const reviews = applicant.field_reviews || {};
+      const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) { return field.active; });
+      const documents = (adminReviewConfig && adminReviewConfig.documentRequirements || []).filter(function (item) {
+        return item.active && (!item.wave || item.wave === applicant.wave) &&
+          (!item.registrationPath || item.registrationPath === applicant.registration_path);
+      });
+      fields.forEach(function (field) {
+        const value = applicantValue(applicant, field);
+        if (!field.required && !value) return;
+        addReviewItem(content, field.key, field.label, value, 'field', reviews[field.key]);
+      });
+      documents.forEach(function (documentConfig) {
+        const file = (applicant.files || []).find(function (item) { return item.key === documentConfig.key; });
+        if (!documentConfig.required && !file) return;
+        addReviewItem(content, documentConfig.key, documentConfig.name,
+          file ? file.name : (documentConfig.required ? 'Berkas wajib belum diunggah.' : ''),
+          'document', reviews[documentConfig.key], file);
+      });
+      const proof = (applicant.files || []).find(function (item) { return item.key === 'paymentProof'; });
+      const accepted = ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status);
+      document.getElementById('payment-review-section').hidden = !accepted;
+      document.getElementById('payment-review-status').textContent = applicant.payment_status || 'Belum Daftar Ulang';
+      const proofLink = document.getElementById('payment-proof-link');
+      proofLink.replaceChildren();
+      if (proof) {
+        const link = document.createElement('a');
+        link.href = proof.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Lihat bukti pembayaran: ' + proof.name;
+        proofLink.appendChild(link);
+      } else {
+        proofLink.textContent = 'Belum ada bukti pembayaran.';
+      }
+      document.getElementById('payment-approve-button').disabled = !proof;
+      setStatus('review-status', '', '');
+      reviewDialog.showModal();
+    }
+
+    function addReviewItem(container, key, labelText, value, type, review, file) {
+      const item = document.createElement('section');
+      item.className = 'review-item';
+      item.dataset.reviewKey = key;
+      item.dataset.reviewType = type;
+      const heading = document.createElement('strong');
+      heading.textContent = labelText;
+      item.appendChild(heading);
+      const content = document.createElement('p');
+      content.className = 'muted';
+      content.textContent = value || (type === 'field' ? 'Tidak diisi' : 'Belum diunggah');
+      item.appendChild(content);
+      if (file) {
+        const link = document.createElement('a');
+        link.href = file.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Buka berkas: ' + file.name;
+        item.appendChild(link);
+      }
+      const controls = document.createElement('div');
+      controls.className = 'review-controls';
+      const select = statusSelect(['pending', 'verified', 'revision'], review && review.status || 'pending');
+      select.dataset.reviewStatus = 'true';
+      const note = document.createElement('textarea');
+      note.rows = 2;
+      note.maxLength = 1000;
+      note.placeholder = 'Catatan untuk siswa jika perlu revisi';
+      note.value = review && review.note || '';
+      note.dataset.reviewNote = 'true';
+      controls.append(makeLabeledControl('Status', select), makeLabeledControl('Catatan revisi', note));
+      item.appendChild(controls);
+      container.appendChild(item);
+    }
+
     function filterApplications() {
       const query = document.getElementById('application-search').value.trim().toLowerCase();
       const status = document.getElementById('status-filter').value;
@@ -575,12 +1139,15 @@
     function buildEditForm() {
       const container = document.getElementById('edit-fields');
       container.replaceChildren();
+      const config = siteConfig || adminReviewConfig || {};
       editFields.forEach(function (field) {
+        const configuredField = (config.formFields || []).find(function (item) { return item.key === field.key; });
         const group = document.createElement('div');
         if (field.wide) group.className = 'wide';
         const label = document.createElement('label');
         label.htmlFor = 'edit-' + field.key;
-        label.textContent = field.label + (field.optional ? ' (opsional)' : '');
+        label.textContent = (configuredField ? configuredField.label : field.label) +
+          (configuredField ? (configuredField.required ? ' *' : ' (opsional)') : (field.optional ? ' (opsional)' : ''));
         let control;
         if (field.kind === 'textarea') {
           control = document.createElement('textarea');
@@ -588,8 +1155,9 @@
         } else if (['wave', 'program', 'gender', 'religion', 'education'].includes(field.kind)) {
           control = document.createElement('select');
           const values = field.kind === 'wave'
-            ? siteConfig.registrationWaves.map(function (wave) { return wave.name; })
-            : field.kind === 'program' ? programs
+            ? (config.registrationWaves || []).map(function (wave) { return wave.name; })
+            : field.kind === 'program'
+              ? ((configuredField && configuredField.options.length) ? configuredField.options : programs)
               : field.kind === 'gender' ? ['Laki-laki', 'Perempuan']
                 : field.kind === 'religion' ? religions : educationLevels;
           values.forEach(function (value) { control.appendChild(makeOption(value, value)); });
@@ -599,7 +1167,8 @@
         }
         control.id = label.htmlFor;
         control.name = field.key;
-        control.required = field.required !== false && !field.optional;
+        control.required = configuredField ? configuredField.required : field.required !== false && !field.optional;
+        control.disabled = Boolean(configuredField && !configuredField.active);
         if (field.pattern) control.pattern = field.pattern;
         if (field.maxLength) control.maxLength = field.maxLength;
         group.append(label, control);
@@ -808,7 +1377,22 @@
             scholarshipPdfUrl: siteConfig.scholarshipPdfUrl,
             contactLabel: document.getElementById('contact-label').value.trim(),
             contactUrl: document.getElementById('contact-url').value.trim(),
-            registrationWaves: getWaveRows()
+            registrationWaves: getWaveRows(),
+            registrationPaths: getRegistrationPathRows(),
+            formFields: getFormFieldRows(),
+            documentRequirements: getDocumentRows(),
+            paymentSettings: {
+              bankEnabled: document.getElementById('bank-enabled').checked,
+              bankName: document.getElementById('bank-name').value.trim(),
+              bankAccountNumber: document.getElementById('bank-account-number').value.trim(),
+              bankAccountName: document.getElementById('bank-account-name').value.trim(),
+              qrisEnabled: document.getElementById('qris-enabled').checked,
+              qrisImageUrl: siteConfig.paymentSettings.qrisImageUrl,
+              gatewayEnabled: document.getElementById('gateway-enabled').checked,
+              gatewayProvider: document.getElementById('gateway-provider').value.trim() || 'Qiospay',
+              gatewayUrl: document.getElementById('gateway-url').value.trim(),
+              instructions: document.getElementById('payment-instructions').value.trim()
+            }
           })
         });
         showConfig(config);
@@ -822,11 +1406,15 @@
 
     document.querySelectorAll('.upload-button').forEach(function (button) {
       button.addEventListener('click', async function () {
-        const input = document.getElementById(button.dataset.asset === 'formPdf' ? 'form-pdf' : 'scholarship-pdf');
+        const input = document.getElementById(button.dataset.asset === 'formPdf' ? 'form-pdf'
+          : button.dataset.asset === 'paymentQr' ? 'payment-qr-file' : 'scholarship-pdf');
         const file = input.files[0];
-        if (!file) return setStatus('settings-status', 'Pilih PDF terlebih dahulu.', 'error');
-        if (file.type !== 'application/pdf' || file.size > 5 * 1024 * 1024) {
-          return setStatus('settings-status', 'PDF maksimal berukuran 5 MB.', 'error');
+        if (!file) return setStatus('settings-status', button.dataset.asset === 'paymentQr' ? 'Pilih gambar QRIS terlebih dahulu.' : 'Pilih PDF terlebih dahulu.', 'error');
+        const imageUpload = button.dataset.asset === 'paymentQr';
+        if (imageUpload
+          ? !['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024
+          : file.type !== 'application/pdf' || file.size > 5 * 1024 * 1024) {
+          return setStatus('settings-status', imageUpload ? 'Gambar QRIS PNG/JPG maksimal 2 MB.' : 'PDF maksimal berukuran 5 MB.', 'error');
         }
         button.disabled = true;
         try {
@@ -834,11 +1422,11 @@
           const config = await api('/api/admin/assets/' + button.dataset.asset, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ base64: base64 })
+            body: JSON.stringify({ base64: base64, contentType: file.type })
           });
           input.value = '';
           showConfig(config);
-          setStatus('settings-status', 'PDF berhasil diunggah.', 'success');
+          setStatus('settings-status', imageUpload ? 'Gambar QRIS berhasil diunggah.' : 'PDF berhasil diunggah.', 'success');
         } catch (error) {
           setStatus('settings-status', error.message, 'error');
         } finally {
@@ -858,9 +1446,51 @@
 
     document.getElementById('add-wave-button').addEventListener('click', function () {
       const waves = getWaveRows();
+      const paths = getRegistrationPathRows();
       if (waves.length >= 10) return setStatus('settings-status', 'Maksimal 10 gelombang.', 'error');
-      waves.push({ name: 'Gelombang ' + (waves.length + 1), fee: '', status: 'closed' });
+      waves.push({
+        name: 'Gelombang ' + (waves.length + 1), academicYear: siteConfig.academicYear, fee: '',
+        reenrollmentFee: '', status: 'closed', quota: 0, order: waves.length + 1
+      });
       renderWaveRows(waves);
+      renderRegistrationPathsAdmin(paths);
+    });
+    document.getElementById('add-path-button').addEventListener('click', function () {
+      const paths = getRegistrationPathRows();
+      if (paths.length >= 30) return setStatus('settings-status', 'Maksimal 30 jalur pendaftaran.', 'error');
+      paths.push({ name: 'Jalur baru ' + (paths.length + 1), wave: '', quota: 0, active: true, order: paths.length + 1 });
+      renderRegistrationPathsAdmin(paths);
+    });
+    document.getElementById('add-form-field-button').addEventListener('click', function () {
+      const fields = getFormFieldRows();
+      if (fields.length >= 100) return setStatus('settings-status', 'Maksimal 100 field formulir.', 'error');
+      const key = 'customField' + Date.now();
+      fields.push({
+        key: key,
+        label: 'Field tambahan',
+        type: 'text',
+        step: 2,
+        required: false,
+        active: true,
+        order: fields.length + 1,
+        options: [],
+        custom: true
+      });
+      renderFormFieldRows(fields);
+    });
+    document.getElementById('add-document-button').addEventListener('click', function () {
+      const documents = getDocumentRows();
+      if (documents.length >= 40) return setStatus('settings-status', 'Maksimal 40 jenis dokumen.', 'error');
+      documents.push({
+        key: 'document' + Date.now(),
+        name: 'Dokumen tambahan',
+        extensions: ['pdf', 'jpg', 'png'],
+        maxKB: 2048,
+        required: false,
+        active: true,
+        order: documents.length + 1
+      });
+      renderDocumentRows(documents);
     });
 
     document.getElementById('edit-form').addEventListener('submit', async function (event) {
@@ -884,6 +1514,85 @@
         button.disabled = false;
       }
     });
+
+    document.querySelectorAll('[data-page-target]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        setAdminPage(button.dataset.pageTarget, button.dataset.masterAnchor);
+      });
+    });
+    document.getElementById('save-reviews-button').addEventListener('click', async function () {
+      if (!reviewingApplicant) return;
+      const button = document.getElementById('save-reviews-button');
+      button.disabled = true;
+      try {
+        for (const item of document.querySelectorAll('#review-items [data-review-key]')) {
+          await api('/api/admin/applications/' + encodeURIComponent(reviewingApplicant.registration_number) + '/reviews', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              itemKey: item.dataset.reviewKey,
+              itemType: item.dataset.reviewType,
+              status: item.querySelector('[data-review-status]').value,
+              note: item.querySelector('[data-review-note]').value
+            })
+          });
+        }
+        reviewDialog.close();
+        await loadApplications();
+        setStatus('applications-status', 'Verifikasi field dan dokumen berhasil disimpan.', 'success');
+      } catch (error) {
+        setStatus('review-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+    document.getElementById('save-selection-button').addEventListener('click', async function () {
+      if (!reviewingApplicant) return;
+      const button = document.getElementById('save-selection-button');
+      button.disabled = true;
+      try {
+        await api('/api/admin/applications/' + encodeURIComponent(reviewingApplicant.registration_number), {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            selectionStatus: document.getElementById('selection-decision').value,
+            selectionScore: document.getElementById('selection-score').value,
+            selectionNote: document.getElementById('selection-note').value
+          })
+        });
+        reviewDialog.close();
+        await loadApplications();
+        setStatus('applications-status', 'Hasil seleksi berhasil disimpan.', 'success');
+      } catch (error) {
+        setStatus('review-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+    async function updatePaymentReview(decision) {
+      if (!reviewingApplicant) return;
+      const button = document.getElementById(decision === 'approve' ? 'payment-approve-button' : 'payment-revision-button');
+      button.disabled = true;
+      try {
+        await api('/api/admin/applications/' + encodeURIComponent(reviewingApplicant.registration_number) + '/payment', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision: decision, note: document.getElementById('payment-review-note').value })
+        });
+        reviewDialog.close();
+        await loadApplications();
+        setStatus('applications-status', decision === 'approve'
+          ? 'Pembayaran disetujui dan daftar ulang diselesaikan.'
+          : 'Bukti pembayaran dikembalikan untuk perbaikan.', 'success');
+      } catch (error) {
+        setStatus('review-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+    document.getElementById('payment-approve-button').addEventListener('click', function () { updatePaymentReview('approve'); });
+    document.getElementById('payment-revision-button').addEventListener('click', function () { updatePaymentReview('revision'); });
+    document.getElementById('close-review-button').addEventListener('click', function () { reviewDialog.close(); });
 
     document.getElementById('close-edit-button').addEventListener('click', function () { editDialog.close(); });
     document.getElementById('cancel-edit-button').addEventListener('click', function () { editDialog.close(); });

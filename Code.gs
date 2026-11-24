@@ -1,14 +1,15 @@
 const SHEET_NAME = 'Pendaftaran SPMB';
 const SHEET_HEADERS = [
   'Timestamp', 'Nomor Pendaftaran', 'Gelombang Pendaftaran', 'Biaya Gelombang',
-  'Program Studi', 'Nama Lengkap Siswa', 'Asal Sekolah', 'NISN',
+  'Jalur Pendaftaran', 'Program Studi', 'Nama Lengkap Siswa', 'Asal Sekolah', 'NISN',
   'No. Kartu Keluarga (KK)', 'NIK Siswa', 'Jenis Kelamin', 'Agama',
   'Tempat Lahir', 'Tanggal Lahir', 'Email Siswa / Orang Tua', 'No WhatsApp Siswa',
   'NIK Ayah', 'Nama Ayah', 'Pendidikan Terakhir Ayah', 'Pekerjaan Ayah',
   'Penghasilan Ayah / bulan', 'No. Telepon/WA Ayah', 'NIK Ibu', 'Nama Ibu',
   'Pendidikan Terakhir Ibu', 'Pekerjaan Ibu', 'Penghasilan Ibu / bulan',
-  'No. Telepon/WA Ibu', 'Alamat Lengkap', 'Status Verifikasi Berkas',
-  'Status Hasil Seleksi', 'Status Daftar Ulang'
+  'No. Telepon/WA Ibu', 'Alamat Lengkap', 'Data Tambahan (JSON)', 'Review Field/Dokumen (JSON)',
+  'Status Verifikasi Berkas', 'Status Hasil Seleksi', 'Nilai Seleksi', 'Catatan Hasil Seleksi',
+  'Status Pembayaran Daftar Ulang', 'Catatan Pembayaran', 'Waktu Verifikasi Pembayaran', 'Status Daftar Ulang'
 ];
 
 function doGet() {
@@ -106,33 +107,41 @@ function makeRowValues_(headers, data) {
     'Nomor Pendaftaran': data.registrationNumber,
     'Gelombang Pendaftaran': data.wave,
     'Biaya Gelombang': data.waveFee,
+    'Jalur Pendaftaran': data.registrationPath,
     'Program Studi': data.major,
     'Nama Lengkap Siswa': data.studentName,
     'Asal Sekolah': data.schoolOrigin,
-    'NISN': "'" + data.nisn,
-    'No. Kartu Keluarga (KK)': "'" + data.familyCardNumber,
-    'NIK Siswa': "'" + data.studentNik,
+    'NISN': textNumber_(data.nisn),
+    'No. Kartu Keluarga (KK)': textNumber_(data.familyCardNumber),
+    'NIK Siswa': textNumber_(data.studentNik),
     'Jenis Kelamin': data.gender,
     'Agama': data.religion,
     'Tempat Lahir': data.birthPlace,
     'Tanggal Lahir': data.birthDate,
     'Email Siswa / Orang Tua': data.email,
-    'No WhatsApp Siswa': data.studentPhone ? "'" + data.studentPhone : '',
-    'NIK Ayah': "'" + data.fatherNik,
+    'No WhatsApp Siswa': textNumber_(data.studentPhone),
+    'NIK Ayah': textNumber_(data.fatherNik),
     'Nama Ayah': data.fatherName,
     'Pendidikan Terakhir Ayah': data.fatherEducation,
     'Pekerjaan Ayah': data.fatherOccupation,
     'Penghasilan Ayah / bulan': data.fatherIncome,
-    'No. Telepon/WA Ayah': "'" + data.fatherPhone,
-    'NIK Ibu': "'" + data.motherNik,
+    'No. Telepon/WA Ayah': textNumber_(data.fatherPhone),
+    'NIK Ibu': textNumber_(data.motherNik),
     'Nama Ibu': data.motherName,
     'Pendidikan Terakhir Ibu': data.motherEducation,
     'Pekerjaan Ibu': data.motherOccupation,
     'Penghasilan Ibu / bulan': data.motherIncome,
-    'No. Telepon/WA Ibu': "'" + data.motherPhone,
+    'No. Telepon/WA Ibu': textNumber_(data.motherPhone),
     'Alamat Lengkap': data.address,
+    'Data Tambahan (JSON)': JSON.stringify(data.customData || {}),
+    'Review Field/Dokumen (JSON)': JSON.stringify(data.fieldReviews || {}),
     'Status Verifikasi Berkas': data.documentStatus,
     'Status Hasil Seleksi': data.selectionStatus,
+    'Nilai Seleksi': data.selectionScore,
+    'Catatan Hasil Seleksi': data.selectionNote,
+    'Status Pembayaran Daftar Ulang': data.paymentStatus,
+    'Catatan Pembayaran': data.paymentNote,
+    'Waktu Verifikasi Pembayaran': data.paymentReviewedAt,
     'Status Daftar Ulang': data.reenrollmentStatus
   };
   return headers.map(function (header) {
@@ -141,7 +150,12 @@ function makeRowValues_(headers, data) {
   });
 }
 
+function textNumber_(value) {
+  return value === undefined || value === null || value === '' ? '' : "'" + String(value);
+}
+
 function safeSpreadsheetCell_(value) {
+  if (value === undefined || value === null) return '';
   if (typeof value !== 'string') return value;
   return /^[\s]*[=+\-@]/.test(value) ? "'" + value : value;
 }

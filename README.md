@@ -45,7 +45,7 @@ Buka `http://localhost:3000`. Untuk membuat akun Pemilik pertama, set `ADMIN_USE
 5. Salin URL Web App berakhiran `/exec` ke `APPS_SCRIPT_SYNC_URL` di Railway. Masukkan nilai `SHEET_SYNC_TOKEN` yang sama pada environment variables Railway.
 6. Deploy ulang service Railway setelah mengubah environment variables.
 
-Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronisasi memakai nomor pendaftaran untuk memperbarui baris yang sama, sehingga retry tidak membuat baris duplikat. PIN portal dan file pribadi tidak dikirim ke Sheet. Pada portal admin, status sinkronisasi dapat diperiksa dan antrean dapat dicoba ulang.
+Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronisasi memakai nomor pendaftaran untuk memperbarui baris yang sama, sehingga retry tidak membuat baris duplikat. Data tambahan, jalur pendaftaran, hasil seleksi, catatan review, dan status daftar ulang disimpan dalam kolom JSON/status. PIN portal dan file pribadi tidak dikirim ke Sheet. Pada portal admin, status sinkronisasi dapat diperiksa dan antrean dapat dicoba ulang.
 
 ## Portal dan penyimpanan data
 
@@ -54,7 +54,10 @@ Apps Script membuat tab `Pendaftaran SPMB` dan header secara otomatis. Sinkronis
 - **Manajemen akun:** Pemilik dapat menambah akun Pemilik, Operator, atau Viewer, mengubah peran/nama, menonaktifkan akun, dan mengatur ulang password. Setiap pengguna dapat mengganti password sendiri. Password minimal 12 karakter; login dibatasi setelah beberapa percobaan gagal.
 - **Migrasi login:** setelah versi akun diterapkan, sesi token lama tidak berlaku. Pastikan `ADMIN_USERNAME` dan `ADMIN_PASSWORD` disetel di Railway sebelum deploy. Sesudah berhasil masuk, buat akun Pemilik cadangan; nilai `ADMIN_TOKEN` lama sudah tidak digunakan dan dapat dihapus.
 - **Portal siswa:** `/portal`. Pendaftar masuk menggunakan nomor pendaftaran dan PIN acak yang diberikan setelah formulir berhasil disimpan.
-- **SQLite:** `DATABASE_PATH` harus berada pada Persistent Volume Railway. Seluruh unggahan pendaftar berada di subfolder `uploads` pada `STORAGE_DIR`; PDF publik yang diunggah admin berada di `public-files`.
-- **Batas berkas:** dokumen pendaftar maksimal 2 MB per berkas; PDF informasi admin maksimal 5 MB.
+- **Master SPMB:** Pemilik mengatur label, urutan, tahap, kewajiban, dan pilihan field; dokumen; gelombang (tanggal, kuota, biaya pendaftaran dan daftar ulang); serta jalur dari sidebar admin. Field inti yang dinonaktifkan tetap tersimpan sebagai kolom SQLite agar data lama tidak hilang. Aplikasi memigrasikan tabel pendaftar lama di tempat dan mempertahankan relasi berkas serta antrean Google Sheets.
+- **Verifikasi dan seleksi:** Operator/Pemilik dapat meninjau setiap field/dokumen dengan catatan revisi, memberi nilai seleksi, serta menetapkan Diterima/Lulus, Cadangan, atau Tidak Diterima.
+- **Daftar ulang:** hanya pendaftar Diterima/Lulus dapat mengirim bukti pembayaran. Pemilik mengatur rekening, gambar QRIS, biaya daftar ulang per gelombang, petunjuk, dan tautan checkout Qiospay. Bukti transfer/QRIS atau pembayaran melalui tautan tetap diverifikasi manual oleh admin; versi ini belum membuat transaksi atau mengonsumsi callback/API Qiospay.
+- **SQLite:** `DATABASE_PATH` harus berada pada Persistent Volume Railway. Seluruh unggahan pendaftar dan bukti pembayaran berada di subfolder `uploads` pada `STORAGE_DIR`; PDF dan gambar QRIS yang diunggah admin berada di `public-files`.
+- **Batas berkas:** dokumen pendaftar dan bukti pembayaran maksimal 2 MB per berkas; PDF informasi admin maksimal 5 MB.
 
 Pengaturan situs tersimpan di SQLite dan langsung digunakan halaman pendaftaran, tanpa perlu deployment ulang. Perubahan pada `Code.gs` memerlukan deployment versi baru Apps Script.

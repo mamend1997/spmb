@@ -17,6 +17,7 @@ const databasePath = configuredDatabasePath || path.join(storageDirectory, 'spmb
 const uploadDirectory = path.join(storageDirectory, 'uploads');
 const publicFileDirectory = path.join(storageDirectory, 'public-files');
 const maxUploadBytes = 2 * 1024 * 1024;
+const allowedDocumentExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
 const programs = [
   'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
   'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
@@ -31,7 +32,7 @@ const uploadTypes = {
   sktm: { label: 'SKTM' }
 };
 const documentStatuses = ['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'];
-const selectionStatuses = ['Menunggu Pengumuman', 'Diterima', 'Tidak Diterima'];
+const selectionStatuses = ['Menunggu Pengumuman', 'Diterima / Lulus', 'Cadangan', 'Tidak Diterima', 'Diterima'];
 const reenrollmentStatuses = ['Belum Daftar Ulang', 'Daftar Ulang Selesai'];
 const initialConfig = {
   pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
@@ -40,7 +41,63 @@ const initialConfig = {
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
   contactLabel: 'Contact Person SPMB',
   contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
-  registrationWaves: [{ name: 'Gelombang 1', fee: '', status: 'open' }]
+  registrationWaves: [{
+    name: 'Gelombang 1', academicYear: '2027/2028', openDate: '', closeDate: '',
+    announcementDate: '', quota: 0, fee: '', reenrollmentFee: '', order: 1, status: 'open', notes: ''
+  }],
+  registrationPaths: [{
+    name: 'Reguler / Umum', wave: '', quota: 0, description: 'Pendaftaran jalur umum dan reguler.',
+    requirements: '', order: 1, active: true
+  }],
+  formFields: [
+    { key: 'wave', label: 'Gelombang Pendaftaran', type: 'select', step: 1, required: true, active: true, order: 1, placeholder: 'Pilih Gelombang Pendaftaran...', helpText: '' },
+    { key: 'registrationPath', label: 'Jalur Pendaftaran', type: 'select', step: 1, required: true, active: true, order: 2, placeholder: 'Pilih Jalur Pendaftaran...', helpText: '' },
+    { key: 'major', label: 'Program Studi / Konsentrasi Keahlian', type: 'select', step: 1, required: true, active: true, order: 3, placeholder: 'Pilih Program Studi...', helpText: '' },
+    { key: 'studentName', label: 'Nama Lengkap Siswa', type: 'text', step: 2, required: true, active: true, order: 1, placeholder: 'Masukkan nama lengkap siswa', helpText: '' },
+    { key: 'nisn', label: 'NISN', type: 'number', step: 2, required: true, active: true, order: 2, placeholder: '10 digit angka NISN', helpText: 'Hanya angka (tepat 10 digit)' },
+    { key: 'studentNik', label: 'NIK Siswa', type: 'number', step: 2, required: true, active: true, order: 3, placeholder: '16 digit angka NIK Siswa', helpText: 'Hanya angka (tepat 16 digit)' },
+    { key: 'familyCardNumber', label: 'No. Kartu Keluarga (KK)', type: 'number', step: 2, required: true, active: true, order: 4, placeholder: '16 digit angka No KK', helpText: 'Hanya angka (tepat 16 digit)' },
+    { key: 'gender', label: 'Jenis Kelamin', type: 'select', step: 2, required: true, active: true, order: 5, placeholder: 'Pilih Jenis Kelamin...', helpText: '', options: ['Laki-laki', 'Perempuan'] },
+    { key: 'religion', label: 'Agama', type: 'select', step: 2, required: true, active: true, order: 6, placeholder: 'Pilih Agama...', helpText: '', options: ['Islam', 'Kristen Protestan', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'] },
+    { key: 'birthPlace', label: 'Tempat Lahir', type: 'text', step: 2, required: true, active: true, order: 7, placeholder: 'Kota / Kabupaten kelahiran', helpText: '' },
+    { key: 'birthDate', label: 'Tanggal Lahir', type: 'date', step: 2, required: true, active: true, order: 8, placeholder: '', helpText: '' },
+    { key: 'schoolOrigin', label: 'Asal Sekolah Sebelumnya', type: 'text', step: 2, required: true, active: true, order: 9, placeholder: 'Contoh: SMPN 1 Cikoneng', helpText: '' },
+    { key: 'studentPhone', label: 'No. WhatsApp Calon Siswa', type: 'number', step: 2, required: false, active: true, order: 10, placeholder: 'Contoh: 08xxxxxxxxxx', helpText: 'Opsional, 10–14 digit angka' },
+    { key: 'email', label: 'Email Siswa / Orang Tua', type: 'email', step: 2, required: true, active: true, order: 11, placeholder: 'email@contoh.com', helpText: 'Wajib menyertakan simbol @ dan domain yang valid' },
+    { key: 'fatherNik', label: 'NIK Ayah', type: 'number', step: 3, required: true, active: true, order: 1, placeholder: '16 digit angka NIK Ayah', helpText: 'Hanya angka (tepat 16 digit)' },
+    { key: 'fatherName', label: 'Nama Ayah', type: 'text', step: 3, required: true, active: true, order: 2, placeholder: 'Nama lengkap Ayah', helpText: '' },
+    { key: 'fatherEducation', label: 'Pendidikan Terakhir Ayah', type: 'select', step: 3, required: true, active: true, order: 3, placeholder: 'Pilih Jenjang Pendidikan...', helpText: '', options: ['SD/Sederajat', 'SMP/Sederajat', 'SMA/SMK/Sederajat', 'D1/D2/D3', 'S1/D4', 'S2', 'S3', 'Tidak Sekolah'] },
+    { key: 'fatherOccupation', label: 'Pekerjaan Ayah', type: 'text', step: 3, required: true, active: true, order: 4, placeholder: 'Pekerjaan Ayah', helpText: '' },
+    { key: 'fatherIncome', label: 'Penghasilan Ayah / bulan', type: 'text', step: 3, required: true, active: true, order: 5, placeholder: 'Contoh: < 1 Juta, 1 - 3 Juta, dll', helpText: '' },
+    { key: 'fatherPhone', label: 'No. Telepon/WA Ayah', type: 'tel', step: 3, required: true, active: true, order: 6, placeholder: '081234567890', helpText: '10–14 digit angka' },
+    { key: 'motherNik', label: 'NIK Ibu', type: 'number', step: 3, required: true, active: true, order: 7, placeholder: '16 digit angka NIK Ibu', helpText: 'Hanya angka (tepat 16 digit)' },
+    { key: 'motherName', label: 'Nama Ibu', type: 'text', step: 3, required: true, active: true, order: 8, placeholder: 'Nama lengkap Ibu', helpText: '' },
+    { key: 'motherEducation', label: 'Pendidikan Terakhir Ibu', type: 'select', step: 3, required: true, active: true, order: 9, placeholder: 'Pilih Jenjang Pendidikan...', helpText: '', options: ['SD/Sederajat', 'SMP/Sederajat', 'SMA/SMK/Sederajat', 'D1/D2/D3', 'S1/D4', 'S2', 'S3', 'Tidak Sekolah'] },
+    { key: 'motherOccupation', label: 'Pekerjaan Ibu', type: 'text', step: 3, required: true, active: true, order: 10, placeholder: 'Pekerjaan Ibu', helpText: '' },
+    { key: 'motherIncome', label: 'Penghasilan Ibu / bulan', type: 'text', step: 3, required: true, active: true, order: 11, placeholder: 'Contoh: < 1 Juta, 1 - 3 Juta, dll', helpText: '' },
+    { key: 'motherPhone', label: 'No. Telepon/WA Ibu', type: 'tel', step: 3, required: true, active: true, order: 12, placeholder: '081234567890', helpText: '10–14 digit angka' },
+    { key: 'address', label: 'Alamat Lengkap', type: 'textarea', step: 3, required: true, active: true, order: 13, placeholder: 'Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten', helpText: '' }
+  ],
+  documentRequirements: [
+    { key: 'studentPhoto', name: 'Pas Foto Calon Siswa (3×4)', description: '', extensions: ['jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 1, wave: '', registrationPath: '' },
+    { key: 'familyCardFile', name: 'Kartu Keluarga (KK)', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 2, wave: '', registrationPath: '' },
+    { key: 'birthCertificate', name: 'Akta Kelahiran', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 3, wave: '', registrationPath: '' },
+    { key: 'diploma', name: 'Ijazah / Surat Keterangan Lulus (SKL)', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 4, wave: '', registrationPath: '' },
+    { key: 'reportCard', name: 'Rapor Terakhir', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 5, wave: '', registrationPath: '' },
+    { key: 'sktm', name: 'SKTM (jika diperlukan)', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 6, wave: '', registrationPath: '' }
+  ],
+  paymentSettings: {
+    bankEnabled: true,
+    bankName: '',
+    bankAccountNumber: '',
+    bankAccountName: '',
+    qrisEnabled: true,
+    qrisImageUrl: '',
+    gatewayEnabled: true,
+    gatewayProvider: 'Qiospay',
+    gatewayUrl: '',
+    instructions: 'Lakukan pembayaran sesuai nominal daftar ulang, unggah bukti pembayaran, lalu tunggu verifikasi panitia.'
+  }
 };
 
 fs.mkdirSync(storageDirectory, { recursive: true });
@@ -59,12 +116,13 @@ database.exec(`
     registration_number TEXT UNIQUE,
     wave TEXT NOT NULL,
     wave_fee TEXT NOT NULL DEFAULT '',
+    registration_path TEXT NOT NULL DEFAULT '',
     major TEXT NOT NULL,
     student_name TEXT NOT NULL,
     school_origin TEXT NOT NULL,
-    nisn TEXT NOT NULL UNIQUE,
+    nisn TEXT NOT NULL DEFAULT '',
     family_card_number TEXT NOT NULL,
-    student_nik TEXT NOT NULL UNIQUE,
+    student_nik TEXT NOT NULL DEFAULT '',
     gender TEXT NOT NULL,
     religion TEXT NOT NULL,
     birth_place TEXT NOT NULL,
@@ -84,11 +142,18 @@ database.exec(`
     mother_income TEXT NOT NULL,
     mother_phone TEXT NOT NULL,
     address TEXT NOT NULL,
+    custom_data_json TEXT NOT NULL DEFAULT '{}',
+    field_reviews_json TEXT NOT NULL DEFAULT '{}',
     portal_pin_salt TEXT NOT NULL,
     portal_pin_hash TEXT NOT NULL,
     document_status TEXT NOT NULL DEFAULT 'Menunggu Verifikasi',
     selection_status TEXT NOT NULL DEFAULT 'Menunggu Pengumuman',
+    selection_score TEXT NOT NULL DEFAULT '',
+    selection_note TEXT NOT NULL DEFAULT '',
     reenrollment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
+    payment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
+    payment_note TEXT NOT NULL DEFAULT '',
+    payment_reviewed_at TEXT NOT NULL DEFAULT '',
     status_updated_at TEXT NOT NULL,
     sheet_sync_status TEXT NOT NULL DEFAULT 'pending',
     created_at TEXT NOT NULL
@@ -139,6 +204,135 @@ database.exec(`
   );
 `);
 
+function migrateApplicantStorage() {
+  const columns = database.prepare('PRAGMA table_info(applicants)').all();
+  if (!columns.some(function (column) { return column.name === 'registration_path'; })) {
+    database.exec('PRAGMA foreign_keys = OFF; BEGIN IMMEDIATE;');
+    try {
+      database.exec(`
+        ALTER TABLE uploaded_files RENAME TO uploaded_files_legacy;
+        ALTER TABLE sheet_sync_queue RENAME TO sheet_sync_queue_legacy;
+        ALTER TABLE applicants RENAME TO applicants_legacy;
+        CREATE TABLE applicants (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          registration_number TEXT UNIQUE,
+          wave TEXT NOT NULL,
+          wave_fee TEXT NOT NULL DEFAULT '',
+          registration_path TEXT NOT NULL DEFAULT '',
+          major TEXT NOT NULL,
+          student_name TEXT NOT NULL,
+          school_origin TEXT NOT NULL,
+          nisn TEXT NOT NULL DEFAULT '',
+          family_card_number TEXT NOT NULL,
+          student_nik TEXT NOT NULL DEFAULT '',
+          gender TEXT NOT NULL,
+          religion TEXT NOT NULL,
+          birth_place TEXT NOT NULL,
+          birth_date TEXT NOT NULL,
+          email TEXT NOT NULL,
+          student_phone TEXT NOT NULL DEFAULT '',
+          father_nik TEXT NOT NULL,
+          father_name TEXT NOT NULL,
+          father_education TEXT NOT NULL,
+          father_occupation TEXT NOT NULL,
+          father_income TEXT NOT NULL,
+          father_phone TEXT NOT NULL,
+          mother_nik TEXT NOT NULL,
+          mother_name TEXT NOT NULL,
+          mother_education TEXT NOT NULL,
+          mother_occupation TEXT NOT NULL,
+          mother_income TEXT NOT NULL,
+          mother_phone TEXT NOT NULL,
+          address TEXT NOT NULL,
+          custom_data_json TEXT NOT NULL DEFAULT '{}',
+          field_reviews_json TEXT NOT NULL DEFAULT '{}',
+          portal_pin_salt TEXT NOT NULL,
+          portal_pin_hash TEXT NOT NULL,
+          document_status TEXT NOT NULL DEFAULT 'Menunggu Verifikasi',
+          selection_status TEXT NOT NULL DEFAULT 'Menunggu Pengumuman',
+          selection_score TEXT NOT NULL DEFAULT '',
+          selection_note TEXT NOT NULL DEFAULT '',
+          reenrollment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
+          payment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
+          payment_note TEXT NOT NULL DEFAULT '',
+          payment_reviewed_at TEXT NOT NULL DEFAULT '',
+          status_updated_at TEXT NOT NULL,
+          sheet_sync_status TEXT NOT NULL DEFAULT 'pending',
+          created_at TEXT NOT NULL
+        );
+        INSERT INTO applicants (
+          id, registration_number, wave, wave_fee, major, student_name, school_origin, nisn,
+          family_card_number, student_nik, gender, religion, birth_place, birth_date, email,
+          student_phone, father_nik, father_name, father_education, father_occupation, father_income,
+          father_phone, mother_nik, mother_name, mother_education, mother_occupation, mother_income,
+          mother_phone, address, portal_pin_salt, portal_pin_hash, document_status, selection_status,
+          reenrollment_status, status_updated_at, sheet_sync_status, created_at
+        )
+        SELECT id, registration_number, wave, wave_fee, major, student_name, school_origin, nisn,
+          family_card_number, student_nik, gender, religion, birth_place, birth_date, email,
+          student_phone, father_nik, father_name, father_education, father_occupation, father_income,
+          father_phone, mother_nik, mother_name, mother_education, mother_occupation, mother_income,
+          mother_phone, address, portal_pin_salt, portal_pin_hash, document_status, selection_status,
+          reenrollment_status, status_updated_at, sheet_sync_status, created_at
+        FROM applicants_legacy;
+        CREATE TABLE uploaded_files (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+          field_key TEXT NOT NULL,
+          stored_name TEXT NOT NULL,
+          original_name TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          created_at TEXT NOT NULL,
+          UNIQUE(applicant_id, field_key)
+        );
+        INSERT INTO uploaded_files SELECT * FROM uploaded_files_legacy;
+        CREATE TABLE sheet_sync_queue (
+          applicant_id INTEGER PRIMARY KEY REFERENCES applicants(id) ON DELETE CASCADE,
+          payload_json TEXT NOT NULL,
+          attempts INTEGER NOT NULL DEFAULT 0,
+          next_attempt_at TEXT NOT NULL,
+          last_error TEXT NOT NULL DEFAULT '',
+          synced_at TEXT
+        );
+        INSERT INTO sheet_sync_queue SELECT * FROM sheet_sync_queue_legacy;
+        DROP TABLE uploaded_files_legacy;
+        DROP TABLE sheet_sync_queue_legacy;
+        DROP TABLE applicants_legacy;
+      `);
+      database.exec('COMMIT;');
+    } catch (error) {
+      database.exec('ROLLBACK;');
+      throw error;
+    } finally {
+      database.exec('PRAGMA foreign_keys = ON;');
+    }
+    return;
+  }
+  const existing = new Set(columns.map(function (column) { return column.name; }));
+  const additions = {
+    selection_score: "TEXT NOT NULL DEFAULT ''",
+    selection_note: "TEXT NOT NULL DEFAULT ''",
+    payment_status: "TEXT NOT NULL DEFAULT 'Belum Daftar Ulang'",
+    payment_note: "TEXT NOT NULL DEFAULT ''",
+    payment_reviewed_at: "TEXT NOT NULL DEFAULT ''",
+    custom_data_json: "TEXT NOT NULL DEFAULT '{}'",
+    field_reviews_json: "TEXT NOT NULL DEFAULT '{}'"
+  };
+  Object.keys(additions).forEach(function (name) {
+    if (!existing.has(name)) database.exec('ALTER TABLE applicants ADD COLUMN ' + name + ' ' + additions[name]);
+  });
+}
+
+migrateApplicantStorage();
+database.exec(`
+  CREATE TABLE IF NOT EXISTS portal_sessions (
+    token_hash TEXT PRIMARY KEY,
+    applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+    expires_at INTEGER NOT NULL
+  );
+`);
+
 const adminSessionColumns = database.prepare('PRAGMA table_info(admin_sessions)').all();
 if (!adminSessionColumns.some(function (column) { return column.name === 'user_id'; })) {
   database.exec('ALTER TABLE admin_sessions ADD COLUMN user_id INTEGER');
@@ -163,6 +357,8 @@ function getConfig() {
 
 function sanitizeConfig(input) {
   if (!input || typeof input !== 'object') throw new Error('Pengaturan situs tidak valid.');
+  const registrationWaves = sanitizeWaves(input.registrationWaves);
+  const registrationPaths = sanitizePaths(input.registrationPaths, registrationWaves);
   const config = {
     pageTitle: String(input.pageTitle || '').trim(),
     academicYear: String(input.academicYear || '').trim(),
@@ -170,7 +366,11 @@ function sanitizeConfig(input) {
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
     contactLabel: String(input.contactLabel || '').trim(),
     contactUrl: String(input.contactUrl || '').trim(),
-    registrationWaves: sanitizeWaves(input.registrationWaves)
+    registrationWaves: registrationWaves,
+    registrationPaths: registrationPaths,
+    formFields: sanitizeFormFields(input.formFields),
+    documentRequirements: sanitizeDocumentRequirements(input.documentRequirements, registrationWaves, registrationPaths),
+    paymentSettings: sanitizePaymentSettings(input.paymentSettings)
   };
   if (config.pageTitle.length < 5 || config.pageTitle.length > 120) {
     throw new Error('Judul halaman harus terdiri dari 5–120 karakter.');
@@ -199,17 +399,180 @@ function sanitizeWaves(waves) {
   }
   const names = new Set();
   return waves.map(function (wave) {
+    if (!wave || typeof wave !== 'object') throw new Error('Data gelombang tidak valid.');
     const name = String(wave && wave.name || '').trim();
     const fee = String(wave && wave.fee || '').trim();
+    const reenrollmentFee = String(wave && wave.reenrollmentFee || '').trim();
     const status = String(wave && wave.status || '');
+    const academicYear = String(wave && wave.academicYear || '').trim();
+    const openDate = String(wave && wave.openDate || '').trim();
+    const closeDate = String(wave && wave.closeDate || '').trim();
+    const announcementDate = String(wave && wave.announcementDate || '').trim();
+    const quota = Number(wave && wave.quota || 0);
     if (name.length < 3 || name.length > 40 || names.has(name.toLowerCase())) {
       throw new Error('Nama gelombang harus unik dan terdiri dari 3–40 karakter.');
     }
     if (fee && !/^\d{1,9}$/.test(fee)) throw new Error('Biaya gelombang harus berupa angka rupiah.');
+    if (reenrollmentFee && !/^\d{1,9}$/.test(reenrollmentFee)) throw new Error('Biaya daftar ulang harus berupa angka rupiah.');
     if (status !== 'open' && status !== 'closed') throw new Error('Status gelombang tidak valid.');
+    if (!Number.isSafeInteger(quota) || quota < 0 || quota > 100000) throw new Error('Kuota gelombang tidak valid.');
+    [openDate, closeDate, announcementDate].forEach(function (date) {
+      if (date && !isValidBirthDate(date)) throw new Error('Tanggal gelombang harus menggunakan format YYYY-MM-DD.');
+    });
+    if (openDate && closeDate && closeDate < openDate) throw new Error('Tanggal penutupan gelombang tidak boleh sebelum tanggal pembukaan.');
+    if (academicYear && !/^\d{4}\/\d{4}$/.test(academicYear)) throw new Error('Tahun ajaran gelombang tidak valid.');
     names.add(name.toLowerCase());
-    return { name: name, fee: fee, status: status };
+    return {
+      name: name,
+      academicYear: academicYear,
+      openDate: openDate,
+      closeDate: closeDate,
+      announcementDate: announcementDate,
+      quota: quota,
+      fee: fee,
+      reenrollmentFee: reenrollmentFee,
+      order: Number.isSafeInteger(Number(wave.order)) && Number(wave.order) > 0 ? Number(wave.order) : names.size,
+      status: status,
+      notes: String(wave.notes || '').trim().slice(0, 500)
+    };
   });
+}
+
+function sanitizePaths(paths, waves) {
+  if (paths === undefined) paths = initialConfig.registrationPaths;
+  if (!Array.isArray(paths) || paths.length > 30) throw new Error('Maksimal 30 jalur pendaftaran.');
+  const names = new Set();
+  return paths.map(function (item, index) {
+    if (!item || typeof item !== 'object') throw new Error('Data jalur tidak valid.');
+    const name = String(item && item.name || '').trim();
+    const wave = String(item && item.wave || '').trim();
+    const quota = Number(item && item.quota || 0);
+    const key = name.toLowerCase();
+    if (name.length < 2 || name.length > 80 || names.has(key)) throw new Error('Nama jalur harus unik.');
+    if (wave && !waves.some(function (candidate) { return candidate.name === wave; })) throw new Error('Gelombang pada jalur tidak dikenali.');
+    if (!Number.isSafeInteger(quota) || quota < 0 || quota > 100000) throw new Error('Kuota jalur tidak valid.');
+    names.add(key);
+    return {
+      name: name,
+      wave: wave,
+      quota: quota,
+      description: String(item.description || '').trim().slice(0, 500),
+      requirements: String(item.requirements || '').trim().slice(0, 1000),
+      order: Number.isSafeInteger(Number(item.order)) && Number(item.order) > 0 ? Number(item.order) : index + 1,
+      active: item.active !== false
+    };
+  });
+}
+
+function sanitizeFormFields(fields) {
+  if (fields === undefined) fields = initialConfig.formFields;
+  if (!Array.isArray(fields) || fields.length > 100) throw new Error('Jumlah field formulir tidak valid.');
+  const defaults = new Map(initialConfig.formFields.map(function (field) { return [field.key, field]; }));
+  const seen = new Set();
+  const types = new Set(['text', 'number', 'tel', 'email', 'date', 'textarea', 'select']);
+  return fields.map(function (field, index) {
+    if (!field || typeof field !== 'object') throw new Error('Data field formulir tidak valid.');
+    const key = String(field && field.key || '').trim();
+    const baseline = defaults.get(key);
+    const custom = !baseline;
+    if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key) || seen.has(key) || key === 'uploads') {
+      throw new Error('Kunci field formulir tidak valid atau duplikat.');
+    }
+    const label = String(field.label || '').trim();
+    const type = String(field.type || (baseline && baseline.type) || 'text');
+    const step = Number(field.step || (baseline && baseline.step) || 2);
+    const order = Number(field.order || index + 1);
+    if (label.length < 2 || label.length > 100) throw new Error('Label field harus terdiri dari 2–100 karakter.');
+    if (!types.has(type) || !Number.isInteger(step) || step < 1 || step > 4) throw new Error('Jenis atau tahap field tidak valid.');
+    if (!Number.isSafeInteger(order) || order < 1 || order > 1000) throw new Error('Urutan field tidak valid.');
+    const options = Array.isArray(field.options)
+      ? field.options.map(function (option) { return String(option).trim().slice(0, 100); }).filter(Boolean).slice(0, 50)
+      : (baseline && baseline.options) || [];
+    if (type === 'select' && !options.length && !['wave', 'registrationPath', 'major'].includes(key)) {
+      throw new Error('Field dropdown harus memiliki minimal satu pilihan.');
+    }
+    seen.add(key);
+    return {
+      key: key,
+      label: label,
+      type: type,
+      step: step,
+      required: field.required === undefined ? Boolean(baseline && baseline.required) : field.required === true,
+      active: field.active === undefined ? Boolean(baseline && baseline.active) : field.active === true,
+      order: order,
+      placeholder: String(field.placeholder || '').trim().slice(0, 150),
+      helpText: String(field.helpText || '').trim().slice(0, 250),
+      options: options,
+      custom: custom
+    };
+  });
+}
+
+function sanitizeDocumentRequirements(documents, waves, paths) {
+  if (documents === undefined) documents = initialConfig.documentRequirements;
+  if (!Array.isArray(documents) || documents.length > 40) throw new Error('Maksimal 40 jenis dokumen.');
+  const keys = new Set();
+  return documents.map(function (document, index) {
+    if (!document || typeof document !== 'object') throw new Error('Data dokumen tidak valid.');
+    const key = String(document && document.key || '').trim();
+    const name = String(document && document.name || '').trim();
+    const wave = String(document && document.wave || '').trim();
+    const registrationPath = String(document && document.registrationPath || '').trim();
+    const extensions = Array.isArray(document.extensions)
+      ? document.extensions.map(function (extension) { return String(extension).toLowerCase().replace(/^\./, ''); })
+        .filter(function (extension) { return allowedDocumentExtensions.includes(extension); })
+      : allowedDocumentExtensions.slice();
+    const maxKB = Number(document.maxKB || 2048);
+    if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key) || keys.has(key) || key === 'paymentProof') {
+      throw new Error('Kunci dokumen tidak valid atau duplikat.');
+    }
+    if (name.length < 2 || name.length > 100) throw new Error('Nama dokumen harus terdiri dari 2–100 karakter.');
+    if (!extensions.length || !Number.isSafeInteger(maxKB) || maxKB < 1 || maxKB > 2048) {
+      throw new Error('Format atau ukuran dokumen tidak valid.');
+    }
+    if (wave && !waves.some(function (candidate) { return candidate.name === wave; })) throw new Error('Gelombang dokumen tidak dikenali.');
+    if (registrationPath && !paths.some(function (candidate) { return candidate.name === registrationPath; })) throw new Error('Jalur dokumen tidak dikenali.');
+    keys.add(key);
+    return {
+      key: key,
+      name: name,
+      description: String(document.description || '').trim().slice(0, 250),
+      extensions: Array.from(new Set(extensions)),
+      maxKB: maxKB,
+      required: document.required === true,
+      active: document.active !== false,
+      order: Number.isSafeInteger(Number(document.order)) && Number(document.order) > 0 ? Number(document.order) : index + 1,
+      wave: wave,
+      registrationPath: registrationPath
+    };
+  });
+}
+
+function sanitizePaymentSettings(settings) {
+  if (settings === undefined) settings = initialConfig.paymentSettings;
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('Pengaturan pembayaran tidak valid.');
+  const gatewayUrl = String(settings.gatewayUrl || '').trim();
+  const qrisImageUrl = String(settings.qrisImageUrl || '').trim();
+  if (gatewayUrl) {
+    let gateway;
+    try { gateway = new URL(gatewayUrl); } catch (error) { throw new Error('Tautan checkout Qiospay harus menggunakan URL HTTPS yang valid.'); }
+    if (gateway.protocol !== 'https:') throw new Error('Tautan checkout Qiospay harus menggunakan HTTPS.');
+  }
+  if (qrisImageUrl && !isAllowedPublicUrl(qrisImageUrl)) throw new Error('Tautan QRIS harus menggunakan HTTPS atau file publik situs.');
+  const provider = String(settings.gatewayProvider || 'Qiospay').trim();
+  if (provider.length < 2 || provider.length > 40) throw new Error('Nama payment gateway tidak valid.');
+  return {
+    bankEnabled: settings.bankEnabled !== false,
+    bankName: String(settings.bankName || '').trim().slice(0, 80),
+    bankAccountNumber: String(settings.bankAccountNumber || '').replace(/\s/g, '').slice(0, 40),
+    bankAccountName: String(settings.bankAccountName || '').trim().slice(0, 100),
+    qrisEnabled: settings.qrisEnabled !== false,
+    qrisImageUrl: qrisImageUrl,
+    gatewayEnabled: settings.gatewayEnabled !== false,
+    gatewayProvider: provider,
+    gatewayUrl: gatewayUrl,
+    instructions: String(settings.instructions || '').trim().slice(0, 1000)
+  };
 }
 
 function isAllowedPublicUrl(value) {
@@ -227,6 +590,7 @@ function makeSheetPayload(applicant) {
     timestamp: applicant.created_at,
     wave: applicant.wave,
     waveFee: applicant.wave_fee,
+    registrationPath: applicant.registration_path || '',
     major: applicant.major,
     studentName: applicant.student_name,
     schoolOrigin: applicant.school_origin,
@@ -252,9 +616,16 @@ function makeSheetPayload(applicant) {
     motherIncome: applicant.mother_income,
     motherPhone: applicant.mother_phone,
     address: applicant.address,
+    customData: JSON.parse(applicant.custom_data_json || '{}'),
+    fieldReviews: JSON.parse(applicant.field_reviews_json || '{}'),
     documentStatus: applicant.document_status,
     selectionStatus: applicant.selection_status,
-    reenrollmentStatus: applicant.reenrollment_status
+    selectionScore: applicant.selection_score,
+    selectionNote: applicant.selection_note,
+    reenrollmentStatus: applicant.reenrollment_status,
+    paymentStatus: applicant.payment_status,
+    paymentNote: applicant.payment_note,
+    paymentReviewedAt: applicant.payment_reviewed_at
   };
 }
 
@@ -441,6 +812,32 @@ function requireAdmin(request, response, next) {
   next();
 }
 
+function setPortalCookie(request, response, token, maxAge) {
+  const secure = request.secure ? '; Secure' : '';
+  response.setHeader('Set-Cookie',
+    'spmb_portal=' + encodeURIComponent(token) + '; HttpOnly; SameSite=Strict; Path=/api/portal; Max-Age=' + maxAge + secure
+  );
+}
+
+function requirePortal(request, response, next) {
+  const token = parseCookies(request.headers.cookie).spmb_portal;
+  if (!token) return response.status(401).json({ message: 'Silakan masuk ke portal siswa.' });
+  const tokenHash = hashToken(token);
+  const session = database.prepare(`
+    SELECT s.applicant_id, s.expires_at
+    FROM portal_sessions s
+    WHERE s.token_hash = ?
+  `).get(tokenHash);
+  if (!session || session.expires_at <= Date.now()) {
+    database.prepare('DELETE FROM portal_sessions WHERE token_hash = ?').run(tokenHash);
+    setPortalCookie(request, response, '', 0);
+    return response.status(401).json({ message: 'Sesi portal berakhir. Silakan masuk kembali.' });
+  }
+  request.portalApplicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(session.applicant_id);
+  if (!request.portalApplicant) return response.status(401).json({ message: 'Data pendaftar tidak ditemukan.' });
+  next();
+}
+
 function requireRoles(roles) {
   return function (request, response, next) {
     if (!request.adminUser || !roles.includes(request.adminUser.role)) {
@@ -467,6 +864,30 @@ function cleanText(value, field, maxLength) {
   return normalized;
 }
 
+function configuredFieldValue(payload, field, maxLength, fallback) {
+  const raw = payload[field.key];
+  const value = typeof raw === 'string' ? raw.trim() : raw == null ? '' : String(raw).trim();
+  if (!field.active) return fallback || '';
+  if (!value && field.required) throw new Error('Data ' + field.label + ' wajib diisi.');
+  if (value.length > maxLength) throw new Error('Data ' + field.label + ' terlalu panjang.');
+  if (value && field.options.length && !field.options.includes(value)) {
+    throw new Error('Pilihan ' + field.label + ' tidak valid.');
+  }
+  if (value && field.pattern) {
+    let pattern;
+    try { pattern = new RegExp('^(?:' + field.pattern + ')$'); } catch (error) {
+      throw new Error('Aturan validasi field ' + field.label + ' tidak valid.');
+    }
+    if (!pattern.test(value)) throw new Error('Format ' + field.label + ' tidak valid.');
+  }
+  return value;
+}
+
+function getConfiguredField(config, key) {
+  return config.formFields.find(function (field) { return field.key === key; }) ||
+    { key: key, label: key, active: false, required: false, options: [], pattern: '' };
+}
+
 function normalizeIndonesianPhone(value) {
   const phone = String(value || '').trim();
   if (/^\+620\d+$/.test(phone)) return '+62' + phone.slice(4);
@@ -477,57 +898,83 @@ function normalizeIndonesianPhone(value) {
 
 function validateRegistration(payload) {
   const config = getConfig();
-  const wave = config.registrationWaves.find(function (item) {
-    return item.name === payload.wave && item.status === 'open';
-  });
+  if (!payload || typeof payload !== 'object') throw new Error('Data pendaftaran tidak valid.');
+  const openWaves = config.registrationWaves.filter(function (item) { return item.status === 'open'; });
+  const waveField = getConfiguredField(config, 'wave');
+  const waveName = configuredFieldValue(payload, waveField, 40, waveField.active ? '' : (openWaves[0] && openWaves[0].name));
+  const wave = config.registrationWaves.find(function (item) { return item.name === waveName && item.status === 'open'; });
   if (!wave) throw new Error('Gelombang pendaftaran yang dipilih sudah ditutup atau tidak tersedia.');
+  const pathField = getConfiguredField(config, 'registrationPath');
+  const availablePaths = config.registrationPaths.filter(function (item) {
+    return item.active && (!item.wave || item.wave === wave.name);
+  });
+  const registrationPath = configuredFieldValue(
+    payload,
+    pathField,
+    80,
+    pathField.active ? '' : (availablePaths[0] && availablePaths[0].name)
+  );
+  if (pathField.active && !availablePaths.some(function (item) { return item.name === registrationPath; })) {
+    throw new Error('Jalur pendaftaran tidak tersedia untuk gelombang yang dipilih.');
+  }
+  const majorField = getConfiguredField(config, 'major');
+  const configuredMajors = majorField.options.length ? majorField.options : programs;
+  const major = configuredFieldValue(payload, majorField, 100, majorField.active ? '' : configuredMajors[0]);
+  if (major && !configuredMajors.includes(major)) throw new Error('Program studi tidak valid.');
+  const fieldLimits = {
+    studentName: 120, schoolOrigin: 120, nisn: 10, familyCardNumber: 16, studentNik: 16,
+    gender: 20, religion: 40, birthPlace: 100, birthDate: 10, email: 254, studentPhone: 20,
+    fatherNik: 16, fatherName: 120, fatherEducation: 40, fatherOccupation: 100, fatherIncome: 80,
+    fatherPhone: 20, motherNik: 16, motherName: 120, motherEducation: 40, motherOccupation: 100,
+    motherIncome: 80, motherPhone: 20, address: 500
+  };
+  const values = {};
+  Object.keys(fieldLimits).forEach(function (key) {
+    values[key] = configuredFieldValue(payload, getConfiguredField(config, key), fieldLimits[key], '');
+  });
+  const customData = {};
+  config.formFields.filter(function (field) { return field.custom && field.active; }).forEach(function (field) {
+    const raw = payload.customData && typeof payload.customData === 'object' ? payload.customData[field.key] : '';
+    const value = typeof raw === 'string' ? raw.trim() : raw == null ? '' : String(raw).trim();
+    if (!value && field.required) throw new Error('Data ' + field.label + ' wajib diisi.');
+    if (value.length > 2000) throw new Error('Data ' + field.label + ' terlalu panjang.');
+    if (value && field.options.length && !field.options.includes(value)) throw new Error('Pilihan ' + field.label + ' tidak valid.');
+    customData[field.key] = value;
+  });
   const result = {
     wave: wave.name,
     waveFee: wave.fee,
-    major: cleanText(payload.major, 'program studi', 100),
-    studentName: cleanText(payload.studentName, 'nama siswa', 120),
-    schoolOrigin: cleanText(payload.schoolOrigin, 'asal sekolah', 120),
-    nisn: cleanText(payload.nisn, 'NISN', 10),
-    familyCardNumber: cleanText(payload.familyCardNumber, 'nomor KK', 16),
-    studentNik: cleanText(payload.studentNik, 'NIK siswa', 16),
-    gender: cleanText(payload.gender, 'jenis kelamin', 20),
-    religion: cleanText(payload.religion, 'agama', 40),
-    birthPlace: cleanText(payload.birthPlace, 'tempat lahir', 100),
-    birthDate: cleanText(payload.birthDate, 'tanggal lahir', 10),
-    email: cleanText(payload.email, 'email', 254).toLowerCase(),
-    studentPhone: String(payload.studentPhone || '').trim(),
-    fatherNik: cleanText(payload.fatherNik, 'NIK ayah', 16),
-    fatherName: cleanText(payload.fatherName, 'nama ayah', 120),
-    fatherEducation: cleanText(payload.fatherEducation, 'pendidikan ayah', 40),
-    fatherOccupation: cleanText(payload.fatherOccupation, 'pekerjaan ayah', 100),
-    fatherIncome: cleanText(payload.fatherIncome, 'penghasilan ayah', 80),
-    fatherPhone: cleanText(normalizeIndonesianPhone(payload.fatherPhone), 'telepon ayah', 20),
-    motherNik: cleanText(payload.motherNik, 'NIK ibu', 16),
-    motherName: cleanText(payload.motherName, 'nama ibu', 120),
-    motherEducation: cleanText(payload.motherEducation, 'pendidikan ibu', 40),
-    motherOccupation: cleanText(payload.motherOccupation, 'pekerjaan ibu', 100),
-    motherIncome: cleanText(payload.motherIncome, 'penghasilan ibu', 80),
-    motherPhone: cleanText(normalizeIndonesianPhone(payload.motherPhone), 'telepon ibu', 20),
-    address: cleanText(payload.address, 'alamat', 500)
+    registrationPath: registrationPath,
+    major: major,
+    customData: customData,
+    ...values
   };
-  if (!programs.includes(result.major)) throw new Error('Program studi tidak valid.');
-  if (!/^\d{10}$/.test(result.nisn)) throw new Error('NISN harus tepat 10 digit angka.');
-  ['familyCardNumber', 'studentNik', 'fatherNik', 'motherNik'].forEach(function (key) {
-    if (!/^\d{16}$/.test(result[key])) throw new Error(key + ' harus tepat 16 digit angka.');
+  result.email = result.email.toLowerCase();
+  const requiredNumericLengths = { nisn: 10, familyCardNumber: 16, studentNik: 16, fatherNik: 16, motherNik: 16 };
+  Object.keys(requiredNumericLengths).forEach(function (key) {
+    if (result[key] && !new RegExp('^\\d{' + requiredNumericLengths[key] + '}$').test(result[key])) {
+      throw new Error(getConfiguredField(config, key).label + ' harus tepat ' + requiredNumericLengths[key] + ' digit angka.');
+    }
   });
-  if (!['Laki-laki', 'Perempuan'].includes(result.gender)) throw new Error('Jenis kelamin tidak valid.');
-  if (!['Islam', 'Kristen Protestan', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'].includes(result.religion)) {
-    throw new Error('Agama tidak valid.');
-  }
-  if (!isValidBirthDate(result.birthDate)) {
-    throw new Error('Tanggal lahir tidak valid.');
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email)) throw new Error('Format email tidak valid.');
+  const defaultOptions = {
+    gender: ['Laki-laki', 'Perempuan'],
+    religion: ['Islam', 'Kristen Protestan', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'],
+    fatherEducation: initialConfig.formFields.find(function (field) { return field.key === 'fatherEducation'; }).options,
+    motherEducation: initialConfig.formFields.find(function (field) { return field.key === 'motherEducation'; }).options
+  };
+  Object.keys(defaultOptions).forEach(function (key) {
+    const field = getConfiguredField(config, key);
+    const allowed = field.options.length ? field.options : defaultOptions[key];
+    if (result[key] && !allowed.includes(result[key])) throw new Error('Pilihan ' + field.label + ' tidak valid.');
+  });
+  if (result.birthDate && !isValidBirthDate(result.birthDate)) throw new Error('Tanggal lahir tidak valid.');
+  if (result.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email)) throw new Error('Format email tidak valid.');
   if (result.studentPhone && !/^\d{10,14}$/.test(result.studentPhone)) {
     throw new Error('Nomor WhatsApp siswa harus 10–14 digit angka.');
   }
   ['fatherPhone', 'motherPhone'].forEach(function (key) {
-    if (!/^\+62\d{10,14}$/.test(result[key])) throw new Error('Nomor telepon orang tua harus berawalan +62 dan diikuti 10–14 digit.');
+    result[key] = normalizeIndonesianPhone(result[key]);
+    if (result[key] && !/^\+62\d{10,14}$/.test(result[key])) throw new Error('Nomor telepon orang tua harus berawalan +62 dan diikuti 10–14 digit.');
   });
   return result;
 }
@@ -541,88 +988,144 @@ function isValidBirthDate(value) {
 function validateApplicantUpdate(input, existing) {
   if (!input || typeof input !== 'object') throw new Error('Data pendaftar tidak valid.');
   const config = getConfig();
-  const wave = String(input.wave || '').trim();
+  const waveField = getConfiguredField(config, 'wave');
+  const wave = configuredFieldValue(input, waveField, 40, existing.wave);
   const waveConfig = config.registrationWaves.find(function (item) { return item.name === wave; });
   if (!waveConfig && wave !== existing.wave) throw new Error('Gelombang pendaftaran tidak dikenali.');
+  const registrationPath = input.registrationPath === undefined
+    ? existing.registration_path
+    : String(input.registrationPath || '').trim();
+  if (registrationPath && !config.registrationPaths.some(function (item) {
+    return item.name === registrationPath && (!item.wave || item.wave === wave);
+  })) throw new Error('Jalur pendaftaran tidak dikenali untuk gelombang tersebut.');
+  function value(key, maxLength) {
+    const column = key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    return configuredFieldValue(input, getConfiguredField(config, key), maxLength, existing[column] || '');
+  }
+  const majorField = getConfiguredField(config, 'major');
+  const majorOptions = majorField.options.length ? majorField.options : programs;
   const result = {
     wave: wave || existing.wave,
     waveFee: waveConfig ? waveConfig.fee : existing.wave_fee,
-    major: cleanText(input.major, 'program studi', 100),
-    studentName: cleanText(input.studentName, 'nama siswa', 120),
-    schoolOrigin: cleanText(input.schoolOrigin, 'asal sekolah', 120),
-    nisn: cleanText(input.nisn, 'NISN', 10),
-    familyCardNumber: cleanText(input.familyCardNumber, 'nomor KK', 16),
-    studentNik: cleanText(input.studentNik, 'NIK siswa', 16),
-    gender: cleanText(input.gender, 'jenis kelamin', 20),
-    religion: cleanText(input.religion, 'agama', 40),
-    birthPlace: cleanText(input.birthPlace, 'tempat lahir', 100),
-    birthDate: cleanText(input.birthDate, 'tanggal lahir', 10),
-    email: cleanText(input.email, 'email', 254).toLowerCase(),
-    studentPhone: String(input.studentPhone || '').trim(),
-    fatherNik: cleanText(input.fatherNik, 'NIK ayah', 16),
-    fatherName: cleanText(input.fatherName, 'nama ayah', 120),
-    fatherEducation: cleanText(input.fatherEducation, 'pendidikan ayah', 40),
-    fatherOccupation: cleanText(input.fatherOccupation, 'pekerjaan ayah', 100),
-    fatherIncome: cleanText(input.fatherIncome, 'penghasilan ayah', 80),
-    fatherPhone: cleanText(normalizeIndonesianPhone(input.fatherPhone), 'telepon ayah', 20),
-    motherNik: cleanText(input.motherNik, 'NIK ibu', 16),
-    motherName: cleanText(input.motherName, 'nama ibu', 120),
-    motherEducation: cleanText(input.motherEducation, 'pendidikan ibu', 40),
-    motherOccupation: cleanText(input.motherOccupation, 'pekerjaan ibu', 100),
-    motherIncome: cleanText(input.motherIncome, 'penghasilan ibu', 80),
-    motherPhone: cleanText(normalizeIndonesianPhone(input.motherPhone), 'telepon ibu', 20),
-    address: cleanText(input.address, 'alamat', 500)
+    registrationPath: registrationPath,
+    major: configuredFieldValue(input, majorField, 100, existing.major),
+    studentName: value('studentName', 120),
+    schoolOrigin: value('schoolOrigin', 120),
+    nisn: value('nisn', 10),
+    familyCardNumber: value('familyCardNumber', 16),
+    studentNik: value('studentNik', 16),
+    gender: value('gender', 20),
+    religion: value('religion', 40),
+    birthPlace: value('birthPlace', 100),
+    birthDate: value('birthDate', 10),
+    email: value('email', 254).toLowerCase(),
+    studentPhone: value('studentPhone', 20),
+    fatherNik: value('fatherNik', 16),
+    fatherName: value('fatherName', 120),
+    fatherEducation: value('fatherEducation', 40),
+    fatherOccupation: value('fatherOccupation', 100),
+    fatherIncome: value('fatherIncome', 80),
+    fatherPhone: normalizeIndonesianPhone(value('fatherPhone', 20)),
+    motherNik: value('motherNik', 16),
+    motherName: value('motherName', 120),
+    motherEducation: value('motherEducation', 40),
+    motherOccupation: value('motherOccupation', 100),
+    motherIncome: value('motherIncome', 80),
+    motherPhone: normalizeIndonesianPhone(value('motherPhone', 20)),
+    address: value('address', 500)
   };
-  if (!programs.includes(result.major)) throw new Error('Program studi tidak valid.');
-  if (!/^\d{10}$/.test(result.nisn)) throw new Error('NISN harus tepat 10 digit angka.');
-  ['familyCardNumber', 'studentNik', 'fatherNik', 'motherNik'].forEach(function (key) {
-    if (!/^\d{16}$/.test(result[key])) throw new Error(key + ' harus tepat 16 digit angka.');
+  if (result.major && !majorOptions.includes(result.major)) throw new Error('Program studi tidak valid.');
+  const lengths = { nisn: 10, familyCardNumber: 16, studentNik: 16, fatherNik: 16, motherNik: 16 };
+  Object.keys(lengths).forEach(function (key) {
+    if (result[key] && !new RegExp('^\\d{' + lengths[key] + '}$').test(result[key])) {
+      throw new Error(getConfiguredField(config, key).label + ' harus tepat ' + lengths[key] + ' digit angka.');
+    }
   });
-  if (!['Laki-laki', 'Perempuan'].includes(result.gender)) throw new Error('Jenis kelamin tidak valid.');
-  if (!['Islam', 'Kristen Protestan', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'].includes(result.religion)) {
-    throw new Error('Agama tidak valid.');
-  }
-  if (!isValidBirthDate(result.birthDate)) throw new Error('Tanggal lahir tidak valid.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email)) throw new Error('Format email tidak valid.');
+  const defaultOptions = {
+    gender: ['Laki-laki', 'Perempuan'],
+    religion: ['Islam', 'Kristen Protestan', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'],
+    fatherEducation: initialConfig.formFields.find(function (field) { return field.key === 'fatherEducation'; }).options,
+    motherEducation: initialConfig.formFields.find(function (field) { return field.key === 'motherEducation'; }).options
+  };
+  Object.keys(defaultOptions).forEach(function (key) {
+    const field = getConfiguredField(config, key);
+    const options = field.options.length ? field.options : defaultOptions[key];
+    if (result[key] && !options.includes(result[key])) throw new Error('Pilihan ' + field.label + ' tidak valid.');
+  });
+  if (result.birthDate && !isValidBirthDate(result.birthDate)) throw new Error('Tanggal lahir tidak valid.');
+  if (result.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email)) throw new Error('Format email tidak valid.');
   if (result.studentPhone && !/^\d{10,14}$/.test(result.studentPhone)) {
     throw new Error('Nomor WhatsApp siswa harus 10–14 digit angka.');
   }
   ['fatherPhone', 'motherPhone'].forEach(function (key) {
-    if (!/^\+62\d{10,14}$/.test(result[key])) throw new Error('Nomor telepon orang tua harus berawalan +62 dan diikuti 10–14 digit.');
+    if (result[key] && !/^\+62\d{10,14}$/.test(result[key])) throw new Error('Nomor telepon orang tua harus berawalan +62 dan diikuti 10–14 digit.');
   });
   return result;
 }
 
-function decodeUpload(upload, key) {
+function getDocumentRequirement(key, config) {
+  const configured = (config.documentRequirements || []).find(function (document) { return document.key === key; });
+  if (!configured || !configured.active) return null;
+  const legacy = uploadTypes[key];
+  return {
+    key: key,
+    label: configured.name || (legacy && legacy.label) || key,
+    photo: Boolean(legacy && legacy.photo),
+    extensions: configured.extensions,
+    maxKB: configured.maxKB
+  };
+}
+
+function decodeUpload(upload, key, definition) {
   if (!upload || typeof upload !== 'object' || typeof upload.base64 !== 'string') {
     throw new Error('Isi berkas tidak valid.');
   }
   const type = String(upload.contentType || '').toLowerCase();
-  const allowedTypes = uploadTypes[key].photo
-    ? ['image/jpeg', 'image/png']
-    : ['application/pdf', 'image/jpeg', 'image/png'];
-  if (!allowedTypes.includes(type)) throw new Error(uploadTypes[key].label + ' harus PDF, JPG, atau PNG.');
-  if (upload.base64.length > Math.ceil(maxUploadBytes * 4 / 3) + 8 ||
+  const extensionByType = {
+    'application/pdf': 'pdf',
+    'image/jpeg': path.extname(String(upload.name || '')).toLowerCase() === '.jpeg' ? 'jpeg' : 'jpg',
+    'image/png': 'png'
+  };
+  const allowedTypes = definition.extensions.map(function (extension) {
+    return extension === 'pdf' ? 'application/pdf'
+      : extension === 'png' ? 'image/png'
+        : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : '';
+  }).filter(Boolean);
+  const maxBytes = Math.min(maxUploadBytes, definition.maxKB * 1024);
+  if (!allowedTypes.includes(type) || (definition.photo && type === 'application/pdf')) {
+    throw new Error(definition.label + ' harus menggunakan format ' + definition.extensions.join(', ').toUpperCase() + '.');
+  }
+  if (upload.base64.length > Math.ceil(maxBytes * 4 / 3) + 8 ||
       !/^[A-Za-z0-9+/]+={0,2}$/.test(upload.base64)) {
-    throw new Error(uploadTypes[key].label + ' melebihi 2 MB atau datanya tidak valid.');
+    throw new Error(definition.label + ' melebihi batas ukuran atau datanya tidak valid.');
   }
   const bytes = Buffer.from(upload.base64, 'base64');
-  if (!bytes.length || bytes.length > maxUploadBytes) throw new Error(uploadTypes[key].label + ' maksimal berukuran 2 MB.');
+  if (!bytes.length || bytes.length > maxBytes) throw new Error(definition.label + ' melebihi batas ' + definition.maxKB + ' KB.');
   const signatureValid = type === 'application/pdf'
     ? bytes.subarray(0, 5).toString('ascii') === '%PDF-'
     : type === 'image/png'
       ? bytes.subarray(0, 8).toString('hex') === '89504e470d0a1a0a'
       : bytes.subarray(0, 3).toString('hex') === 'ffd8ff';
-  if (!signatureValid) throw new Error('Isi ' + uploadTypes[key].label + ' tidak sesuai dengan format filenya.');
+  if (!signatureValid || !definition.extensions.includes(extensionByType[type])) {
+    throw new Error('Isi ' + definition.label + ' tidak sesuai dengan format filenya.');
+  }
   return { bytes: bytes, type: type, originalName: path.basename(String(upload.name || 'berkas')).slice(0, 120) };
 }
 
-function createApplicantUploads(applicantId, registrationNumber, uploads, now) {
+function createApplicantUploads(applicantId, registrationNumber, uploads, now, config, applicantValues) {
   if (!uploads || typeof uploads !== 'object' || Array.isArray(uploads)) {
     throw new Error('Format unggahan tidak valid.');
   }
+  const activeDocuments = config.documentRequirements.filter(function (document) {
+    return document.active &&
+      (!document.wave || document.wave === applicantValues.wave) &&
+      (!document.registrationPath || document.registrationPath === applicantValues.registrationPath);
+  });
   Object.keys(uploads).forEach(function (key) {
-    if (!Object.prototype.hasOwnProperty.call(uploadTypes, key)) throw new Error('Jenis berkas tidak dikenali.');
+    if (!activeDocuments.some(function (document) { return document.key === key; })) throw new Error('Jenis berkas tidak dikenali.');
+  });
+  activeDocuments.forEach(function (document) {
+    if (document.required && !uploads[document.key]) throw new Error('Berkas ' + document.name + ' wajib diunggah.');
   });
   const savedFiles = [];
   if (!Object.keys(uploads).length) return savedFiles;
@@ -630,7 +1133,8 @@ function createApplicantUploads(applicantId, registrationNumber, uploads, now) {
   fs.mkdirSync(applicantDirectory, { recursive: true, mode: 0o700 });
   try {
     Object.keys(uploads).forEach(function (key) {
-      const upload = decodeUpload(uploads[key], key);
+      const definition = getDocumentRequirement(key, config);
+      const upload = decodeUpload(uploads[key], key, definition);
       const extension = upload.type === 'application/pdf' ? '.pdf' : upload.type === 'image/png' ? '.png' : '.jpg';
       const storedName = key + '-' + crypto.randomBytes(12).toString('hex') + extension;
       fs.writeFileSync(path.join(applicantDirectory, storedName), upload.bytes, { mode: 0o600, flag: 'wx' });
@@ -696,11 +1200,7 @@ app.get('/healthz', function (request, response) {
 
 app.get('/api/public-config', function (request, response) {
   const config = getConfig();
-  response.json(Object.assign({}, config, {
-    registrationWaves: config.registrationWaves.map(function (wave) {
-      return { name: wave.name, fee: wave.fee, status: wave.status };
-    })
-  }));
+  response.json(config);
 });
 
 app.post('/api/registrations', function (request, response) {
@@ -713,30 +1213,49 @@ app.post('/api/registrations', function (request, response) {
     const now = new Date().toISOString();
     const year = getConfig().academicYear.slice(0, 4);
     const applicant = withTransaction(function () {
-      const insert = database.prepare(`
-        INSERT INTO applicants (
-          wave, wave_fee, major, student_name, school_origin, nisn, family_card_number, student_nik,
-          gender, religion, birth_place, birth_date, email, student_phone, father_nik, father_name,
-          father_education, father_occupation, father_income, father_phone, mother_nik, mother_name,
-          mother_education, mother_occupation, mother_income, mother_phone, address, portal_pin_salt,
-          portal_pin_hash, document_status, selection_status, reenrollment_status, status_updated_at, created_at
-        ) VALUES (
-          @wave, @waveFee, @major, @studentName, @schoolOrigin, @nisn, @familyCardNumber, @studentNik,
-          @gender, @religion, @birthPlace, @birthDate, @email, @studentPhone, @fatherNik, @fatherName,
-          @fatherEducation, @fatherOccupation, @fatherIncome, @fatherPhone, @motherNik, @motherName,
-          @motherEducation, @motherOccupation, @motherIncome, @motherPhone, @address, @salt, @pinHash,
-          'Menunggu Verifikasi', 'Menunggu Pengumuman', 'Belum Daftar Ulang', @now, @now
-        )
-      `).run(Object.assign({}, payload, {
+      const insertValues = Object.assign({}, payload, {
+        customDataJson: JSON.stringify(payload.customData),
         salt: salt,
         pinHash: makePinHash(pin, salt),
         now: now
-      }));
+      });
+      delete insertValues.customData;
+      const insert = database.prepare(`
+        INSERT INTO applicants (
+          wave, wave_fee, registration_path, major, student_name, school_origin, nisn, family_card_number, student_nik,
+          gender, religion, birth_place, birth_date, email, student_phone, father_nik, father_name,
+          father_education, father_occupation, father_income, father_phone, mother_nik, mother_name,
+          mother_education, mother_occupation, mother_income, mother_phone, address, custom_data_json, portal_pin_salt,
+          portal_pin_hash, document_status, selection_status, reenrollment_status, status_updated_at, created_at
+        ) VALUES (
+          @wave, @waveFee, @registrationPath, @major, @studentName, @schoolOrigin, @nisn, @familyCardNumber, @studentNik,
+          @gender, @religion, @birthPlace, @birthDate, @email, @studentPhone, @fatherNik, @fatherName,
+          @fatherEducation, @fatherOccupation, @fatherIncome, @fatherPhone, @motherNik, @motherName,
+          @motherEducation, @motherOccupation, @motherIncome, @motherPhone, @address, @customDataJson, @salt, @pinHash,
+          'Menunggu Verifikasi', 'Menunggu Pengumuman', 'Belum Daftar Ulang', @now, @now
+        )
+      `).run(insertValues);
       const applicantId = Number(insert.lastInsertRowid);
       const registrationNumber = 'SPMB-' + year + '-' + String(applicantId).padStart(6, '0');
       applicantDirectory = path.join(uploadDirectory, registrationNumber);
       database.prepare('UPDATE applicants SET registration_number = ? WHERE id = ?').run(registrationNumber, applicantId);
-      createApplicantUploads(applicantId, registrationNumber, uploads.uploads, now);
+      const currentConfig = getConfig();
+      const waveConfig = currentConfig.registrationWaves.find(function (item) { return item.name === payload.wave; });
+      if (waveConfig && waveConfig.quota > 0) {
+        const waveCount = database.prepare('SELECT COUNT(*) AS count FROM applicants WHERE wave = ?').get(payload.wave).count;
+        if (waveCount > waveConfig.quota) throw new Error('Kuota pendaftaran untuk gelombang ini sudah terpenuhi.');
+      }
+      if (payload.registrationPath) {
+        const pathConfig = currentConfig.registrationPaths.find(function (item) {
+          return item.name === payload.registrationPath && (!item.wave || item.wave === payload.wave);
+        });
+        if (pathConfig && pathConfig.quota > 0) {
+          const pathCount = database.prepare('SELECT COUNT(*) AS count FROM applicants WHERE registration_path = ? AND wave = ?')
+            .get(payload.registrationPath, payload.wave).count;
+          if (pathCount > pathConfig.quota) throw new Error('Kuota jalur pendaftaran ini sudah terpenuhi.');
+        }
+      }
+      createApplicantUploads(applicantId, registrationNumber, uploads.uploads, now, getConfig(), payload);
       queueSheetSync(applicantId);
       return database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicantId);
     });
@@ -752,6 +1271,7 @@ app.post('/api/registrations', function (request, response) {
         major: applicant.major,
         email: applicant.email,
         wave: applicant.wave,
+        registrationPath: applicant.registration_path,
         schoolOrigin: applicant.school_origin
       }
     });
@@ -800,17 +1320,44 @@ app.post('/api/portal/login', function (request, response) {
     return response.status(401).json({ message: 'Nomor pendaftaran atau PIN tidak sesuai.' });
   }
   database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(registrationNumber);
-  const files = database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?').all(applicant.id);
-  const uploaded = new Set(files.map(function (file) { return file.field_key; }));
+  const config = getConfig();
+  const files = database.prepare('SELECT field_key, original_name FROM uploaded_files WHERE applicant_id = ?').all(applicant.id);
+  const uploadedFiles = new Map(files.map(function (file) { return [file.field_key, file.original_name]; }));
+  const fieldReviews = JSON.parse(applicant.field_reviews_json || '{}');
+  const customData = JSON.parse(applicant.custom_data_json || '{}');
+  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  database.prepare('DELETE FROM portal_sessions WHERE expires_at <= ?').run(Date.now());
+  const sessionToken = crypto.randomBytes(32).toString('hex');
+  const sessionExpiry = Date.now() + 2 * 60 * 60 * 1000;
+  database.prepare('INSERT INTO portal_sessions (token_hash, applicant_id, expires_at) VALUES (?, ?, ?)')
+    .run(hashToken(sessionToken), applicant.id, sessionExpiry);
+  setPortalCookie(request, response, sessionToken, 2 * 60 * 60);
+  const visibleDocuments = config.documentRequirements.filter(function (document) {
+    return document.active && (!document.wave || document.wave === applicant.wave) &&
+      (!document.registrationPath || document.registrationPath === applicant.registration_path);
+  });
+  const visibleDocumentKeys = new Set(visibleDocuments.map(function (document) { return document.key; }));
+  uploadedFiles.forEach(function (_name, key) {
+    if (key !== 'paymentProof' && !visibleDocumentKeys.has(key)) {
+      visibleDocuments.push({
+        key: key,
+        name: (uploadTypes[key] && uploadTypes[key].label) || key,
+        required: false
+      });
+    }
+  });
   response.json({
     status: 'success',
     application: {
       registrationNumber: applicant.registration_number,
       registeredAt: applicant.created_at,
-      academicYear: getConfig().academicYear,
+      academicYear: config.academicYear,
       wave: applicant.wave,
       waveFee: applicant.wave_fee,
+      registrationPath: applicant.registration_path,
       major: applicant.major,
+      customData: customData,
+      reviews: fieldReviews,
       student: {
         name: applicant.student_name,
         school: applicant.school_origin,
@@ -841,16 +1388,110 @@ app.post('/api/portal/login', function (request, response) {
         phone: applicant.mother_phone
       },
       address: applicant.address,
-      files: Object.keys(uploadTypes).map(function (key) {
-        return { key: key, label: uploadTypes[key].label, uploaded: uploaded.has(key) };
+      fields: config.formFields.filter(function (field) { return field.active; }).map(function (field) {
+        const fixed = applicant[field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); })];
+        const value = field.custom ? customData[field.key] : fixed;
+        return { key: field.key, label: field.label, value: value || '', review: fieldReviews[field.key] || null };
       }),
+      files: visibleDocuments.map(function (document) {
+        return {
+          key: document.key,
+          label: document.name,
+          uploaded: uploadedFiles.has(document.key),
+          fileName: uploadedFiles.get(document.key) || '',
+          required: document.required,
+          review: fieldReviews[document.key] || null
+        };
+      }).concat(uploadedFiles.has('paymentProof') ? [{
+        key: 'paymentProof',
+        label: 'Bukti Pembayaran Daftar Ulang',
+        uploaded: true,
+        fileName: uploadedFiles.get('paymentProof'),
+        required: true,
+        review: fieldReviews.paymentProof || null
+      }] : []),
       documentStatus: applicant.document_status,
       selectionStatus: applicant.selection_status,
-      reenrollmentStatus: applicant.reenrollment_status
+      selectionScore: applicant.selection_score,
+      selectionNote: applicant.selection_note,
+      reenrollmentStatus: applicant.reenrollment_status,
+      paymentStatus: applicant.payment_status,
+      paymentNote: applicant.payment_note,
+      paymentFee: wave ? wave.reenrollmentFee : '',
+      paymentSettings: config.paymentSettings,
+      canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
     }
   });
 });
 
+app.post('/api/portal/logout', requirePortal, function (request, response) {
+  const token = parseCookies(request.headers.cookie).spmb_portal;
+  database.prepare('DELETE FROM portal_sessions WHERE token_hash = ?').run(hashToken(token));
+  setPortalCookie(request, response, '', 0);
+  response.json({ status: 'success' });
+});
+
+app.post('/api/portal/payment-proof', requirePortal, function (request, response) {
+  const applicant = request.portalApplicant;
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(403).json({ message: 'Hanya siswa yang diterima dapat mengirim pembayaran daftar ulang.' });
+  }
+  const upload = request.body && request.body.upload;
+  const definition = { label: 'Bukti pembayaran daftar ulang', photo: false, extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048 };
+  let decoded;
+  try {
+    decoded = decodeUpload(upload, 'paymentProof', definition);
+  } catch (error) {
+    return response.status(400).json({ message: error.message || 'Bukti pembayaran tidak valid.' });
+  }
+  const extension = decoded.type === 'application/pdf' ? '.pdf' : decoded.type === 'image/png' ? '.png' : '.jpg';
+  const storedName = 'paymentProof-' + crypto.randomBytes(12).toString('hex') + extension;
+  const applicantDirectory = path.join(uploadDirectory, applicant.registration_number);
+  fs.mkdirSync(applicantDirectory, { recursive: true, mode: 0o700 });
+  const filePath = path.join(applicantDirectory, storedName);
+  try {
+    fs.writeFileSync(filePath, decoded.bytes, { mode: 0o600, flag: 'wx' });
+    const previous = database.prepare('SELECT stored_name FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
+      .get(applicant.id, 'paymentProof');
+    const now = new Date().toISOString();
+    withTransaction(function () {
+      database.prepare(`
+        INSERT INTO uploaded_files (applicant_id, field_key, stored_name, original_name, mime_type, file_size, created_at)
+        VALUES (?, 'paymentProof', ?, ?, ?, ?, ?)
+        ON CONFLICT(applicant_id, field_key) DO UPDATE SET
+          stored_name = excluded.stored_name,
+          original_name = excluded.original_name,
+          mime_type = excluded.mime_type,
+          file_size = excluded.file_size,
+          created_at = excluded.created_at
+      `).run(applicant.id, storedName, decoded.originalName, decoded.type, decoded.bytes.length, now);
+      database.prepare(`
+        UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
+          reenrollment_status = ?, status_updated_at = ?
+        WHERE id = ?
+      `).run('Menunggu Verifikasi Pembayaran', 'Belum Daftar Ulang', now, applicant.id);
+      queueSheetSync(applicant.id);
+    });
+    if (previous) {
+      const previousPath = path.join(applicantDirectory, path.basename(previous.stored_name));
+      if (previousPath !== filePath && fs.existsSync(previousPath)) {
+        try { fs.unlinkSync(previousPath); } catch (cleanupError) {
+          console.error('Payment proof cleanup failed:', cleanupError.message);
+        }
+      }
+    }
+    setImmediate(syncQueuedApplications);
+    response.json({ status: 'success', paymentStatus: 'Menunggu Verifikasi Pembayaran' });
+  } catch (error) {
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (cleanupError) {
+        console.error('Failed payment proof cleanup:', cleanupError.message);
+      }
+    }
+    console.error('Payment proof save failed:', error.message);
+    response.status(500).json({ message: 'Bukti pembayaran gagal disimpan.' });
+  }
+});
 app.post('/api/admin/login', function (request, response) {
   if (database.prepare('SELECT COUNT(*) AS count FROM admin_users').get().count === 0) {
     return response.status(503).json({ message: 'Akun Pemilik belum dibuat. Atur ADMIN_USERNAME dan ADMIN_PASSWORD di Railway.' });
@@ -1042,24 +1683,33 @@ app.put('/api/admin/config', requireAdmin, requireOwner, function (request, resp
 app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (request, response) {
   const assetTypes = {
     formPdf: { key: 'formPdfUrl', fileName: 'formulir-offline.pdf' },
-    scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf' }
+    scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf' },
+    paymentQr: { key: 'qrisImageUrl', image: true }
   };
   const asset = assetTypes[request.params.type];
   if (!asset) return response.status(400).json({ message: 'Jenis file tidak dikenali.' });
   try {
     const base64 = String(request.body && request.body.base64 || '');
-    if (!base64 || base64.length > Math.ceil(5 * 1024 * 1024 * 4 / 3) + 8 ||
+    const contentType = String(request.body && request.body.contentType || '').toLowerCase();
+    const maxBytes = asset.image ? 2 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (!base64 || base64.length > Math.ceil(maxBytes * 4 / 3) + 8 ||
         !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
-      throw new Error('PDF maksimal berukuran 5 MB.');
+      throw new Error(asset.image ? 'Gambar QRIS maksimal berukuran 2 MB.' : 'PDF maksimal berukuran 5 MB.');
     }
     const bytes = Buffer.from(base64, 'base64');
-    if (bytes.length < 5 || bytes.length > 5 * 1024 * 1024 || bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
-      throw new Error('File yang dipilih bukan PDF valid atau melebihi 5 MB.');
-    }
-    const fileName = request.params.type + '-' + crypto.randomBytes(10).toString('hex') + '.pdf';
+    const validPdf = !asset.image && bytes.length >= 5 && bytes.length <= maxBytes &&
+      bytes.subarray(0, 5).toString('ascii') === '%PDF-';
+    const validPng = asset.image && contentType === 'image/png' && bytes.length > 8 && bytes.length <= maxBytes &&
+      bytes.subarray(0, 8).toString('hex') === '89504e470d0a1a0a';
+    const validJpeg = asset.image && contentType === 'image/jpeg' && bytes.length > 3 && bytes.length <= maxBytes &&
+      bytes.subarray(0, 3).toString('hex') === 'ffd8ff';
+    if (!validPdf && !validPng && !validJpeg) throw new Error(asset.image ? 'Pilih gambar QRIS PNG atau JPG valid (maksimal 2 MB).' : 'File yang dipilih bukan PDF valid atau melebihi 5 MB.');
+    const extension = validPng ? '.png' : validJpeg ? '.jpg' : '.pdf';
+    const fileName = request.params.type + '-' + crypto.randomBytes(10).toString('hex') + extension;
     fs.writeFileSync(path.join(publicFileDirectory, fileName), bytes, { mode: 0o644, flag: 'wx' });
     const config = getConfig();
-    config[asset.key] = '/public-files/' + fileName;
+    if (asset.image) config.paymentSettings.qrisImageUrl = '/public-files/' + fileName;
+    else config[asset.key] = '/public-files/' + fileName;
     const safeConfig = sanitizeConfig(config);
     database.prepare(`
       INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
@@ -1067,12 +1717,13 @@ app.post('/api/admin/assets/:type', requireAdmin, requireOwner, function (reques
     `).run(JSON.stringify(safeConfig));
     response.json(safeConfig);
   } catch (error) {
-    response.status(400).json({ message: error.message || 'PDF gagal diunggah.' });
+    response.status(400).json({ message: error.message || 'File gagal diunggah.' });
   }
 });
 
 app.get('/api/admin/applications', requireAdmin, function (request, response) {
   const isViewer = request.adminUser.role === 'viewer';
+  const config = getConfig();
   const applicants = database.prepare('SELECT * FROM applicants ORDER BY id DESC LIMIT 500').all();
   const getFiles = database.prepare('SELECT field_key, original_name, file_size FROM uploaded_files WHERE applicant_id = ?');
   const results = applicants.map(function (applicant) {
@@ -1080,16 +1731,21 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
       id: applicant.id,
       registration_number: applicant.registration_number,
       wave: applicant.wave,
+      registration_path: applicant.registration_path,
       major: applicant.major,
       student_name: applicant.student_name,
       document_status: applicant.document_status,
       selection_status: applicant.selection_status,
+      selection_score: applicant.selection_score,
       reenrollment_status: applicant.reenrollment_status,
+      payment_status: applicant.payment_status,
       sheet_sync_status: applicant.sheet_sync_status,
       created_at: applicant.created_at
     };
     if (!isViewer) {
       Object.assign(result, {
+        selection_note: applicant.selection_note,
+        payment_note: applicant.payment_note,
         wave_fee: applicant.wave_fee,
         school_origin: applicant.school_origin,
         nisn: applicant.nisn,
@@ -1114,14 +1770,21 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
         mother_income: applicant.mother_income,
         mother_phone: applicant.mother_phone,
         address: applicant.address,
+        custom_data: JSON.parse(applicant.custom_data_json || '{}'),
+        field_reviews: JSON.parse(applicant.field_reviews_json || '{}'),
         files: getFiles.all(applicant.id).map(function (file) {
-        return {
-          key: file.field_key,
-          label: uploadTypes[file.field_key].label,
-          name: file.original_name,
-          size: file.file_size,
-          url: '/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/files/' + file.field_key
-        };
+          const requirement = getDocumentRequirement(file.field_key, config);
+          const label = file.field_key === 'paymentProof'
+            ? 'Bukti Pembayaran Daftar Ulang'
+            : requirement ? requirement.label : (uploadTypes[file.field_key] && uploadTypes[file.field_key].label) || file.field_key;
+          return {
+            key: file.field_key,
+            label: label,
+            name: file.original_name,
+            size: file.file_size,
+            review: JSON.parse(applicant.field_reviews_json || '{}')[file.field_key] || null,
+            url: '/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/files/' + file.field_key
+          };
         })
       });
     } else {
@@ -1135,11 +1798,33 @@ app.get('/api/admin/applications', requireAdmin, function (request, response) {
       SUM(CASE WHEN document_status = 'Menunggu Verifikasi' THEN 1 ELSE 0 END) AS pending,
       SUM(CASE WHEN document_status = 'Berkas Terverifikasi' THEN 1 ELSE 0 END) AS verified,
       SUM(CASE WHEN document_status = 'Perlu Perbaikan' THEN 1 ELSE 0 END) AS revisions,
-      SUM(CASE WHEN selection_status = 'Diterima' THEN 1 ELSE 0 END) AS accepted,
+      SUM(CASE WHEN selection_status IN ('Diterima', 'Diterima / Lulus') THEN 1 ELSE 0 END) AS accepted,
+      SUM(CASE WHEN selection_status = 'Cadangan' THEN 1 ELSE 0 END) AS reserves,
+      SUM(CASE WHEN payment_status = 'Menunggu Verifikasi Pembayaran' THEN 1 ELSE 0 END) AS paymentPending,
+      SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
     FROM applicants
   `).get();
-  response.json({ applicants: results, totals: totals });
+  const academicStart = Number(config.academicYear.slice(0, 4));
+  const monthly = database.prepare(`
+    SELECT substr(created_at, 1, 7) AS month, COUNT(*) AS count
+    FROM applicants
+    WHERE created_at >= ? AND created_at < ?
+    GROUP BY substr(created_at, 1, 7)
+    ORDER BY month
+  `).all(academicStart + '-07-01T00:00:00.000Z', (academicStart + 1) + '-07-01T00:00:00.000Z');
+  response.json({
+    applicants: results,
+    totals: totals,
+    monthly: monthly,
+    academicYear: config.academicYear,
+    reviewConfig: isViewer ? null : {
+      formFields: config.formFields,
+      documentRequirements: config.documentRequirements,
+      registrationWaves: config.registrationWaves,
+      registrationPaths: config.registrationPaths
+    }
+  });
 });
 
 app.put('/api/admin/applications/:registrationNumber', requireAdmin, requireOperator, function (request, response) {
@@ -1148,13 +1833,14 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requireOper
   if (!existing) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
   try {
     const updated = validateApplicantUpdate(request.body, existing);
-    const duplicate = database.prepare(
-      'SELECT id FROM applicants WHERE (nisn = ? OR student_nik = ?) AND id <> ?'
-    ).get(updated.nisn, updated.studentNik, existing.id);
+    const duplicate = database.prepare(`
+      SELECT id FROM applicants
+      WHERE ((? <> '' AND nisn = ?) OR (? <> '' AND student_nik = ?)) AND id <> ?
+    `).get(updated.nisn, updated.nisn, updated.studentNik, updated.studentNik, existing.id);
     if (duplicate) return response.status(409).json({ message: 'NISN atau NIK tersebut sudah dipakai pendaftar lain.' });
     database.prepare(`
       UPDATE applicants SET
-        wave = @wave, wave_fee = @waveFee, major = @major, student_name = @studentName,
+        wave = @wave, wave_fee = @waveFee, registration_path = @registrationPath, major = @major, student_name = @studentName,
         school_origin = @schoolOrigin, nisn = @nisn, family_card_number = @familyCardNumber,
         student_nik = @studentNik, gender = @gender, religion = @religion, birth_place = @birthPlace,
         birth_date = @birthDate, email = @email, student_phone = @studentPhone,
@@ -1204,7 +1890,7 @@ app.get('/api/admin/export.csv', requireAdmin, requireOperator, function (reques
 
 app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, requireOperator, function (request, response) {
   const key = request.params.key;
-  if (!Object.prototype.hasOwnProperty.call(uploadTypes, key)) return response.status(404).end();
+  if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key)) return response.status(404).end();
   const applicant = getApplicantByRegistration(request.params.registrationNumber);
   if (!applicant) return response.status(404).end();
   const file = database.prepare('SELECT * FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
@@ -1224,21 +1910,112 @@ app.get('/api/admin/applications/:registrationNumber/files/:key', requireAdmin, 
 app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requireOperator, function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const statuses = request.body || {};
-  if (!documentStatuses.includes(statuses.documentStatus) ||
-      !selectionStatuses.includes(statuses.selectionStatus) ||
-      !reenrollmentStatuses.includes(statuses.reenrollmentStatus)) {
-    return response.status(400).json({ message: 'Status pendaftaran tidak valid.' });
-  }
   const applicant = getApplicantByRegistration(registrationNumber);
   if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
+  const documentStatus = statuses.documentStatus === undefined ? applicant.document_status : statuses.documentStatus;
+  const selectionStatus = statuses.selectionStatus === undefined ? applicant.selection_status : statuses.selectionStatus;
+  if (!documentStatuses.includes(documentStatus) || !selectionStatuses.includes(selectionStatus)) {
+    return response.status(400).json({ message: 'Status pendaftaran tidak valid.' });
+  }
+  const score = String(statuses.selectionScore == null ? applicant.selection_score : statuses.selectionScore).trim();
+  if (score && (!/^\d{1,4}(\.\d{1,2})?$/.test(score) || Number(score) > 1000)) {
+    return response.status(400).json({ message: 'Nilai seleksi harus berupa angka antara 0 sampai 1000.' });
+  }
+  const isAccepted = ['Diterima / Lulus', 'Diterima'].includes(selectionStatus);
+  const now = new Date().toISOString();
   database.prepare(`
     UPDATE applicants
-    SET document_status = ?, selection_status = ?, reenrollment_status = ?, status_updated_at = ?
+    SET document_status = ?, selection_status = ?, selection_score = ?, selection_note = ?,
+      payment_status = CASE WHEN ? THEN payment_status ELSE 'Belum Daftar Ulang' END,
+      payment_note = CASE WHEN ? THEN payment_note ELSE '' END,
+      payment_reviewed_at = CASE WHEN ? THEN payment_reviewed_at ELSE '' END,
+      reenrollment_status = CASE WHEN ? THEN reenrollment_status ELSE 'Belum Daftar Ulang' END,
+      status_updated_at = ?
     WHERE id = ?
-  `).run(statuses.documentStatus, statuses.selectionStatus, statuses.reenrollmentStatus, new Date().toISOString(), applicant.id);
+  `).run(
+    documentStatus, selectionStatus, score,
+    String(statuses.selectionNote || '').trim().slice(0, 1000),
+    isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
+    now, applicant.id
+  );
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
   response.json({ status: 'success' });
+});
+
+app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, requireOperator, function (request, response) {
+  const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
+  const applicant = getApplicantByRegistration(registrationNumber);
+  if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
+  const body = request.body || {};
+  const itemKey = String(body.itemKey || '').trim();
+  const itemType = String(body.itemType || '');
+  const status = String(body.status || '');
+  const note = typeof body.note === 'string' ? body.note.trim().slice(0, 1000) : '';
+  if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(itemKey) || !['field', 'document'].includes(itemType) ||
+      !['pending', 'verified', 'revision'].includes(status)) {
+    return response.status(400).json({ message: 'Data verifikasi tidak valid.' });
+  }
+  const config = getConfig();
+  const item = itemType === 'field'
+    ? config.formFields.find(function (field) { return field.key === itemKey && field.active; })
+    : config.documentRequirements.find(function (document) { return document.key === itemKey && document.active; });
+  if (!item) return response.status(404).json({ message: 'Field atau dokumen tidak ditemukan.' });
+  const reviews = JSON.parse(applicant.field_reviews_json || '{}');
+  reviews[itemKey] = { status: status, note: note, updatedAt: new Date().toISOString() };
+  const customData = JSON.parse(applicant.custom_data_json || '{}');
+  const itemsToReview = config.formFields.filter(function (field) {
+    if (!field.active) return false;
+    const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    const value = field.custom ? customData[field.key] : applicant[column];
+    return field.required || Boolean(value);
+  }).map(function (field) { return field.key; });
+  const uploaded = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
+    .all(applicant.id).map(function (file) { return file.field_key; }));
+  config.documentRequirements.filter(function (document) {
+    return document.active && (document.required || uploaded.has(document.key)) &&
+      (!document.wave || document.wave === applicant.wave) &&
+      (!document.registrationPath || document.registrationPath === applicant.registration_path);
+  }).forEach(function (document) { itemsToReview.push(document.key); });
+  const reviewStatuses = itemsToReview.map(function (key) { return reviews[key] && reviews[key].status; });
+  const documentStatus = reviewStatuses.includes('revision')
+    ? 'Perlu Perbaikan'
+    : reviewStatuses.length > 0 && reviewStatuses.every(function (value) { return value === 'verified'; })
+      ? 'Berkas Terverifikasi'
+      : 'Menunggu Verifikasi';
+  database.prepare('UPDATE applicants SET field_reviews_json = ?, document_status = ?, status_updated_at = ? WHERE id = ?')
+    .run(JSON.stringify(reviews), documentStatus, new Date().toISOString(), applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', documentStatus: documentStatus });
+});
+
+app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, requireOperator, function (request, response) {
+  const applicant = getApplicantByRegistration(String(request.params.registrationNumber || '').toUpperCase());
+  if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(400).json({ message: 'Daftar ulang hanya tersedia bagi siswa yang diterima.' });
+  }
+  const decision = request.body && request.body.decision;
+  const note = typeof (request.body && request.body.note) === 'string'
+    ? request.body.note.trim().slice(0, 1000)
+    : '';
+  if (!['approve', 'revision'].includes(decision)) return response.status(400).json({ message: 'Keputusan pembayaran tidak valid.' });
+  if (decision === 'approve' && !database.prepare(
+    'SELECT 1 FROM uploaded_files WHERE applicant_id = ? AND field_key = ?'
+  ).get(applicant.id, 'paymentProof')) {
+    return response.status(400).json({ message: 'Bukti pembayaran belum diunggah.' });
+  }
+  const now = new Date().toISOString();
+  const paymentStatus = decision === 'approve' ? 'Pembayaran Terverifikasi' : 'Perlu Perbaikan';
+  const reenrollmentStatus = decision === 'approve' ? 'Daftar Ulang Selesai' : 'Belum Daftar Ulang';
+  database.prepare(`
+    UPDATE applicants SET payment_status = ?, payment_note = ?, payment_reviewed_at = ?,
+      reenrollment_status = ?, status_updated_at = ? WHERE id = ?
+  `).run(paymentStatus, note, now, reenrollmentStatus, now, applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', paymentStatus: paymentStatus, reenrollmentStatus: reenrollmentStatus });
 });
 
 app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, requireOperator, function (request, response) {
@@ -1277,9 +2054,11 @@ app.use('/assets', express.static(path.join(__dirname, 'assets'), { fallthrough:
 app.get('/public-files/:fileName', function (request, response) {
   const fileName = path.basename(request.params.fileName);
   const filePath = path.join(publicFileDirectory, fileName);
-  if (!fileName.endsWith('.pdf') || !fs.existsSync(filePath)) return response.status(404).end();
+  const contentTypes = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg' };
+  const contentType = contentTypes[path.extname(fileName).toLowerCase()];
+  if (!contentType || !fs.existsSync(filePath)) return response.status(404).end();
   response.setHeader('Cache-Control', 'public, max-age=3600');
-  response.type('application/pdf');
+  response.type(contentType);
   response.sendFile(filePath);
 });
 app.get('/', function (request, response) {
@@ -1295,6 +2074,7 @@ app.get(['/admin', '/admin.html'], function (request, response) {
 app.use(function (error, request, response, next) {
   if (response.headersSent) return next(error);
   const status = error.status || 500;
+  console.error('Unhandled request error:', error.message || error);
   response.status(status).json({
     message: status === 413 ? 'Total berkas melebihi batas ukuran permintaan.'
       : status === 404 ? 'File atau halaman tidak ditemukan.'
