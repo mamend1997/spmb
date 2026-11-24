@@ -69,14 +69,14 @@
         <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3.75h7l4 4v12.5H7a2 2 0 0 1-2-2v-13a1.5 1.5 0 0 1 2-1.5Z"/><path d="M14 4v4h4M9 13h6M9 16.5h6"/></svg>
         Formulir SPMB
       </button>
-      <button id="print-button" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-700">
+      <a href="/assets/spmb-formulir-offline.pdf" target="_blank" rel="noopener noreferrer" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-700">
         <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 8V3.75h10V8M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v6.25H7zM17.5 11.5h.01"/></svg>
         Formulir Offline (Print)
-      </button>
-      <button id="scholarship-button" type="button" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-700" aria-haspopup="dialog">
+      </a>
+      <a href="/assets/informasi-beasiswa.pdf" target="_blank" rel="noopener noreferrer" class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-700">
         <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 11.2v5.3c3.1 2.3 6.9 2.3 10 0v-5.3M21 9v6"/></svg>
         Informasi Beasiswa
-      </button>
+      </a>
     </div>
 
     <section id="form-card" class="overflow-hidden rounded-xl border border-slate-100 border-t-2 border-t-orange-500 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
@@ -272,10 +272,6 @@
       document.getElementById('submit-icon').classList.toggle('hidden', loading);
     }
 
-    document.getElementById('print-button').addEventListener('click', function () { window.print(); });
-    document.getElementById('scholarship-button').addEventListener('click', function () {
-      showModal('Informasi Beasiswa', 'Informasi mengenai program dan persyaratan beasiswa SPMB dapat ditanyakan langsung kepada panitia melalui Contact Person SPMB. Pantau saluran resmi sekolah untuk pengumuman terbaru.', false);
-    });
     document.getElementById('modal-close').addEventListener('click', function () {
       modal.classList.add('hidden');
       modal.classList.remove('flex');

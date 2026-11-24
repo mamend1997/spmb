@@ -2,6 +2,8 @@
 
 Landing page formulir pendaftaran responsif menggunakan HTML, Tailwind CSS CDN, dan Vanilla JavaScript. Data dikirim ke Google Sheets melalui Google Apps Script Web App. Situs dapat dideploy sebagai website statis di Vercel; server Node.js bawaan juga tersedia untuk menjalankan pratinjau lokal.
 
+Tombol **Formulir Offline (Print)** dan **Informasi Beasiswa** membuka PDF terkait di tab baru agar dapat dicetak atau disimpan dari penampil PDF browser.
+
 ## Menjalankan lokal
 
 Gunakan Node.js 18 atau lebih baru:
