@@ -2705,6 +2705,19 @@ app.get(['/admin', '/admin.html'], function (request, response) {
 app.get('/admin/pendaftar/:registrationNumber', function (request, response) {
   response.sendFile(path.join(__dirname, 'Admin.html'));
 });
+app.get('/admin/:section', function (request, response) {
+  if (!['dashboard', 'pendaftar', 'manajemen-akun'].includes(request.params.section)) {
+    return response.status(404).end();
+  }
+  response.sendFile(path.join(__dirname, 'Admin.html'));
+});
+app.get('/admin/master-data/:section', function (request, response) {
+  if (!['form-pendaftaran', 'gelombang-pendaftaran', 'jalur-pendaftaran',
+    'timeline-beranda', 'metode-pembayaran', 'dokumen-sekolah'].includes(request.params.section)) {
+    return response.status(404).end();
+  }
+  response.sendFile(path.join(__dirname, 'Admin.html'));
+});
 
 app.use(function (error, request, response, next) {
   if (response.headersSent) return next(error);

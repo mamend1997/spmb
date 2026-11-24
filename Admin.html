@@ -176,7 +176,6 @@
     .detail-hero-badges { gap: 5px; }
     .detail-chip { display: inline-flex; max-width: 100%; padding: 4px 8px; overflow-wrap: anywhere; border: 1px solid #e5eaf0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 12px; font-weight: 700; }
     .detail-access { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-    .detail-access-note { max-width: 140px; color: #64748b; font-size: 12px; line-height: 1.5; }
     .detail-access a { display: inline-flex; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #dbe3ec; border-radius: 8px; color: #334155; background: white; font-size: 12px; font-weight: 700; text-decoration: none; }
     .detail-hero-actions .detail-verify-all { background: #15925b; }
     .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 10px; }
@@ -589,7 +588,6 @@
             </div>
           </div>
           <div class="detail-access">
-            <span class="detail-access-note">PIN portal tersimpan aman dan tidak dapat ditampilkan. Siswa masuk menggunakan kartu pendaftaran.</span>
             <a id="detail-whatsapp" class="secondary" href="#" target="_blank" rel="noopener noreferrer" hidden>WhatsApp</a>
           </div>
           <div class="detail-hero-actions" data-detail-edit-actions>
@@ -954,6 +952,41 @@
       return '';
     }
 
+    const adminPageSlugs = {
+      'dashboard-page': 'dashboard',
+      'applications-page': 'pendaftar',
+      'accounts-page': 'manajemen-akun'
+    };
+    const adminMasterSlugs = {
+      form: 'form-pendaftaran',
+      waves: 'gelombang-pendaftaran',
+      paths: 'jalur-pendaftaran',
+      timeline: 'timeline-beranda',
+      payment: 'metode-pembayaran',
+      documents: 'dokumen-sekolah'
+    };
+
+    function adminPagePath(pageId, anchorId) {
+      if (pageId === 'master-page') {
+        return '/admin/master-data/' + (adminMasterSlugs[anchorId] ? adminMasterSlugs[anchorId] : adminMasterSlugs.form);
+      }
+      return '/admin/' + (adminPageSlugs[pageId] || adminPageSlugs['dashboard-page']);
+    }
+
+    function adminPageFromPath(pathname) {
+      const path = pathname.replace(/\/+$/, '') || '/admin';
+      const pageEntry = Object.keys(adminPageSlugs).find(function (pageId) {
+        return path === '/admin/' + adminPageSlugs[pageId];
+      });
+      if (pageEntry) return { pageId: pageEntry };
+      const masterEntry = Object.keys(adminMasterSlugs).find(function (anchorId) {
+        return path === '/admin/master-data/' + adminMasterSlugs[anchorId];
+      });
+      if (masterEntry) return { pageId: 'master-page', anchorId: masterEntry };
+      if (path === '/admin' || path === '/admin.html') return { pageId: 'dashboard-page' };
+      return null;
+    }
+
     function applyRolePermissions() {
       if (!currentUser) return;
       document.querySelectorAll('[data-admin-roles]').forEach(function (element) {
@@ -983,25 +1016,26 @@
         const available = ['dashboard-page', 'applications-page'].find(function (pageId) {
           return canAdmin(pagePermissionMenu(pageId), 'view');
         });
-        if (available) setAdminPage(available);
+        if (available) setAdminPage(available, undefined, false);
         else {
           const masterMenu = masterMenus.find(function (menu) { return canAdmin(menu, 'view'); });
-          if (masterMenu) setAdminPage('master-page', masterMenu);
-          else if (canAdmin('accounts', 'view')) setAdminPage('accounts-page');
+          if (masterMenu) setAdminPage('master-page', masterMenu, false);
+          else if (canAdmin('accounts', 'view')) setAdminPage('accounts-page', undefined, false);
         }
       }
     }
 
-    function setAdminPage(pageId, anchorId) {
+    function setAdminPage(pageId, anchorId, updateHistory) {
       const permissionMenu = pagePermissionMenu(pageId, anchorId);
       if (!permissionMenu || !canAdmin(permissionMenu, 'view')) return;
+      const path = adminPagePath(pageId, anchorId);
+      if (updateHistory !== false && window.location.pathname !== path) {
+        window.history.pushState({ adminPage: pageId, masterAnchor: anchorId || '' }, '', path);
+      }
       applicantDetailPage.hidden = true;
       adminSidebar.hidden = false;
       adminLayout.classList.remove('detail-layout-active');
       currentDetailRegistrationNumber = '';
-      if (window.location.pathname.indexOf('/admin/pendaftar/') === 0) {
-        window.history.replaceState({ adminPage: pageId }, '', '/admin');
-      }
       document.querySelectorAll('.admin-page').forEach(function (page) { page.hidden = page.id !== pageId; });
       document.querySelectorAll('[data-page-target]').forEach(function (button) {
         button.classList.toggle('active', button.dataset.pageTarget === pageId &&
@@ -1921,6 +1955,10 @@
         studentReviewStatus === 'Terverifikasi' ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
       applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="verified"]').textContent =
         parentReviewStatus === 'Terverifikasi' ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
+      applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="revision"]').hidden =
+        studentReviewStatus === 'Terverifikasi';
+      applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="revision"]').hidden =
+        parentReviewStatus === 'Terverifikasi';
       document.getElementById('detail-readonly-notice').hidden = !readOnly;
       document.querySelectorAll('[data-detail-edit-actions]').forEach(function (element) { element.hidden = readOnly; });
       document.getElementById('detail-selection-button').hidden = readOnly;
@@ -1973,8 +2011,12 @@
             review && review.status === 'verified' ? '✓ Data telah diverifikasi valid' : '✓ Terima Dokumen',
             config.key, 'document', 'verified', 'detail-verified'
           );
+          const revisionButton = createDetailReviewButton(
+            '✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'
+          );
+          revisionButton.hidden = Boolean(review && review.status === 'verified');
           actions.append(
-            createDetailReviewButton('✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'),
+            revisionButton,
             verifyButton
           );
           card.appendChild(actions);
@@ -2065,17 +2107,29 @@
 
     function showRouteFromLocation() {
       const match = window.location.pathname.match(/^\/admin\/pendaftar\/(SPMB-\d{4}-\d{6})\/?$/i);
-      if (!match) {
-        if (!applicantDetailPage.hidden) setAdminPage('applications-page');
+      if (match) {
+        const applicant = applicants.find(function (item) {
+          return item.registration_number.toUpperCase() === match[1].toUpperCase();
+        });
+        if (applicant) showApplicantDetail(applicant, false);
+        else if (currentUser && canAdmin('applications', 'view')) {
+          setAdminPage('applications-page', undefined, false);
+          setStatus('applications-status', 'Data pendaftar tidak ditemukan atau tidak dapat diakses.', 'error');
+        }
         return;
       }
-      const applicant = applicants.find(function (item) {
-        return item.registration_number.toUpperCase() === match[1].toUpperCase();
-      });
-      if (applicant) showApplicantDetail(applicant, false);
-      else if (currentUser && canAdmin('applications', 'view')) {
-        setAdminPage('applications-page');
-        setStatus('applications-status', 'Data pendaftar tidak ditemukan atau tidak dapat diakses.', 'error');
+      const route = adminPageFromPath(window.location.pathname);
+      if (!route) return;
+      setAdminPage(route.pageId, route.anchorId, false);
+      if (window.location.pathname === '/admin' || window.location.pathname === '/admin.html') {
+        const activePage = document.querySelector('.admin-page:not([hidden])');
+        const activeMasterButton = document.querySelector('[data-page-target="master-page"].active');
+        if (activePage) {
+          const anchorId = activePage.id === 'master-page' && activeMasterButton
+            ? activeMasterButton.dataset.masterAnchor : '';
+          const path = adminPagePath(activePage.id, anchorId);
+          window.history.replaceState({ adminPage: activePage.id, masterAnchor: anchorId }, '', path);
+        }
       }
     }
 
@@ -2612,6 +2666,7 @@
         document.getElementById('admin-password').value = '';
         showDashboard();
         await loadAll();
+        showRouteFromLocation();
       } catch (error) {
         setStatus('login-status', error.message, 'error');
       } finally {
