@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin SPMB SMK PGRI Cikoneng</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #1f2937; background: #f8f9fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 24px 16px; }
+    main { width: min(100%, 720px); margin: 0 auto; }
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 30px #0f172a0d; padding: 24px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 22px; }
+    h2 { margin: 24px 0 12px; font-size: 16px; }
+    p { color: #64748b; font-size: 14px; line-height: 1.6; }
+    label { display: block; margin: 16px 0 6px; font-size: 13px; font-weight: 700; }
+    input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: inherit; }
+    input:focus { border-color: #ea580c; outline: 3px solid #f9731626; }
+    button { min-height: 44px; border: 0; border-radius: 8px; padding: 10px 16px; color: white; background: #ea580c; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    button.secondary { color: #334155; background: #f1f5f9; }
+    .full { width: 100%; margin-top: 20px; }
+    .hidden { display: none !important; }
+    .muted { margin: 6px 0 0; font-size: 12px; color: #64748b; }
+    .file-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+    .file-row a { color: #c2410c; font-size: 13px; font-weight: 700; }
+    #status { min-height: 22px; margin: 12px 0 0; font-size: 13px; }
+    p.error { color: #b91c1c; }
+    p.success { color: #15803d; }
+    @media (max-width: 480px) {
+      body { padding: 14px 10px; }
+      .card { padding: 18px 16px; border-radius: 12px; }
+      h1 { font-size: 19px; }
+      .file-row { align-items: stretch; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="login-card" class="card">
+      <header><h1>Admin SPMB</h1></header>
+      <p>Masuk dengan token admin untuk mengatur halaman pendaftaran.</p>
+      <form id="login-form">
+        <label for="admin-token">Token admin</label>
+        <input id="admin-token" type="password" autocomplete="current-password" minlength="32" required>
+        <button id="login-button" class="full" type="submit">Masuk</button>
+      </form>
+      <p id="login-status" role="status"></p>
+    </section>
+
+    <section id="settings-card" class="card hidden">
+      <header>
+        <h1>Pengaturan Halaman SPMB</h1>
+        <button id="logout-button" class="secondary" type="button">Keluar</button>
+      </header>
+      <p>Perubahan tersimpan sebagai pengaturan publik. Pastikan informasi dan dokumen sudah benar sebelum disimpan.</p>
+
+      <form id="settings-form">
+        <label for="page-title">Judul halaman</label>
+        <input id="page-title" maxlength="120" required>
+
+        <label for="academic-year">Tahun ajaran</label>
+        <input id="academic-year" placeholder="2027/2028" pattern="[0-9]{4}/[0-9]{4}" required>
+
+        <h2>Dokumen PDF</h2>
+        <label for="form-pdf">Formulir Offline (Print)</label>
+        <input id="form-pdf" type="file" accept="application/pdf,.pdf">
+        <p class="muted">Format PDF, maksimal 5 MB.</p>
+        <div class="file-row"><a id="form-pdf-current" href="#" target="_blank" rel="noopener noreferrer">Lihat file saat ini</a><button type="button" class="upload-button secondary" data-asset="formPdf">Unggah formulir PDF</button></div>
+
+        <label for="scholarship-pdf">Informasi Beasiswa</label>
+        <input id="scholarship-pdf" type="file" accept="application/pdf,.pdf">
+        <p class="muted">Format PDF, maksimal 5 MB.</p>
+        <div class="file-row"><a id="scholarship-pdf-current" href="#" target="_blank" rel="noopener noreferrer">Lihat file saat ini</a><button type="button" class="upload-button secondary" data-asset="scholarshipPdf">Unggah PDF beasiswa</button></div>
+
+        <h2>Contact Person</h2>
+        <label for="contact-label">Nama tombol contact person</label>
+        <input id="contact-label" maxlength="60" required>
+        <label for="contact-url">Link Contact Person (HTTPS)</label>
+        <input id="contact-url" type="url" placeholder="https://..." required>
+
+        <button id="save-button" class="full" type="submit">Simpan Pengaturan</button>
+      </form>
+      <p id="settings-status" role="status"></p>
+    </section>
+  </main>
+
+  <script>
+    const loginCard = document.getElementById('login-card');
+    const settingsCard = document.getElementById('settings-card');
+    const loginStatus = document.getElementById('login-status');
+    const settingsStatus = document.getElementById('settings-status');
+    const loginButton = document.getElementById('login-button');
+    const saveButton = document.getElementById('save-button');
+    const MAX_PDF_SIZE = 5 * 1024 * 1024;
+    let adminToken = sessionStorage.getItem('spmbAdminToken') || '';
+
+    function setStatus(element, message, isError) {
+      element.textContent = message;
+      element.className = isError ? 'error' : 'success';
+    }
+
+    function showLogin() {
+      loginCard.classList.remove('hidden');
+      settingsCard.classList.add('hidden');
+    }
+
+    function showSettings(config) {
+      document.getElementById('page-title').value = config.pageTitle;
+      document.getElementById('academic-year').value = config.academicYear;
+      document.getElementById('contact-label').value = config.contactLabel;
+      document.getElementById('contact-url').value = config.contactUrl;
+      setCurrentFile('form-pdf-current', config.formPdfUrl);
+      setCurrentFile('scholarship-pdf-current', config.scholarshipPdfUrl);
+      loginCard.classList.add('hidden');
+      settingsCard.classList.remove('hidden');
+    }
+
+    function setCurrentFile(id, url) {
+      const link = document.getElementById(id);
+      link.dataset.url = url;
+      link.href = url;
+      link.classList.toggle('hidden', !/^https:\/\//i.test(url));
+    }
+
+    function loadSettings(token) {
+      google.script.run
+        .withSuccessHandler(function (config) {
+          adminToken = token;
+          sessionStorage.setItem('spmbAdminToken', token);
+          showSettings(config);
+        })
+        .withFailureHandler(function (error) {
+          adminToken = '';
+          sessionStorage.removeItem('spmbAdminToken');
+          showLogin();
+          setStatus(loginStatus, error.message || 'Gagal memuat pengaturan.', true);
+        })
+        .getAdminConfig(token);
+    }
+
+    document.getElementById('login-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      const token = document.getElementById('admin-token').value;
+      loginButton.disabled = true;
+      setStatus(loginStatus, 'Memeriksa token...', false);
+      google.script.run
+        .withSuccessHandler(function () {
+          document.getElementById('admin-token').value = '';
+          loadSettings(token);
+        })
+        .withFailureHandler(function (error) {
+          setStatus(loginStatus, error.message || 'Token admin tidak valid.', true);
+          loginButton.disabled = false;
+        })
+        .verifyAdminToken(token);
+    });
+
+    document.getElementById('settings-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      saveButton.disabled = true;
+      setStatus(settingsStatus, 'Menyimpan pengaturan...', false);
+      const config = {
+        pageTitle: document.getElementById('page-title').value.trim(),
+        academicYear: document.getElementById('academic-year').value.trim(),
+        formPdfUrl: document.getElementById('form-pdf-current').dataset.url,
+        scholarshipPdfUrl: document.getElementById('scholarship-pdf-current').dataset.url,
+        contactLabel: document.getElementById('contact-label').value.trim(),
+        contactUrl: document.getElementById('contact-url').value.trim()
+      };
+      google.script.run
+        .withSuccessHandler(function (savedConfig) {
+          showSettings(savedConfig);
+          setStatus(settingsStatus, 'Pengaturan berhasil disimpan. Muat ulang halaman pendaftaran untuk melihat perubahan.', false);
+          saveButton.disabled = false;
+        })
+        .withFailureHandler(function (error) {
+          setStatus(settingsStatus, error.message || 'Pengaturan gagal disimpan.', true);
+          saveButton.disabled = false;
+        })
+        .saveAdminConfig(adminToken, config);
+    });
+
+    document.querySelectorAll('.upload-button').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const type = button.dataset.asset;
+        const input = document.getElementById(type === 'formPdf' ? 'form-pdf' : 'scholarship-pdf');
+        const file = input.files[0];
+        if (!file) {
+          setStatus(settingsStatus, 'Pilih file PDF terlebih dahulu.', true);
+          return;
+        }
+        const contentType = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : '');
+        if (contentType !== 'application/pdf' || file.size > MAX_PDF_SIZE) {
+          setStatus(settingsStatus, 'File harus berformat PDF dan berukuran maksimal 5 MB.', true);
+          return;
+        }
+
+        button.disabled = true;
+        setStatus(settingsStatus, 'Mengunggah PDF ke Google Drive...', false);
+        const reader = new FileReader();
+        reader.onerror = function () {
+          setStatus(settingsStatus, 'File tidak dapat dibaca.', true);
+          button.disabled = false;
+        };
+        reader.onload = function () {
+          const base64 = String(reader.result).split(',')[1];
+          google.script.run
+            .withSuccessHandler(function (config) {
+              showSettings(config);
+              input.value = '';
+              setStatus(settingsStatus, 'PDF berhasil diunggah dan dipublikasikan.', false);
+              button.disabled = false;
+            })
+            .withFailureHandler(function (error) {
+              setStatus(settingsStatus, error.message || 'PDF gagal diunggah.', true);
+              button.disabled = false;
+            })
+            .uploadAdminAsset(adminToken, type, file.name, contentType, base64);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    document.getElementById('logout-button').addEventListener('click', function () {
+      adminToken = '';
+      sessionStorage.removeItem('spmbAdminToken');
+      showLogin();
+    });
+
+    if (adminToken) loadSettings(adminToken);
+  </script>
+</body>
+</html>
