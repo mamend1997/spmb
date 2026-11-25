@@ -2496,6 +2496,30 @@ function publicQiospayInvoice(invoice) {
   };
 }
 
+function getQiospayErrorDetail(result, credentials) {
+  const providerError = result && result.error;
+  const providerErrors = result && result.errors;
+  const candidates = [
+    result && result.message,
+    typeof providerError === 'string' ? providerError : providerError && providerError.message,
+    result && result.data && result.data.message,
+    Array.isArray(providerErrors) && providerErrors.length
+      ? typeof providerErrors[0] === 'string'
+        ? providerErrors[0]
+        : providerErrors[0] && providerErrors[0].message
+      : ''
+  ];
+  const candidate = candidates.find(function (value) {
+    return typeof value === 'string' && value.trim();
+  });
+  if (!candidate) return '';
+  let detail = candidate.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  [credentials.apiKey, credentials.privateKey].forEach(function (secret) {
+    if (secret) detail = detail.split(secret).join('[disamarkan]');
+  });
+  return detail.slice(0, 240);
+}
+
 async function createQiospayInvoice(applicant, amount) {
   const credentials = getQiospayCredentials();
   if (!credentials) throw new Error('Pembayaran otomatis belum dikonfigurasi oleh panitia.');
@@ -2540,7 +2564,9 @@ async function createQiospayInvoice(applicant, amount) {
   }
   const invoice = result && result.data;
   if (!response.ok || !invoice) {
-    throw new Error('QiosPay gagal membuat tagihan (HTTP ' + response.status + ').');
+    const detail = getQiospayErrorDetail(result, credentials);
+    throw new Error('QiosPay gagal membuat tagihan (HTTP ' + response.status + ')' +
+      (detail ? ': ' + detail : '.'));
   }
   const invoiceId = String(invoice.id || '');
   const referenceId = String(invoice.ref_id || '');
