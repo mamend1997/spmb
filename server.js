@@ -1586,37 +1586,50 @@ function getWhatsAppRecipient(applicant) {
     .find(Boolean) || '';
 }
 
+async function postWhatsAppWebhook(gateway, eventName, recipient, message, data) {
+  await validateWebhookDestination(gateway.webhookUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(function () { controller.abort(); }, 10000);
+  let response;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (gateway.webhookToken) headers.Authorization = 'Bearer ' + gateway.webhookToken;
+    response = await fetch(gateway.webhookUrl, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        event: eventName,
+        to: recipient,
+        message: message,
+        data: data
+      }),
+      redirect: 'error',
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (response.body) await response.body.cancel();
+  if (!response.ok) throw new Error('Webhook merespons HTTP ' + response.status + '.');
+  return response.status;
+}
+
 function dispatchWhatsAppEvent(eventName, applicant, message, data) {
   const gateway = getConfig().whatsappGateway;
-  if (!gateway.enabled || !gateway.events.includes(eventName)) return;
+  if (!gateway.enabled) {
+    console.warn('WhatsApp webhook dilewati karena gateway belum aktif:', eventName);
+    return;
+  }
+  if (!gateway.events.includes(eventName)) {
+    console.warn('WhatsApp webhook dilewati karena event tidak diaktifkan:', eventName);
+    return;
+  }
   setImmediate(async function () {
     try {
       const recipient = getWhatsAppRecipient(applicant);
       if (!recipient) throw new Error('Nomor WhatsApp siswa dan wali tidak tersedia.');
-      await validateWebhookDestination(gateway.webhookUrl);
-      const controller = new AbortController();
-      const timeout = setTimeout(function () { controller.abort(); }, 10000);
-      let response;
-      try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (gateway.webhookToken) headers.Authorization = 'Bearer ' + gateway.webhookToken;
-        response = await fetch(gateway.webhookUrl, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({
-            event: eventName,
-            to: recipient,
-            message: message,
-            data: data
-          }),
-          redirect: 'error',
-          signal: controller.signal
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
-      if (!response.ok) throw new Error('Webhook merespons HTTP ' + response.status + '.');
-      console.info('WhatsApp webhook terkirim:', eventName, applicant.registration_number);
+      const status = await postWhatsAppWebhook(gateway, eventName, recipient, message, data);
+      console.info('WhatsApp webhook diterima:', eventName, applicant.registration_number, 'HTTP', status);
     } catch (error) {
       console.error('WhatsApp webhook gagal dikirim:', eventName, applicant.registration_number, error.message);
     }
@@ -2009,7 +2022,8 @@ app.post('/api/registrations', function (request, response) {
       const currentConfig = getConfig();
       const waveConfig = currentConfig.registrationWaves.find(function (item) { return item.name === payload.wave; });
       if (waveConfig && waveConfig.quota > 0) {
-        const waveCount = database.prepare('SELECT COUNT(*) AS count FROM applicants WHERE wave = ?').get(payload.wave).count;
+        const waveCount = database.prepare("SELECT COUNT(*) AS count FROM applicants WHERE wave = ? AND archived_at = '' AND deleted_at = ''")
+          .get(payload.wave).count;
         if (waveCount > waveConfig.quota) throw new Error('Kuota pendaftaran untuk gelombang ini sudah terpenuhi.');
       }
       if (payload.registrationPath) {
@@ -2017,7 +2031,7 @@ app.post('/api/registrations', function (request, response) {
           return item.name === payload.registrationPath && (!item.wave || item.wave === payload.wave);
         });
         if (pathConfig && pathConfig.quota > 0) {
-          const pathCount = database.prepare('SELECT COUNT(*) AS count FROM applicants WHERE registration_path = ? AND wave = ?')
+          const pathCount = database.prepare("SELECT COUNT(*) AS count FROM applicants WHERE registration_path = ? AND wave = ? AND archived_at = '' AND deleted_at = ''")
             .get(payload.registrationPath, payload.wave).count;
           if (pathCount > pathConfig.quota) throw new Error('Kuota jalur pendaftaran ini sudah terpenuhi.');
         }
@@ -2885,6 +2899,34 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
   }
 });
 
+app.post('/api/admin/whatsapp/test', requireAdmin, requirePermission('whatsapp', 'edit'), async function (request, response) {
+  try {
+    const gateway = getConfig().whatsappGateway;
+    if (!gateway.webhookUrl) throw new Error('Isi dan simpan URL webhook WhatsApp terlebih dahulu.');
+    const suppliedPhone = String(request.body && request.body.phone || '').trim();
+    const digits = suppliedPhone.replace(/\D/g, '');
+    const nationalDigits = digits.startsWith('62') ? digits.slice(2)
+      : digits.startsWith('0') ? digits.slice(1) : digits;
+    if (suppliedPhone.length > 32 || !/^\d{10,14}$/.test(nationalDigits)) {
+      throw new Error('Masukkan nomor WhatsApp valid dengan 10–14 digit, misalnya 081234567890.');
+    }
+    const recipient = '+62' + nationalDigits;
+    const testedAt = new Date().toISOString();
+    const message = 'Tes koneksi WhatsApp Gateway SPMB SMK PGRI Cikoneng. Jika pesan ini diterima, webhook berhasil mengirim pesan.';
+    const statusCode = await postWhatsAppWebhook(gateway, 'registration.created', recipient, message, {
+      test: true,
+      studentName: 'Tes koneksi WhatsApp Gateway',
+      testedAt: testedAt
+    });
+    response.json({
+      status: 'success',
+      message: 'Webhook menerima tes (HTTP ' + statusCode + '). Pastikan pesan terlihat di WhatsApp tujuan.'
+    });
+  } catch (error) {
+    response.status(400).json({ message: error.message || 'Tes WhatsApp Gateway gagal.' });
+  }
+});
+
 app.post('/api/admin/academic-year/start', requireAdmin, requirePermission('academicYear', 'edit'), function (request, response) {
   try {
     const body = request.body || {};
@@ -3158,7 +3200,7 @@ app.get('/api/admin/activity-log', requireAdmin, requirePermission('activityLog'
 
 app.get('/api/admin/trash', requireAdmin, requirePermission('trash', 'view'), function (request, response) {
   const applicants = database.prepare(`
-    SELECT registration_number, student_name, deleted_at, created_at
+    SELECT registration_number, student_name, deleted_at
     FROM applicants
     WHERE deleted_at <> ''
     ORDER BY deleted_at DESC, id DESC
@@ -3172,8 +3214,8 @@ app.post('/api/admin/trash/:registrationNumber/restore', requireAdmin, requirePe
   if (!registrationNumberPattern.test(registrationNumber)) {
     return response.status(400).json({ message: 'Nomor pendaftaran tidak valid.' });
   }
-  const applicant = database.prepare('SELECT id FROM applicants WHERE registration_number = ? AND deleted_at <> ?')
-    .get(registrationNumber, '');
+  const applicant = database.prepare("SELECT id FROM applicants WHERE registration_number = ? AND deleted_at <> ''")
+    .get(registrationNumber);
   if (!applicant) {
     return response.status(404).json({ message: 'Pendaftar tidak ditemukan di Kotak Sampah.' });
   }
@@ -3856,7 +3898,7 @@ app.get('/admin/pendaftar/:registrationNumber', function (request, response) {
   response.sendFile(path.join(__dirname, 'Admin.html'));
 });
 app.get('/admin/:section', function (request, response) {
-  if (!['dashboard', 'pendaftar', 'manajemen-akun'].includes(request.params.section)) {
+  if (!['dashboard', 'pendaftar', 'kotak-sampah', 'log-aktivitas', 'manajemen-akun'].includes(request.params.section)) {
     return response.status(404).end();
   }
   response.sendFile(path.join(__dirname, 'Admin.html'));

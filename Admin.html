@@ -360,12 +360,16 @@
     }
 
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-5">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-6">
 </head>
 <body>
   <div id="admin-toast" class="admin-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
   <main>
-    <section id="login-card" class="card login-card">
+    <section id="admin-session-loading" class="card login-card" role="status" aria-live="polite">
+      <img src="/assets/logo-pgri-cikoneng.png" width="54" height="54" alt="" style="display:block;margin:0 auto 14px">
+      <p style="text-align:center">Memeriksa sesi admin...</p>
+    </section>
+    <section id="login-card" class="card login-card hidden">
       <img src="/assets/logo-pgri-cikoneng.png" width="54" height="54" alt="" style="display:block;margin:0 auto 14px">
       <h1 style="text-align:center">Portal Admin SPMB</h1>
       <p style="text-align:center">Masuk untuk mengatur pendaftaran dan melihat rekap calon siswa.</p>
@@ -658,6 +662,16 @@
                   <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="selection.updated"> Hasil penetapan kelulusan</label>
                   <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reenrollment.instructions"> Informasi daftar ulang dan biaya untuk siswa yang diterima</label>
                 </fieldset>
+                  <div class="wide">
+                    <label for="whatsapp-test-phone">Nomor WhatsApp tujuan tes</label>
+                    <div class="file-setting">
+                      <input id="whatsapp-test-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="081234567890">
+                      <button id="whatsapp-test-button" class="secondary" type="button" data-permission-menu="whatsapp" data-permission-action="edit">Kirim Pesan Tes</button>
+                    </div>
+                    <p class="helper">Tes memakai URL/token yang sudah disimpan dan mengirim contoh pesan ke nomor ini.</p>
+                    <p id="whatsapp-test-status" class="status-line" role="status"></p>
+                  </div>
+                  <p class="wide">Agar pesan pendaftaran terkirim otomatis, gateway harus aktif, event pendaftaran harus dicentang, dan pengaturan disimpan. Tes hanya memastikan webhook menerima permintaan HTTP; pastikan pesan benar-benar diterima di WhatsApp tujuan.</p>
                 <p class="wide">Nomor tujuan dipilih berurutan: WhatsApp calon siswa, lalu ayah, lalu ibu bila nomor sebelumnya kosong. Webhook tidak menerima notifikasi bila tidak ada nomor tujuan.</p>
                 <p class="wide">Payload berisi <code>event</code>, <code>to</code>, <code>message</code>, dan <code>data</code>. Event: <code>registration.created</code>, <code>selection.updated</code>, atau <code>reenrollment.instructions</code>. Respons HTTP selain 2xx atau kegagalan koneksi dicatat pada log server.</p>
               </div>
@@ -1143,6 +1157,7 @@
 
   <script>
     const loginCard = document.getElementById('login-card');
+    const adminSessionLoading = document.getElementById('admin-session-loading');
     const dashboard = document.getElementById('dashboard');
     const applicationBody = document.getElementById('applications-body');
     const applicantDetailPage = document.getElementById('applicant-detail-page');
@@ -1233,9 +1248,10 @@
 
     function setStatus(id, message, kind) {
       const element = document.getElementById(id);
-      element.textContent = message || '';
-      element.className = 'status-line' + (kind ? ' ' + kind : '');
-      if (kind === 'success' && message) showAdminToast(message);
+      const success = kind === 'success' && Boolean(message);
+      element.textContent = success ? '' : message || '';
+      element.className = 'status-line' + (kind && !success ? ' ' + kind : '');
+      if (success) showAdminToast(message);
     }
 
     function showAdminToast(message) {
@@ -1256,6 +1272,7 @@
     }
 
     function showDashboard() {
+      adminSessionLoading.classList.add('hidden');
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
       applyRolePermissions();
@@ -1268,6 +1285,7 @@
       issuedPortalPin = '';
       issuedPinRegistrationNumber = '';
       closeProfileMenu();
+      adminSessionLoading.classList.add('hidden');
       dashboard.classList.add('hidden');
       loginCard.classList.remove('hidden');
       animateAdminElement(loginCard);
@@ -3840,7 +3858,7 @@
               method: 'POST'
             });
             await loadTrash();
-            await loadApplications();
+            if (canAdmin('applications', 'view') || canAdmin('dashboard', 'view')) await loadApplications();
             setStatus('trash-status', applicant.student_name + ' berhasil dipulihkan ke daftar pendaftar.', 'success');
           } catch (error) {
             setStatus('trash-status', error.message || 'Pendaftar gagal dipulihkan.', 'error');
@@ -4027,7 +4045,9 @@
         if (currentUser.role === 'owner') {
           await Promise.all([loadUsers(), loadRolePermissions()]);
         }
-        await loadApplications();
+        if (canAdmin('dashboard', 'view') || canAdmin('applications', 'view')) {
+          await loadApplications();
+        }
       } catch (error) {
         if (error.status === 401) showLogin();
         else setStatus('applications-status', error.message, 'error');
@@ -4114,6 +4134,24 @@
         setStatus('settings-status', 'Pengaturan berhasil disimpan.', 'success');
       } catch (error) {
         setStatus('settings-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('whatsapp-test-button').addEventListener('click', async function () {
+      const button = document.getElementById('whatsapp-test-button');
+      button.disabled = true;
+      setStatus('whatsapp-test-status', 'Mengirim pesan tes ke nomor tujuan...', '');
+      try {
+        const result = await api('/api/admin/whatsapp/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: document.getElementById('whatsapp-test-phone').value.trim() })
+        });
+        setStatus('whatsapp-test-status', result.message, 'success');
+      } catch (error) {
+        setStatus('whatsapp-test-status', error.message || 'Tes WhatsApp Gateway gagal.', 'error');
       } finally {
         button.disabled = false;
       }
@@ -4695,8 +4733,8 @@
         });
         currentUser = result.user;
         updateProfileUI();
+        profileDialog.close();
         setStatus('profile-status', 'Profil berhasil diperbarui.', 'success');
-        window.setTimeout(function () { profileDialog.close(); }, 650);
       } catch (error) {
         setStatus('profile-status', error.message, 'error');
       } finally {
@@ -4728,8 +4766,8 @@
           })
         });
         event.currentTarget.reset();
-        setStatus('password-status', 'Password berhasil diubah.', 'success');
         passwordDialog.close();
+        setStatus('password-status', 'Password berhasil diubah.', 'success');
       } catch (error) {
         setStatus('password-status', error.message, 'error');
       } finally {
