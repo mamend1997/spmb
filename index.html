@@ -76,7 +76,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-8">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-9">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -133,6 +133,7 @@
       <div id="brochure-frame" class="brochure-frame" hidden>
         <div class="brochure-image-wrap">
           <img id="brochure-image" class="hidden" alt="Foto SPMB SMK PGRI Cikoneng">
+          <img id="brochure-image-next" class="hidden" alt="" aria-hidden="true">
         </div>
         <div id="brochure-carousel-controls" class="brochure-carousel-controls" hidden>
           <button id="brochure-previous" class="brochure-carousel-arrow" type="button" aria-label="Foto sebelumnya">
@@ -541,6 +542,9 @@
     let brochureSlideTimer = null;
     let brochureSlideLoadId = 0;
     let brochureSlidePaused = false;
+    let brochureSlideTransitioning = false;
+    let brochureSlideTransitionTimer = null;
+    let brochureDisplayedUrl = '';
 
     function renderRegistrationWaves(waves) {
       const select = document.getElementById('wave');
@@ -707,7 +711,10 @@
       brochureSlideUrls = urls.filter(function (url) { return typeof url === 'string' && url.trim(); });
       brochureSlideIndex = 0;
       brochureSlidePaused = false;
+      brochureSlideTransitioning = false;
+      brochureDisplayedUrl = '';
       clearInterval(brochureSlideTimer);
+      clearTimeout(brochureSlideTransitionTimer);
       renderBrochureDots();
       if (!brochureSlideUrls.length) {
         hideBrochure();
@@ -719,33 +726,71 @@
 
     function hideBrochure() {
       clearInterval(brochureSlideTimer);
+      clearTimeout(brochureSlideTransitionTimer);
       document.getElementById('brochure-image').classList.add('hidden');
+      document.getElementById('brochure-image-next').className = 'hidden';
+      brochureSlideTransitioning = false;
+      brochureDisplayedUrl = '';
       document.getElementById('brochure-frame').hidden = true;
       document.getElementById('brochure-carousel-controls').hidden = true;
       document.getElementById('beranda').classList.add('no-brochure');
     }
 
-    function showBrochureSlide(index) {
+    function showBrochureSlide(index, direction) {
       if (!brochureSlideUrls.length) {
         hideBrochure();
         return;
       }
+      if (brochureSlideTransitioning) return;
       brochureSlideIndex = (index + brochureSlideUrls.length) % brochureSlideUrls.length;
       const url = brochureSlideUrls[brochureSlideIndex];
+      if (url === brochureDisplayedUrl) {
+        updateBrochureDots();
+        return;
+      }
+      const movement = direction || 1;
       const loadId = ++brochureSlideLoadId;
       const preload = new Image();
       preload.onload = function () {
         if (loadId !== brochureSlideLoadId) return;
         const image = document.getElementById('brochure-image');
-        image.style.opacity = '0';
-        image.src = url;
-        image.alt = 'Foto SPMB SMK PGRI Cikoneng ' + (brochureSlideIndex + 1) + ' dari ' + brochureSlideUrls.length;
-        image.classList.remove('hidden');
+        const nextImage = document.getElementById('brochure-image-next');
+        const alt = 'Foto SPMB SMK PGRI Cikoneng ' + (brochureSlideIndex + 1) + ' dari ' + brochureSlideUrls.length;
         document.getElementById('brochure-frame').hidden = false;
         document.getElementById('brochure-carousel-controls').hidden = brochureSlideUrls.length < 2;
         document.getElementById('beranda').classList.remove('no-brochure');
         updateBrochureDots();
-        window.requestAnimationFrame(function () { image.style.opacity = '1'; });
+        if (image.classList.contains('hidden')) {
+          image.src = url;
+          image.alt = alt;
+          image.classList.remove('hidden');
+          brochureDisplayedUrl = url;
+          return;
+        }
+        nextImage.src = url;
+        nextImage.className = movement > 0 ? 'brochure-slide-enter-from-left' : 'brochure-slide-enter-from-right';
+        nextImage.classList.remove('hidden');
+        nextImage.offsetWidth;
+        brochureSlideTransitioning = true;
+        window.requestAnimationFrame(function () {
+          image.classList.add(movement > 0 ? 'brochure-slide-exit-to-right' : 'brochure-slide-exit-to-left');
+          nextImage.classList.remove('brochure-slide-enter-from-left', 'brochure-slide-enter-from-right');
+          nextImage.classList.add('brochure-slide-arrived');
+        });
+        function finishTransition(event) {
+          if (event && event.propertyName !== 'transform') return;
+          nextImage.removeEventListener('transitionend', finishTransition);
+          clearTimeout(brochureSlideTransitionTimer);
+          image.src = url;
+          image.alt = alt;
+          image.classList.remove('brochure-slide-exit-to-right', 'brochure-slide-exit-to-left');
+          nextImage.className = 'hidden';
+          nextImage.removeAttribute('src');
+          brochureDisplayedUrl = url;
+          brochureSlideTransitioning = false;
+        }
+        nextImage.addEventListener('transitionend', finishTransition);
+        brochureSlideTransitionTimer = window.setTimeout(function () { finishTransition(); }, 750);
       };
       preload.onerror = function () {
         if (loadId !== brochureSlideLoadId) return;
@@ -766,7 +811,9 @@
         dot.type = 'button';
         dot.setAttribute('aria-label', 'Tampilkan foto ' + (index + 1));
         dot.addEventListener('click', function () {
-          showBrochureSlide(index);
+          const forwardDistance = (index - brochureSlideIndex + brochureSlideUrls.length) % brochureSlideUrls.length;
+          const direction = forwardDistance <= Math.floor(brochureSlideUrls.length / 2) ? 1 : -1;
+          showBrochureSlide(index, direction);
           startBrochureSlideshow();
         });
         dots.appendChild(dot);
@@ -802,11 +849,11 @@
     }
 
     document.getElementById('brochure-previous').addEventListener('click', function () {
-      showBrochureSlide(brochureSlideIndex - 1);
+      showBrochureSlide(brochureSlideIndex - 1, -1);
       startBrochureSlideshow();
     });
     document.getElementById('brochure-next').addEventListener('click', function () {
-      showBrochureSlide(brochureSlideIndex + 1);
+      showBrochureSlide(brochureSlideIndex + 1, 1);
       startBrochureSlideshow();
     });
     document.getElementById('brochure-frame').addEventListener('mouseenter', pauseBrochureSlideshow);
