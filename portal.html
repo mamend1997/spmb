@@ -336,6 +336,18 @@
             <p id="gateway-empty" class="mt-2 text-sm text-slate-500">Tautan checkout belum tersedia.</p>
           </div>
         </div>
+        <div id="qiospay-payment" class="mt-4 hidden rounded-xl border border-sky-200 bg-sky-50 p-4">
+          <h3 class="text-sm font-bold text-slate-800">Pembayaran Otomatis QiosPay</h3>
+          <p id="qiospay-payment-description" class="mt-1 text-sm leading-6 text-slate-600">Buat tagihan QRIS untuk memulai pembayaran.</p>
+          <p id="qiospay-payment-total" class="mt-2 text-lg font-extrabold text-slate-900"></p>
+          <img id="qiospay-qr-image" class="mt-3 hidden max-h-64 w-full rounded-lg bg-white object-contain p-2" alt="QRIS tagihan daftar ulang QiosPay">
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <a id="qiospay-pay-link" class="hidden rounded-lg bg-sky-700 px-4 py-2.5 text-sm font-bold text-white" href="#" target="_blank" rel="noopener noreferrer">Buka halaman pembayaran</a>
+            <button id="qiospay-create-button" class="rounded-lg bg-sky-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" type="button">Buat Tagihan QRIS</button>
+          </div>
+          <p id="qiospay-payment-expiry" class="mt-2 text-xs text-slate-500"></p>
+          <p id="qiospay-payment-status" class="mt-2 text-sm text-slate-600" role="status" aria-live="polite"></p>
+        </div>
         <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Unggah Bukti Pembayaran</p>
           <p id="payment-fee" class="mt-1 text-lg font-extrabold text-slate-900"></p>
@@ -773,13 +785,44 @@
       if (qrisReady) qrisImage.src = settings.qrisImageUrl;
 
       const gateway = document.getElementById('gateway-payment');
-      gateway.classList.toggle('hidden', settings.gatewayEnabled === false);
+      const qiospayAvailable = application.qiospayAvailable === true && settings.gatewayEnabled !== false;
+      gateway.classList.toggle('hidden', settings.gatewayEnabled === false || qiospayAvailable);
       showText('gateway-title', 'Payment Gateway ' + (settings.gatewayProvider || ''));
       const gatewayReady = Boolean(settings.gatewayUrl);
       const gatewayLink = document.getElementById('gateway-link');
       gatewayLink.classList.toggle('hidden', !gatewayReady);
       document.getElementById('gateway-empty').classList.toggle('hidden', gatewayReady);
       if (gatewayReady) gatewayLink.href = settings.gatewayUrl;
+
+      const qiospayPanel = document.getElementById('qiospay-payment');
+      qiospayPanel.classList.toggle('hidden', !qiospayAvailable);
+      const invoice = application.qiospayTransaction;
+      const activeInvoice = invoice && invoice.status === 'pending' &&
+        Date.parse(invoice.expiresAt) > Date.now();
+      const qrImage = document.getElementById('qiospay-qr-image');
+      qrImage.classList.toggle('hidden', !activeInvoice);
+      if (activeInvoice) qrImage.src = invoice.qrImageUrl;
+      else qrImage.removeAttribute('src');
+      const payLink = document.getElementById('qiospay-pay-link');
+      payLink.classList.toggle('hidden', !activeInvoice);
+      if (activeInvoice) payLink.href = invoice.payUrl;
+      const createButton = document.getElementById('qiospay-create-button');
+      createButton.classList.toggle('hidden', Boolean(activeInvoice));
+      createButton.textContent = invoice && invoice.status === 'expired' ? 'Buat Tagihan Baru' : 'Buat Tagihan QRIS';
+      showText('qiospay-payment-total', activeInvoice
+        ? 'Total pembayaran: Rp ' + Number(invoice.totalAmount).toLocaleString('id-ID')
+        : '');
+      showText('qiospay-payment-expiry', activeInvoice
+        ? 'Batas pembayaran: ' + new Date(invoice.expiresAt).toLocaleString('id-ID')
+        : '');
+      showText('qiospay-payment-description', activeInvoice
+        ? 'Pindai QRIS atau buka halaman pembayaran. Status akan diperbarui otomatis setelah pembayaran terkonfirmasi.'
+        : invoice && invoice.status === 'expired'
+          ? 'Tagihan sebelumnya sudah kedaluwarsa. Anda dapat membuat tagihan baru.'
+          : 'Buat tagihan QRIS untuk memulai pembayaran daftar ulang.');
+      showText('qiospay-payment-status', invoice && invoice.status === 'paid'
+        ? 'Pembayaran telah diterima.'
+        : '');
     }
 
     function readFileAsBase64(file) {
@@ -1170,6 +1213,27 @@
       } catch (error) {
         message.textContent = error.message || 'Bukti pembayaran gagal dikirim.';
         message.className = 'mt-2 text-sm text-red-600';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('qiospay-create-button').addEventListener('click', async function () {
+      const button = document.getElementById('qiospay-create-button');
+      button.disabled = true;
+      showText('qiospay-payment-status', 'Membuat tagihan QRIS...');
+      try {
+        const response = await fetch('/api/portal/payment/qiospay', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Tagihan QiosPay gagal dibuat.');
+        await refreshPortalApplication('Tagihan QRIS berhasil dibuat');
+      } catch (error) {
+        showText('qiospay-payment-status', error.message || 'Tagihan QiosPay gagal dibuat.');
       } finally {
         button.disabled = false;
       }

@@ -750,12 +750,13 @@
               <div class="settings-grid">
                 <label class="payment-check-control"><input id="bank-enabled" type="checkbox"> Aktifkan transfer bank</label>
                 <label class="payment-check-control"><input id="qris-enabled" type="checkbox"> Aktifkan QRIS manual</label>
-                <label class="payment-check-control"><input id="gateway-enabled" type="checkbox"> Tampilkan tautan payment gateway</label>
+                <label class="payment-check-control"><input id="gateway-enabled" type="checkbox"> Aktifkan pembayaran melalui gateway</label>
                 <div><label for="bank-name">Nama Bank</label><input id="bank-name" maxlength="80"></div>
                 <div><label for="bank-account-number">Nomor Rekening</label><input id="bank-account-number" maxlength="40"></div>
                 <div><label for="bank-account-name">Atas Nama</label><input id="bank-account-name" maxlength="100"></div>
                 <div><label for="gateway-provider">Provider Gateway</label><input id="gateway-provider" value="Qiospay" maxlength="40"></div>
-                <div class="wide"><label for="gateway-url">Tautan checkout Qiospay (HTTPS)</label><input id="gateway-url" type="url" placeholder="https://..."></div>
+                <div class="wide"><label for="gateway-url">Tautan checkout cadangan (HTTPS)</label><input id="gateway-url" type="url" placeholder="https://..."></div>
+                <p class="wide">Pembayaran otomatis QiosPay memakai API server. Atur <code>QIOSPAY_API_KEY</code> dan <code>QIOSPAY_PRIVATE_KEY</code> sebagai environment variables Railway, lalu set Callback URL toko ke <code>https://domain-sekolah/api/payments/qiospay/callback</code>. Jangan tempel key ke halaman ini.</p>
                 <div class="wide"><label>Gambar QRIS (PNG/JPG)</label><div class="file-setting"><input id="payment-qr-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><button type="button" class="secondary upload-button" data-asset="paymentQr">Unggah QRIS</button></div><a id="payment-qr-current" href="#" target="_blank" rel="noopener noreferrer">Lihat QRIS saat ini</a></div>
                 <div class="wide"><label for="payment-instructions">Petunjuk pembayaran</label><textarea id="payment-instructions" rows="3" maxlength="1000"></textarea></div>
               </div>

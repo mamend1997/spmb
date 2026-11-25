@@ -8,6 +8,7 @@ const path = require('node:path');
 const app = express();
 const publicLookupRequests = new Map();
 const pinRecoveryRequestsByIp = new Map();
+const qiospayInvoiceRequests = new Map();
 const publicLookupWindowMs = 60 * 1000;
 const publicLookupLimit = 12;
 const port = Number(process.env.PORT) || 3000;
@@ -461,6 +462,21 @@ database.exec(`
     sent_at INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (applicant_id, reminder_type, reference)
   );
+  CREATE TABLE IF NOT EXISTS qiospay_invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+    provider_invoice_id TEXT NOT NULL UNIQUE,
+    order_id TEXT NOT NULL UNIQUE,
+    amount INTEGER NOT NULL,
+    total_amount INTEGER NOT NULL,
+    pay_url TEXT NOT NULL,
+    qr_image_url TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    paid_at TEXT NOT NULL DEFAULT ''
+  );
+  CREATE INDEX IF NOT EXISTS idx_qiospay_invoices_applicant ON qiospay_invoices(applicant_id, id DESC);
 `);
 
 const adminSessionColumns = database.prepare('PRAGMA table_info(admin_sessions)').all();
@@ -560,7 +576,12 @@ app.use(function setSecurityHeaders(request, response, next) {
   response.setHeader('X-Frame-Options', 'DENY');
   next();
 });
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({
+  limit: '20mb',
+  verify: function (request, response, buffer) {
+    if (request.path === '/api/payments/qiospay/callback') request.rawBody = Buffer.from(buffer);
+  }
+}));
 app.use('/api/admin', function trackAdminActivity(request, response, next) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next();
   response.once('finish', function () {
@@ -2388,6 +2409,137 @@ app.post('/api/public/application-result', function (request, response) {
   });
 });
 
+const qiospayApiBaseUrl = 'https://my.qiospay.com/v1';
+
+function getQiospayCredentials() {
+  const apiKey = String(process.env.QIOSPAY_API_KEY || '').trim();
+  const privateKey = String(process.env.QIOSPAY_PRIVATE_KEY || '').trim();
+  return apiKey && privateKey ? { apiKey: apiKey, privateKey: privateKey } : null;
+}
+
+function publicQiospayInvoice(invoice) {
+  return {
+    invoiceId: invoice.provider_invoice_id,
+    orderId: invoice.order_id,
+    amount: invoice.amount,
+    totalAmount: invoice.total_amount,
+    payUrl: invoice.pay_url,
+    qrImageUrl: invoice.qr_image_url,
+    expiresAt: invoice.expires_at,
+    status: invoice.status
+  };
+}
+
+async function createQiospayInvoice(applicant, amount) {
+  const credentials = getQiospayCredentials();
+  if (!credentials) throw new Error('Pembayaran otomatis belum dikonfigurasi oleh panitia.');
+  const activeInvoice = database.prepare(`
+    SELECT * FROM qiospay_invoices
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at > ?
+    ORDER BY id DESC LIMIT 1
+  `).get(applicant.id, new Date().toISOString());
+  if (activeInvoice) return publicQiospayInvoice(activeInvoice);
+  database.prepare(`
+    UPDATE qiospay_invoices SET status = 'expired'
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at <= ?
+  `).run(applicant.id, new Date().toISOString());
+
+  const orderId = 'SPMB-' + applicant.registration_number + '-' + Date.now() + '-' +
+    crypto.randomBytes(4).toString('hex');
+  const controller = new AbortController();
+  const timeout = setTimeout(function () { controller.abort(); }, 15000);
+  let response;
+  try {
+    response = await fetch(qiospayApiBaseUrl + '/invoices', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + credentials.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        amount: amount,
+        order_id: orderId,
+        keterangan: 'Daftar ulang SPMB SMK PGRI Cikoneng - ' + applicant.registration_number,
+        expired_menit: 30
+      }),
+      redirect: 'error',
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  let result;
+  try { result = await response.json(); } catch (error) {
+    throw new Error('Respons QiosPay tidak dapat dibaca.');
+  }
+  const invoice = result && result.data;
+  if (!response.ok || !invoice) {
+    throw new Error('QiosPay gagal membuat tagihan (HTTP ' + response.status + ').');
+  }
+  const invoiceId = String(invoice.id || '');
+  const referenceId = String(invoice.ref_id || '');
+  const payUrl = String(invoice.pay_url || '');
+  const qrImageUrl = String(invoice.qr_image_url || '');
+  const expiresAt = String(invoice.expires_at || '');
+  const parsedExpiry = Date.parse(expiresAt);
+  const safePayUrl = new URL(payUrl);
+  const safeQrUrl = new URL(qrImageUrl);
+  if (invoice.mode !== 'live' || invoice.status !== 'pending' || referenceId !== orderId ||
+      !invoiceId || invoiceId.length > 120 || !Number.isSafeInteger(Number(invoice.amount)) ||
+      Number(invoice.amount) !== amount || !Number.isSafeInteger(Number(invoice.total_amount)) ||
+      Number(invoice.total_amount) < amount || !Number.isFinite(parsedExpiry) ||
+      safePayUrl.origin !== 'https://my.qiospay.com' || safeQrUrl.origin !== 'https://my.qiospay.com') {
+    throw new Error('Data tagihan yang dikembalikan QiosPay tidak valid.');
+  }
+  const createdAt = new Date().toISOString();
+  database.prepare(`
+    INSERT INTO qiospay_invoices (
+      applicant_id, provider_invoice_id, order_id, amount, total_amount,
+      pay_url, qr_image_url, expires_at, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+  `).run(
+    applicant.id, invoiceId, orderId, amount, Number(invoice.total_amount),
+    payUrl, qrImageUrl, new Date(parsedExpiry).toISOString(), createdAt
+  );
+  database.prepare(`
+    UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
+      status_updated_at = ? WHERE id = ?
+  `).run('Menunggu Pembayaran QiosPay', createdAt, applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  return publicQiospayInvoice(database.prepare('SELECT * FROM qiospay_invoices WHERE provider_invoice_id = ?')
+    .get(invoiceId));
+}
+
+function createQiospayInvoiceForApplicant(applicant, amount) {
+  const existingRequest = qiospayInvoiceRequests.get(applicant.id);
+  if (existingRequest) return existingRequest;
+  const currentRequest = createQiospayInvoice(applicant, amount);
+  qiospayInvoiceRequests.set(applicant.id, currentRequest);
+  currentRequest.finally(function () {
+    if (qiospayInvoiceRequests.get(applicant.id) === currentRequest) qiospayInvoiceRequests.delete(applicant.id);
+  }).catch(function () {});
+  return currentRequest;
+}
+
+function getQiospayTransactionForApplicant(applicant) {
+  let invoice = database.prepare('SELECT * FROM qiospay_invoices WHERE applicant_id = ? ORDER BY id DESC LIMIT 1')
+    .get(applicant.id);
+  if (invoice && invoice.status === 'pending' && Date.parse(invoice.expires_at) <= Date.now()) {
+    const now = new Date().toISOString();
+    database.prepare("UPDATE qiospay_invoices SET status = 'expired' WHERE id = ? AND status = 'pending'")
+      .run(invoice.id);
+    database.prepare(`
+      UPDATE applicants SET payment_status = ?, status_updated_at = ?
+      WHERE id = ? AND payment_status = 'Menunggu Pembayaran QiosPay'
+    `).run('Belum Daftar Ulang', now, applicant.id);
+    queueSheetSync(applicant.id);
+    setImmediate(syncQueuedApplications);
+    invoice = database.prepare('SELECT * FROM qiospay_invoices WHERE id = ?').get(invoice.id);
+  }
+  return invoice ? publicQiospayInvoice(invoice) : null;
+}
+
 function buildPortalApplication(applicant, config) {
   const uploadedFiles = new Map(database.prepare('SELECT field_key, original_name FROM uploaded_files WHERE applicant_id = ?')
     .all(applicant.id).map(function (file) { return [file.field_key, file]; }));
@@ -2506,6 +2658,8 @@ function buildPortalApplication(applicant, config) {
     paymentFee: wave ? wave.reenrollmentFee : '',
     paymentSettings: config.paymentSettings,
     paymentProofUrl: uploadedFiles.has('paymentProof') ? '/api/portal/documents/paymentProof' : '',
+    qiospayAvailable: Boolean(getQiospayCredentials()) && config.paymentSettings.gatewayEnabled !== false,
+    qiospayTransaction: getQiospayTransactionForApplicant(applicant),
     canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
   };
 }
@@ -2841,10 +2995,131 @@ app.post('/api/portal/documents/:key', requirePortal, function (request, respons
   }
 });
 
+app.post('/api/portal/payment/qiospay', requirePortal, async function (request, response) {
+  const applicant = request.portalApplicant;
+  const config = getConfig();
+  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  const amount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : 0;
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(403).json({ message: 'Pembayaran daftar ulang hanya tersedia bagi siswa yang diterima.' });
+  }
+  if (applicant.payment_status === 'Pembayaran Terverifikasi' ||
+      applicant.reenrollment_status === 'Daftar Ulang Selesai') {
+    return response.status(409).json({ message: 'Pembayaran daftar ulang sudah terverifikasi.' });
+  }
+  if (applicant.payment_status === 'Menunggu Verifikasi Pembayaran') {
+    return response.status(409).json({ message: 'Bukti pembayaran manual sedang menunggu verifikasi panitia.' });
+  }
+  if (!config.paymentSettings.gatewayEnabled) {
+    return response.status(403).json({ message: 'Pembayaran otomatis saat ini dinonaktifkan oleh panitia.' });
+  }
+  if (!Number.isSafeInteger(amount) || amount < 1) {
+    return response.status(400).json({ message: 'Biaya daftar ulang untuk gelombang ini belum diatur.' });
+  }
+  try {
+    const invoice = await createQiospayInvoiceForApplicant(applicant, amount);
+    response.json({ status: 'success', invoice: invoice });
+  } catch (error) {
+    console.error('QiosPay invoice creation failed:', applicant.registration_number, error.message);
+    response.status(502).json({ message: error.message || 'Tagihan QiosPay gagal dibuat. Silakan coba kembali.' });
+  }
+});
+
+function verifyQiospayWebhookSignature(rawBody, signatureHeader, secret) {
+  const parts = {};
+  String(signatureHeader || '').split(',').forEach(function (part) {
+    const pair = part.trim().split('=', 2);
+    if (pair.length === 2) parts[pair[0]] = pair[1];
+  });
+  if (!/^\d{10}$/.test(parts.t || '') || !/^[a-f0-9]{64}$/i.test(parts.v1 || '') ||
+      Math.abs(Date.now() / 1000 - Number(parts.t)) > 600) return false;
+  const expected = crypto.createHmac('sha256', secret)
+    .update(parts.t + '.')
+    .update(rawBody)
+    .digest();
+  const received = Buffer.from(parts.v1, 'hex');
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
+}
+
+app.post('/api/payments/qiospay/callback', function (request, response) {
+  const credentials = getQiospayCredentials();
+  if (!credentials) return response.status(503).send('Payment callback is not configured.');
+  if (!Buffer.isBuffer(request.rawBody) ||
+      !verifyQiospayWebhookSignature(request.rawBody, request.get('X-QiosPay-Signature'), credentials.privateKey)) {
+    return response.status(400).send('Invalid payment callback signature.');
+  }
+  const event = request.body;
+  if (!event || !event.data || request.get('X-QiosPay-Mode') !== 'live' ||
+      event.data.mode !== 'live' ||
+      (request.get('X-QiosPay-Event') && request.get('X-QiosPay-Event') !== event.event)) {
+    return response.status(400).send('Invalid payment callback event.');
+  }
+  if (event.event !== 'invoice.paid') return response.sendStatus(200);
+  const data = event.data;
+  const invoice = database.prepare(`
+    SELECT * FROM qiospay_invoices WHERE provider_invoice_id = ? AND order_id = ?
+  `).get(String(data.id || ''), String(data.ref_id || ''));
+  if (!invoice) {
+    console.warn('QiosPay callback tidak cocok dengan tagihan lokal:', String(data.id || '').slice(0, 120));
+    return response.sendStatus(200);
+  }
+  if (invoice.status === 'paid') return response.sendStatus(200);
+  if (invoice.status !== 'pending') return response.sendStatus(200);
+  if (data.status !== 'paid' || Number(data.amount) !== invoice.amount ||
+      Number(data.total_amount) !== invoice.total_amount || Date.parse(invoice.expires_at) <= Date.now()) {
+    console.error('QiosPay callback tidak sesuai dengan tagihan lokal:', invoice.order_id);
+    return response.status(400).send('Payment details do not match the invoice.');
+  }
+  const applicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(invoice.applicant_id);
+  if (!applicant || applicant.archived_at || applicant.deleted_at ||
+      !['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(400).send('Applicant is not eligible for reenrollment.');
+  }
+  const paidAt = Number.isFinite(Date.parse(String(data.paid_at || '')))
+    ? new Date(data.paid_at).toISOString()
+    : new Date().toISOString();
+  withTransaction(function () {
+    database.prepare(`
+      UPDATE qiospay_invoices SET status = 'paid', paid_at = ?
+      WHERE id = ? AND status = 'pending'
+    `).run(paidAt, invoice.id);
+    database.prepare(`
+      UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = ?,
+        reenrollment_status = ?, status_updated_at = ? WHERE id = ?
+    `).run('Pembayaran Terverifikasi', paidAt, 'Daftar Ulang Selesai', paidAt, applicant.id);
+    queueSheetSync(applicant.id);
+  });
+  setImmediate(syncQueuedApplications);
+  const updatedApplicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicant.id);
+  dispatchWhatsAppEvent('payment.reviewed', updatedApplicant, [
+    'Pembayaran daftar ulang SPMB SMK PGRI Cikoneng berhasil diverifikasi otomatis.',
+    'Nama: ' + updatedApplicant.student_name,
+    'Nomor pendaftaran: ' + updatedApplicant.registration_number,
+    'Total pembayaran: Rp ' + invoice.total_amount.toLocaleString('id-ID')
+  ].join('\n'), {
+    registrationNumber: updatedApplicant.registration_number,
+    paymentStatus: 'Pembayaran Terverifikasi',
+    reenrollmentStatus: 'Daftar Ulang Selesai',
+    provider: 'QiosPay'
+  });
+  response.sendStatus(200);
+});
+
 app.post('/api/portal/payment-proof', requirePortal, function (request, response) {
   const applicant = request.portalApplicant;
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(403).json({ message: 'Hanya siswa yang diterima dapat mengirim pembayaran daftar ulang.' });
+  }
+  if (applicant.payment_status === 'Pembayaran Terverifikasi' ||
+      applicant.reenrollment_status === 'Daftar Ulang Selesai') {
+    return response.status(409).json({ message: 'Pembayaran daftar ulang sudah terverifikasi.' });
+  }
+  const activeQiospayInvoice = database.prepare(`
+    SELECT 1 FROM qiospay_invoices
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
+  `).get(applicant.id, new Date().toISOString());
+  if (activeQiospayInvoice) {
+    return response.status(409).json({ message: 'Selesaikan tagihan QiosPay yang aktif atau tunggu sampai kedaluwarsa sebelum mengirim bukti manual.' });
   }
   const upload = request.body && request.body.upload;
   const definition = { label: 'Bukti pembayaran daftar ulang', photo: false, extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048 };
@@ -3564,7 +3839,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       SUM(CASE WHEN document_status = 'Perlu Perbaikan' THEN 1 ELSE 0 END) AS revisions,
       SUM(CASE WHEN selection_status IN ('Diterima', 'Diterima / Lulus') THEN 1 ELSE 0 END) AS accepted,
       SUM(CASE WHEN selection_status = 'Cadangan' THEN 1 ELSE 0 END) AS reserves,
-      SUM(CASE WHEN payment_status = 'Menunggu Verifikasi Pembayaran' THEN 1 ELSE 0 END) AS paymentPending,
+      SUM(CASE WHEN payment_status IN ('Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay') THEN 1 ELSE 0 END) AS paymentPending,
       SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
     FROM applicants
@@ -4231,6 +4506,9 @@ app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, r
 app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const applicant = getApplicantByRegistration(String(request.params.registrationNumber || '').toUpperCase());
   if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
+  if (database.prepare("SELECT 1 FROM qiospay_invoices WHERE applicant_id = ? AND status = 'paid' LIMIT 1").get(applicant.id)) {
+    return response.status(409).json({ message: 'Pembayaran QiosPay sudah terverifikasi otomatis dan tidak dapat diubah melalui verifikasi manual.' });
+  }
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(400).json({ message: 'Daftar ulang hanya tersedia bagi siswa yang diterima.' });
   }
