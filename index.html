@@ -76,7 +76,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-9">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-10">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -736,7 +736,7 @@
       document.getElementById('beranda').classList.add('no-brochure');
     }
 
-    function showBrochureSlide(index, direction) {
+    function showBrochureSlide(index) {
       if (!brochureSlideUrls.length) {
         hideBrochure();
         return;
@@ -748,7 +748,6 @@
         updateBrochureDots();
         return;
       }
-      const movement = direction || 1;
       const loadId = ++brochureSlideLoadId;
       const preload = new Image();
       preload.onload = function () {
@@ -768,13 +767,13 @@
           return;
         }
         nextImage.src = url;
-        nextImage.className = movement > 0 ? 'brochure-slide-enter-from-left' : 'brochure-slide-enter-from-right';
+        nextImage.className = 'brochure-slide-enter-from-left';
         nextImage.classList.remove('hidden');
         nextImage.offsetWidth;
         brochureSlideTransitioning = true;
         window.requestAnimationFrame(function () {
-          image.classList.add(movement > 0 ? 'brochure-slide-exit-to-right' : 'brochure-slide-exit-to-left');
-          nextImage.classList.remove('brochure-slide-enter-from-left', 'brochure-slide-enter-from-right');
+          image.classList.add('brochure-slide-exit-to-right');
+          nextImage.classList.remove('brochure-slide-enter-from-left');
           nextImage.classList.add('brochure-slide-arrived');
         });
         function finishTransition(event) {
@@ -783,7 +782,7 @@
           clearTimeout(brochureSlideTransitionTimer);
           image.src = url;
           image.alt = alt;
-          image.classList.remove('brochure-slide-exit-to-right', 'brochure-slide-exit-to-left');
+          image.classList.remove('brochure-slide-exit-to-right');
           nextImage.className = 'hidden';
           nextImage.removeAttribute('src');
           brochureDisplayedUrl = url;
@@ -811,9 +810,7 @@
         dot.type = 'button';
         dot.setAttribute('aria-label', 'Tampilkan foto ' + (index + 1));
         dot.addEventListener('click', function () {
-          const forwardDistance = (index - brochureSlideIndex + brochureSlideUrls.length) % brochureSlideUrls.length;
-          const direction = forwardDistance <= Math.floor(brochureSlideUrls.length / 2) ? 1 : -1;
-          showBrochureSlide(index, direction);
+          showBrochureSlide(index);
           startBrochureSlideshow();
         });
         dots.appendChild(dot);
@@ -849,11 +846,11 @@
     }
 
     document.getElementById('brochure-previous').addEventListener('click', function () {
-      showBrochureSlide(brochureSlideIndex - 1, -1);
+      showBrochureSlide(brochureSlideIndex - 1);
       startBrochureSlideshow();
     });
     document.getElementById('brochure-next').addEventListener('click', function () {
-      showBrochureSlide(brochureSlideIndex + 1, 1);
+      showBrochureSlide(brochureSlideIndex + 1);
       startBrochureSlideshow();
     });
     document.getElementById('brochure-frame').addEventListener('mouseenter', pauseBrochureSlideshow);

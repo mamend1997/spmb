@@ -316,11 +316,6 @@ header.site-header {
   opacity: 0;
 }
 
-#brochure-image-next.brochure-slide-enter-from-right {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
 #brochure-image-next.brochure-slide-arrived {
   transform: translateX(0);
   opacity: 1;
@@ -328,11 +323,6 @@ header.site-header {
 
 #brochure-image.brochure-slide-exit-to-right {
   transform: translateX(100%);
-  opacity: 0;
-}
-
-#brochure-image.brochure-slide-exit-to-left {
-  transform: translateX(-100%);
   opacity: 0;
 }
 
