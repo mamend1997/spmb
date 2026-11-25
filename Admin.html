@@ -609,11 +609,27 @@
         <p id="backup-configuration-note" class="helper"></p>
         <div class="table-wrap">
           <table class="admin-simple-table">
-            <thead><tr><th>Waktu</th><th>Jumlah File</th><th>Ukuran</th><th>Folder Backup</th></tr></thead>
+            <thead><tr><th>Waktu</th><th>Jumlah File</th><th>Ukuran</th><th>Folder Backup</th><th>Aksi</th></tr></thead>
             <tbody id="backups-body"></tbody>
           </table>
         </div>
       </section>
+
+      <dialog id="restore-backup-dialog" aria-labelledby="restore-backup-title">
+        <form id="restore-backup-form" class="dialog-content">
+          <div class="dialog-heading">
+            <div><h2 id="restore-backup-title">Pulihkan Backup?</h2><p id="restore-backup-selected"></p></div>
+          </div>
+          <p>Database, dokumen pendaftar, dan file publik akan diganti sesuai backup ini. Server akan dimulai ulang. Data aktif saat ini akan dibuatkan backup pengaman terlebih dahulu.</p>
+          <label for="restore-backup-confirm-input">Ketik PULIHKAN untuk melanjutkan</label>
+          <input id="restore-backup-confirm-input" autocomplete="off" maxlength="9" required>
+          <p id="restore-backup-confirm-status" class="status-line" role="status"></p>
+          <div class="dialog-actions">
+            <button id="cancel-restore-backup" class="secondary" type="button">Batal</button>
+            <button id="confirm-restore-backup" type="submit" style="background:#b42318">Pulihkan & Restart</button>
+          </div>
+        </form>
+      </dialog>
 
       <section id="master-page" class="card section admin-page" hidden>
         <form id="settings-form">
@@ -1265,6 +1281,7 @@
     let classAssignmentMode = 'single';
     let pendingRevisionReview = null;
     let pendingVerification = null;
+    let pendingRestoreBackupId = '';
     let issuedPortalPin = '';
     let issuedPinRegistrationNumber = '';
     let adminToastTimer = null;
@@ -4034,13 +4051,13 @@
       }
     }
 
-    function renderBackups(backups) {
+    function renderBackups(backups, configured) {
       const body = document.getElementById('backups-body');
       body.replaceChildren();
       if (!backups.length) {
         const row = document.createElement('tr');
         const empty = document.createElement('td');
-        empty.colSpan = 4;
+        empty.colSpan = 5;
         empty.textContent = 'Belum ada backup.';
         row.appendChild(empty);
         body.appendChild(row);
@@ -4058,7 +4075,21 @@
         }) + ' MB';
         const id = document.createElement('td');
         id.textContent = backup.id;
-        row.append(date, count, size, id);
+        const actions = document.createElement('td');
+        const restoreButton = document.createElement('button');
+        restoreButton.type = 'button';
+        restoreButton.className = 'secondary';
+        restoreButton.textContent = 'Pulihkan';
+        restoreButton.disabled = !configured;
+        restoreButton.addEventListener('click', function () {
+          pendingRestoreBackupId = backup.id;
+          document.getElementById('restore-backup-selected').textContent = 'Backup terpilih: ' + backup.id;
+          document.getElementById('restore-backup-confirm-input').value = '';
+          setStatus('restore-backup-confirm-status', '', '');
+          document.getElementById('restore-backup-dialog').showModal();
+        });
+        actions.appendChild(restoreButton);
+        row.append(date, count, size, id, actions);
         body.appendChild(row);
       });
     }
@@ -4067,7 +4098,7 @@
       setStatus('backup-status', 'Memuat daftar backup...', '');
       try {
         const result = await api('/api/admin/backups');
-        renderBackups(result.backups || []);
+        renderBackups(result.backups || [], result.configured);
         document.getElementById('create-backup-button').disabled = !result.configured;
         document.getElementById('backup-configuration-note').textContent = result.configured
           ? 'Backup otomatis berjalan setiap 24 jam dan menyimpan ' + result.retentionCount + ' versi terakhir.'
@@ -4765,6 +4796,39 @@
         setStatus('backup-status', error.message || 'Backup gagal dibuat.', 'error');
       } finally {
         button.disabled = false;
+      }
+    });
+    document.getElementById('cancel-restore-backup').addEventListener('click', function () {
+      pendingRestoreBackupId = '';
+      document.getElementById('restore-backup-dialog').close();
+    });
+    document.getElementById('restore-backup-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const confirmation = document.getElementById('restore-backup-confirm-input').value.trim();
+      if (!pendingRestoreBackupId || confirmation !== 'PULIHKAN') {
+        setStatus('restore-backup-confirm-status', 'Ketik PULIHKAN dengan benar untuk melanjutkan.', 'error');
+        return;
+      }
+      const button = document.getElementById('confirm-restore-backup');
+      const cancel = document.getElementById('cancel-restore-backup');
+      button.disabled = true;
+      cancel.disabled = true;
+      try {
+        const result = await api('/api/admin/backups/' +
+          encodeURIComponent(pendingRestoreBackupId) + '/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmation: confirmation })
+        });
+        document.getElementById('restore-backup-dialog').close();
+        pendingRestoreBackupId = '';
+        setStatus('backup-status', result.message + ' Backup pengaman: ' + result.safetyBackupId, '');
+        window.setTimeout(function () { window.location.reload(); }, 12000);
+      } catch (error) {
+        setStatus('restore-backup-confirm-status', error.message || 'Pemulihan backup gagal dimulai.', 'error');
+      } finally {
+        button.disabled = false;
+        cancel.disabled = false;
       }
     });
     document.getElementById('export-excel-button').addEventListener('click', function () {

@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { spawnSync } = require('node:child_process');
 const dns = require('node:dns').promises;
 const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
@@ -9,6 +10,7 @@ const app = express();
 const publicLookupRequests = new Map();
 const pinRecoveryRequestsByIp = new Map();
 const qiospayInvoiceRequests = new Map();
+let restoreInProgress = false;
 const publicLookupWindowMs = 60 * 1000;
 const publicLookupLimit = 12;
 const port = Number(process.env.PORT) || 3000;
@@ -512,17 +514,74 @@ function listBackups() {
     .sort(function (first, second) { return second.id.localeCompare(first.id); });
 }
 
-function createBackup() {
+function validateBackupForRestore(backupId) {
+  if (!configuredBackupDirectory) {
+    const error = new Error('BACKUP_DIR belum dikonfigurasi.');
+    error.status = 503;
+    throw error;
+  }
+  if (!getBackupIdPattern().test(backupId)) {
+    const error = new Error('ID backup tidak valid.');
+    error.status = 400;
+    throw error;
+  }
+  const backupDirectory = path.join(configuredBackupDirectory, backupId);
+  if (path.dirname(backupDirectory) !== configuredBackupDirectory || !fs.existsSync(backupDirectory)) {
+    const error = new Error('Backup tidak ditemukan.');
+    error.status = 404;
+    throw error;
+  }
+  const directoryStats = fs.lstatSync(backupDirectory);
+  if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
+    const error = new Error('Folder backup tidak valid.');
+    error.status = 400;
+    throw error;
+  }
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(backupDirectory, 'manifest.json'), 'utf8'));
+    if (manifest.version !== 1 || typeof manifest.databaseSha256 !== 'string') {
+      throw new Error('Manifest backup tidak didukung.');
+    }
+    const databasePath = path.join(backupDirectory, 'spmb.sqlite');
+    const databaseBytes = fs.readFileSync(databasePath);
+    if (databaseBytes.subarray(0, 16).toString('ascii') !== 'SQLite format 3\u0000' ||
+        crypto.createHash('sha256').update(databaseBytes).digest('hex') !== manifest.databaseSha256) {
+      throw new Error('Database backup rusak atau checksum tidak cocok.');
+    }
+    ['uploads', 'public-files'].forEach(function (name) {
+      const directory = path.join(backupDirectory, name);
+      const stats = fs.lstatSync(directory);
+      if (!stats.isDirectory() || stats.isSymbolicLink()) throw new Error('Folder ' + name + ' tidak valid.');
+    });
+    const validationDatabase = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      const integrity = validationDatabase.prepare('PRAGMA integrity_check').get();
+      if (!integrity || integrity.integrity_check !== 'ok') throw new Error('Pemeriksaan integritas database gagal.');
+    } finally {
+      validationDatabase.close();
+    }
+  } catch (error) {
+    if (error.status) throw error;
+    const invalidBackup = new Error('Backup tidak valid: ' + error.message);
+    invalidBackup.status = 400;
+    throw invalidBackup;
+  }
+  return backupDirectory;
+}
+
+function createBackup(options) {
   if (!configuredBackupDirectory) throw new Error('BACKUP_DIR belum dikonfigurasi.');
+  const preserveBackupId = options && options.preserveBackupId;
   fs.mkdirSync(configuredBackupDirectory, { recursive: true, mode: 0o700 });
   const createdAt = new Date();
   const backupId = 'spmb-backup-' + createdAt.toISOString().replace(/[-:.]/g, '');
   const backupPath = path.join(configuredBackupDirectory, backupId);
   fs.mkdirSync(backupPath, { recursive: false, mode: 0o700 });
   try {
-    const databaseSnapshot = database.serialize();
     const snapshotPath = path.join(backupPath, 'spmb.sqlite');
-    fs.writeFileSync(snapshotPath, databaseSnapshot, { flag: 'wx', mode: 0o600 });
+    database.exec("VACUUM INTO '" + snapshotPath.replace(/'/g, "''") + "'");
+    fs.chmodSync(snapshotPath, 0o600);
+    const databaseSnapshot = fs.readFileSync(snapshotPath);
     const uploadsSnapshot = path.join(backupPath, 'uploads');
     const publicFilesSnapshot = path.join(backupPath, 'public-files');
     fs.cpSync(uploadDirectory, uploadsSnapshot, { recursive: true, errorOnExist: true, force: false });
@@ -558,6 +617,7 @@ function createBackup() {
     });
     const backups = listBackups();
     backups.slice(backupRetentionCount).forEach(function (backup) {
+      if (backup.id === preserveBackupId) return;
       fs.rmSync(path.join(configuredBackupDirectory, backup.id), { recursive: true, force: true });
     });
     console.info('Backup SPMB selesai:', backupId, fileCount, 'file');
@@ -582,6 +642,11 @@ app.use(express.json({
     if (request.path === '/api/payments/qiospay/callback') request.rawBody = Buffer.from(buffer);
   }
 }));
+app.use(function blockRequestsDuringRestore(request, response, next) {
+  if (!restoreInProgress) return next();
+  response.setHeader('Connection', 'close');
+  response.status(503).json({ message: 'Pemulihan backup sedang berjalan. Server akan dimulai ulang.' });
+});
 app.use('/api/admin', function trackAdminActivity(request, response, next) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next();
   response.once('finish', function () {
@@ -4621,6 +4686,61 @@ app.post('/api/admin/backups', requireAdmin, requireOwner, function (request, re
   } catch (error) {
     response.status(500).json({ message: error.message || 'Backup gagal dibuat.' });
   }
+});
+
+app.post('/api/admin/backups/:backupId/restore', requireAdmin, requireOwner, function (request, response) {
+  if (restoreInProgress) return response.status(409).json({ message: 'Pemulihan backup sedang berjalan.' });
+  if (!request.body || request.body.confirmation !== 'PULIHKAN') {
+    return response.status(400).json({ message: 'Ketik PULIHKAN untuk mengonfirmasi pemulihan.' });
+  }
+  let backupDirectory;
+  let safetyBackup;
+  try {
+    backupDirectory = validateBackupForRestore(String(request.params.backupId || ''));
+    safetyBackup = createBackup({ preserveBackupId: request.params.backupId });
+  } catch (error) {
+    return response.status(error.status || 500).json({ message: error.message || 'Backup gagal dipulihkan.' });
+  }
+  restoreInProgress = true;
+  response.setHeader('Connection', 'close');
+  response.once('finish', function () {
+    server.close(function (closeError) {
+      try {
+        if (closeError) throw closeError;
+        const checkpoint = database.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get();
+        if (checkpoint && Number(checkpoint.busy) !== 0) {
+          throw new Error('Database sedang digunakan dan belum aman untuk dipulihkan.');
+        }
+        database.close();
+        const result = spawnSync(process.execPath, [
+          path.join(__dirname, 'restore-backup.js'),
+          backupDirectory,
+          storageDirectory,
+          databasePath
+        ], {
+          cwd: __dirname,
+          encoding: 'utf8',
+          timeout: 120000
+        });
+        if (result.stdout) process.stdout.write(result.stdout);
+        if (result.stderr) process.stderr.write(result.stderr);
+        if (result.error) throw result.error;
+        if (result.status !== 0) throw new Error('Skrip pemulihan berakhir dengan kode ' + result.status + '.');
+        console.info('Backup ' + path.basename(backupDirectory) + ' dipulihkan. Server dimulai ulang.');
+      } catch (error) {
+        console.error('Pemulihan backup gagal; server akan dimulai ulang:', error.message);
+      }
+      process.exit(1);
+    });
+  });
+  response.once('close', function () {
+    if (!response.writableFinished) restoreInProgress = false;
+  });
+  response.status(202).json({
+    status: 'restarting',
+    message: 'Pemulihan dimulai. Server akan dimulai ulang setelah selesai.',
+    safetyBackupId: safetyBackup.id
+  });
 });
 
 app.use('/assets', express.static(path.join(__dirname, 'assets'), {
