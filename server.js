@@ -3049,12 +3049,14 @@ app.post('/api/payments/qiospay/callback', function (request, response) {
     return response.status(400).send('Invalid payment callback signature.');
   }
   const event = request.body;
-  if (!event || !event.data || request.get('X-QiosPay-Mode') !== 'live' ||
-      event.data.mode !== 'live' ||
+  if (!event || typeof event.event !== 'string' ||
       (request.get('X-QiosPay-Event') && request.get('X-QiosPay-Event') !== event.event)) {
     return response.status(400).send('Invalid payment callback event.');
   }
   if (event.event !== 'invoice.paid') return response.sendStatus(200);
+  if (!event.data || request.get('X-QiosPay-Mode') !== 'live' || event.data.mode !== 'live') {
+    return response.status(400).send('Invalid payment callback event.');
+  }
   const data = event.data;
   const invoice = database.prepare(`
     SELECT * FROM qiospay_invoices WHERE provider_invoice_id = ? AND order_id = ?

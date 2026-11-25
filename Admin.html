@@ -603,7 +603,7 @@
       <section id="backups-page" class="card section admin-page" hidden>
         <div class="section-heading">
           <div><h2>Backup Data</h2><p>Snapshot mencakup database, dokumen pendaftar, dan file publik sekolah.</p></div>
-          <button id="create-backup-button" type="button">Buat Backup Sekarang</button>
+          <button id="create-backup-button" type="button" disabled>Buat Backup Sekarang</button>
         </div>
         <p id="backup-status" class="status-line" role="status"></p>
         <p id="backup-configuration-note" class="helper"></p>
@@ -4068,9 +4068,10 @@
       try {
         const result = await api('/api/admin/backups');
         renderBackups(result.backups || []);
+        document.getElementById('create-backup-button').disabled = !result.configured;
         document.getElementById('backup-configuration-note').textContent = result.configured
           ? 'Backup otomatis berjalan setiap 24 jam dan menyimpan ' + result.retentionCount + ' versi terakhir.'
-          : 'Backup belum aktif. Pasang volume kedua dan set BACKUP_DIR pada environment server.';
+          : 'Backup belum aktif. Pasang volume kedua (contoh mount path /app/backups), lalu set BACKUP_DIR=/app/backups di Railway. Pastikan berbeda dari STORAGE_DIR, kemudian deploy ulang.';
         setStatus('backup-status', (result.backups || []).length + ' backup tersedia.', '');
       } catch (error) {
         setStatus('backup-status', error.message || 'Daftar backup gagal dimuat.', 'error');
