@@ -571,43 +571,44 @@ footer.no-print {
 .status-card:nth-child(4n) { border-top: 3px solid #f43f5e; background: linear-gradient(145deg, #fff, #fff1f2); }
 
 #selection-result-panel {
-  border-color: #fed7aa !important;
+  border-color: #1d4ed8 !important;
   border-radius: 22px !important;
-  color: #172033 !important;
-  background: linear-gradient(115deg, #eff6ff, #eef2ff 55%, #ecfeff) !important;
-  box-shadow: 0 14px 34px rgb(37 99 235 / 10%);
+  color: #fff !important;
+  background: linear-gradient(115deg, #2563eb, #1d4ed8 55%, #1e3a8a) !important;
+  box-shadow: 0 14px 34px rgb(30 64 175 / 30%);
 }
 
 #selection-result-panel.accepted {
-  border-color: #a7f3d0 !important;
-  background: linear-gradient(115deg, #ecfdf5, #d1fae5 55%, #ccfbf1) !important;
-  box-shadow: 0 14px 34px rgb(5 150 105 / 10%);
+  border-color: #166534 !important;
+  background: linear-gradient(115deg, #16a34a, #15803d 55%, #166534) !important;
+  box-shadow: 0 14px 34px rgb(21 128 61 / 30%);
 }
 
 #selection-result-panel.rejected {
-  border-color: #fecaca !important;
-  background: linear-gradient(115deg, #fff1f2, #ffe4e6 55%, #fee2e2) !important;
-  box-shadow: 0 14px 34px rgb(220 38 38 / 9%);
+  border-color: #991b1b !important;
+  background: linear-gradient(115deg, #dc2626, #b91c1c 55%, #991b1b) !important;
+  box-shadow: 0 14px 34px rgb(185 28 28 / 30%);
 }
 
 #selection-result-panel.reserve {
-  border-color: #fde68a !important;
-  background: linear-gradient(115deg, #fffbeb, #fef3c7 55%, #fef9c3) !important;
-  box-shadow: 0 14px 34px rgb(202 138 4 / 10%);
+  border-color: #a16207 !important;
+  color: #422006 !important;
+  background: linear-gradient(115deg, #fde047, #facc15 55%, #eab308) !important;
+  box-shadow: 0 14px 34px rgb(161 98 7 / 28%);
 }
 
 #selection-result-panel .selection-result-content h2 {
-  color: #172033 !important;
+  color: inherit !important;
 }
 
 #selection-result-panel .selection-result-content p {
-  color: #475569 !important;
+  color: inherit !important;
 }
 
-#selection-result-panel #selection-icon-pending { color: #2563eb !important; }
-#selection-result-panel #selection-icon-accepted { color: #047857 !important; }
-#selection-result-panel #selection-icon-rejected { color: #be123c !important; }
-#selection-result-panel #selection-icon-reserve { color: #b45309 !important; }
+#selection-result-panel #selection-icon-pending { color: #dbeafe !important; }
+#selection-result-panel #selection-icon-accepted { color: #bbf7d0 !important; }
+#selection-result-panel #selection-icon-rejected { color: #fecaca !important; }
+#selection-result-panel #selection-icon-reserve { color: #713f12 !important; }
 
 #logout-confirm-dialog::backdrop {
   background: rgb(15 23 42 / 52%);
