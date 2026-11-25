@@ -348,7 +348,6 @@
             <div class="field-row">
               <label class="field-label" for="fatherIncome">Penghasilan Ayah / bulan <span class="required-mark">*</span></label>
               <select class="field-control" id="fatherIncome" name="fatherIncome" required>
-                <option value="">Pilih rentang penghasilan...</option>
                 <option>&lt; Rp1.000.000</option>
                 <option>Rp1.000.000 – Rp2.000.000</option>
                 <option>Rp2.000.000 – Rp3.000.000</option>
@@ -382,7 +381,6 @@
             <div class="field-row">
               <label class="field-label" for="motherIncome">Penghasilan Ibu / bulan <span class="required-mark">*</span></label>
               <select class="field-control" id="motherIncome" name="motherIncome" required>
-                <option value="">Pilih rentang penghasilan...</option>
                 <option>&lt; Rp1.000.000</option>
                 <option>Rp1.000.000 – Rp2.000.000</option>
                 <option>Rp2.000.000 – Rp3.000.000</option>
@@ -886,8 +884,11 @@
 
     function setSelectOptions(select, field) {
       const currentValue = select.value;
-      const placeholder = field.placeholder || 'Pilih ' + field.label + '...';
-      select.replaceChildren(new Option(placeholder, ''));
+      select.replaceChildren();
+      if (!['fatherIncome', 'motherIncome'].includes(field.key)) {
+        const placeholder = field.placeholder || 'Pilih ' + field.label + '...';
+        select.appendChild(new Option(placeholder, ''));
+      }
       fieldOptions(field).forEach(function (value) { select.appendChild(new Option(value, value)); });
       if (Array.from(select.options).some(function (option) { return option.value === currentValue; })) select.value = currentValue;
     }
