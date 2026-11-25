@@ -2147,6 +2147,41 @@ function validateRegistration(payload) {
   return result;
 }
 
+function assertRegistrationIdentifiersAvailable(payload) {
+  const identifiers = [
+    { column: 'nisn', value: payload.nisn, label: 'NISN' },
+    { column: 'student_nik', value: payload.studentNik, label: 'NIK siswa' }
+  ];
+  identifiers.forEach(function (identifier) {
+    if (!identifier.value) return;
+    const duplicate = database.prepare('SELECT 1 FROM applicants WHERE ' + identifier.column + ' = ? LIMIT 1')
+      .get(identifier.value);
+    if (duplicate) {
+      const error = new Error(identifier.label + ' sudah terdaftar. Periksa kembali data yang dimasukkan.');
+      error.code = 'DUPLICATE_REGISTRATION_IDENTIFIER';
+      throw error;
+    }
+  });
+
+  if (!payload.studentPhone) return;
+  const normalizedPhone = normalizeWhatsAppPhone(payload.studentPhone);
+  const phoneDigits = normalizedPhone.replace(/\D/g, '');
+  const phoneVariants = new Set([payload.studentPhone, normalizedPhone, phoneDigits]);
+  if (phoneDigits.startsWith('62')) {
+    phoneVariants.add('0' + phoneDigits.slice(2));
+    phoneVariants.add(phoneDigits.slice(2));
+  }
+  const placeholders = Array.from(phoneVariants).map(function () { return '?'; }).join(', ');
+  const duplicatePhone = database.prepare(
+    'SELECT 1 FROM applicants WHERE student_phone IN (' + placeholders + ') LIMIT 1'
+  ).get(...Array.from(phoneVariants));
+  if (duplicatePhone) {
+    const error = new Error('Nomor HP siswa sudah terdaftar. Periksa kembali data yang dimasukkan.');
+    error.code = 'DUPLICATE_REGISTRATION_IDENTIFIER';
+    throw error;
+  }
+}
+
 function isValidBirthDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value + 'T00:00:00.000Z');
@@ -2384,6 +2419,7 @@ app.post('/api/registrations', function (request, response) {
     const now = new Date().toISOString();
     const year = getConfig().academicYear.slice(0, 4);
     const applicant = withTransaction(function () {
+      assertRegistrationIdentifiersAvailable(payload);
       const insertValues = Object.assign({}, payload, {
         customDataJson: JSON.stringify(payload.customData),
         academicYear: getConfig().academicYear,
@@ -2469,13 +2505,16 @@ app.post('/api/registrations', function (request, response) {
     if (applicantDirectory && fs.existsSync(applicantDirectory)) {
       fs.rmSync(applicantDirectory, { recursive: true, force: true });
     }
-    const duplicate = error.code === 'SQLITE_CONSTRAINT_UNIQUE';
+    const duplicate = error.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+      error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER';
     const status = duplicate ? 409 : 400;
     response.status(status).json({
       status: 'error',
-      message: duplicate
-        ? 'NISN atau NIK ini sudah terdaftar. Hubungi panitia jika Anda perlu memperbaiki pendaftaran.'
-        : error.message || 'Pendaftaran gagal disimpan.'
+      message: error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER'
+        ? error.message
+        : error.code === 'SQLITE_CONSTRAINT_UNIQUE'
+          ? 'Data pendaftaran sudah tercatat. Hubungi panitia jika Anda perlu memperbaikinya.'
+          : error.message || 'Pendaftaran gagal disimpan.'
     });
   }
 });

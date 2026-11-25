@@ -45,7 +45,8 @@
     .helper { margin-top: .4rem; font-size: .75rem; color: #8a929e; }
     .error-text { color: #dc2626; }
     .required-mark { color: #ea580c; }
-    .step-item { display: flex; min-width: 0; align-items: center; gap: .55rem; border: 1px solid #e2e8f0; border-radius: .65rem; background: #f8fafc; padding: .65rem .75rem; color: #64748b; font-size: .75rem; font-weight: 700; line-height: 1.35; }
+    .step-item { display: flex; width: 100%; min-width: 0; align-items: center; gap: .55rem; border: 1px solid #e2e8f0; border-radius: .65rem; background: #f8fafc; padding: .65rem .75rem; color: #64748b; cursor: pointer; font-family: inherit; font-size: .75rem; font-weight: 700; line-height: 1.35; text-align: left; }
+    .step-item:focus-visible { outline: 2px solid #ea580c; outline-offset: 2px; }
     .step-item.current { border-color: #fdba74; background: #fff7ed; color: #c2410c; }
     .step-item.complete { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
     .step-number { display: inline-flex; height: 1.5rem; width: 1.5rem; flex: 0 0 1.5rem; align-items: center; justify-content: center; border-radius: 9999px; background: #e2e8f0; color: #475569; }
@@ -194,7 +195,6 @@
         <h1 id="page-title" class="text-lg font-extrabold leading-snug tracking-tight text-slate-900 sm:text-xl">FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU</h1>
         <p id="academic-year" class="mt-2 text-sm font-extrabold tracking-wide text-orange-600 sm:text-base">SMK PGRI CIKONENG TAHUN AJARAN 2027/2028</p>
         <p class="mt-2 border-b border-slate-100 pb-4 text-sm leading-6 text-slate-500">Silahkan isi seluruh data diri calon peserta didik baru dan data orang tua/wali dengan lengkap dan benar.</p>
-        <p class="mt-3 text-right text-xs text-slate-500"><span class="required-mark">*</span> Wajib diisi</p>
       </div>
 
       <form id="spmb-form" novalidate>
@@ -207,10 +207,10 @@
             <div id="step-progress-bar" class="h-full rounded-full bg-orange-500 transition-all duration-300" style="width: 25%"></div>
           </div>
           <ol class="grid grid-cols-4 gap-2" aria-label="Tahapan formulir">
-            <li id="step-indicator-1" class="step-item current" aria-current="step"><span class="step-number">1</span><span>Pilihan</span></li>
-            <li id="step-indicator-2" class="step-item"><span class="step-number">2</span><span>Data siswa</span></li>
-            <li id="step-indicator-3" class="step-item"><span class="step-number">3</span><span>Orang tua</span></li>
-            <li id="step-indicator-4" class="step-item"><span class="step-number">4</span><span>Berkas</span></li>
+            <li><button id="step-indicator-1" class="step-item current" type="button" data-step-target="1" aria-current="step"><span class="step-number">1</span><span>Pilihan</span></button></li>
+            <li><button id="step-indicator-2" class="step-item" type="button" data-step-target="2"><span class="step-number">2</span><span>Data siswa</span></button></li>
+            <li><button id="step-indicator-3" class="step-item" type="button" data-step-target="3"><span class="step-number">3</span><span>Orang tua</span></button></li>
+            <li><button id="step-indicator-4" class="step-item" type="button" data-step-target="4"><span class="step-number">4</span><span>Berkas</span></button></li>
           </ol>
           <p class="mt-3 text-xs text-slate-400">Isian tersimpan sementara di browser ini dan dipulihkan saat halaman dimuat ulang. Berkas perlu dipilih kembali.</p>
         </div>
@@ -1242,6 +1242,17 @@
       return validateFiles(step);
     }
 
+    function validateAllSteps() {
+      for (let stepNumber = 1; stepNumber <= formSteps.length; stepNumber += 1) {
+        setActiveStep(stepNumber, false);
+        if (!validateCurrentStep(stepNumber)) {
+          document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return false;
+        }
+      }
+      return true;
+    }
+
     function readFileAsBase64(file) {
       return new Promise(function (resolve, reject) {
         const reader = new FileReader();
@@ -1299,6 +1310,12 @@
     document.getElementById('registrationPath').addEventListener('change', applyDocumentConfig);
     form.addEventListener('input', saveFormDraft);
     form.addEventListener('change', saveFormDraft);
+    document.querySelectorAll('[data-step-target]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        setActiveStep(Number(button.dataset.stepTarget), true);
+        saveFormDraft();
+      });
+    });
     document.querySelectorAll('[data-step-next]').forEach(function (button) {
       button.addEventListener('click', function () {
         const stepNumber = Number(button.dataset.stepNext);
@@ -1326,7 +1343,7 @@
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       formError.classList.add('hidden');
-      if (!validateCurrentStep(4)) return;
+      if (!validateAllSteps()) return;
       setLoading(true);
       let payload = {};
       try {
