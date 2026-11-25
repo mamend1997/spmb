@@ -50,6 +50,10 @@ const initialConfig = {
     webhookToken: '',
     events: ['registration.created', 'selection.updated', 'reenrollment.instructions']
   },
+  googleIntegration: {
+    spreadsheetId: '',
+    driveFolderId: ''
+  },
   brochureImageUrl: '',
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
@@ -94,7 +98,7 @@ const initialConfig = {
     { key: 'fatherName', label: 'Nama Ayah', type: 'text', step: 3, required: true, active: true, order: 2, placeholder: 'Nama lengkap Ayah', helpText: '' },
     { key: 'fatherEducation', label: 'Pendidikan Terakhir Ayah', type: 'select', step: 3, required: true, active: true, order: 3, placeholder: 'Pilih Jenjang Pendidikan...', helpText: '', options: ['SD/Sederajat', 'SMP/Sederajat', 'SMA/SMK/Sederajat', 'D1/D2/D3', 'S1/D4', 'S2', 'S3', 'Tidak Sekolah'] },
     { key: 'fatherOccupation', label: 'Pekerjaan Ayah', type: 'text', step: 3, required: true, active: true, order: 4, placeholder: 'Pekerjaan Ayah', helpText: '' },
-    { key: 'fatherIncome', label: 'Penghasilan Ayah / bulan', type: 'text', step: 3, required: true, active: true, order: 5, placeholder: 'Contoh: < 1 Juta, 1 - 3 Juta, dll', helpText: '' },
+    { key: 'fatherIncome', label: 'Penghasilan Ayah / bulan', type: 'select', step: 3, required: true, active: true, order: 5, placeholder: 'Pilih rentang penghasilan...', helpText: '', options: ['< Rp 2.000.000', 'Rp 2.000.000 – Rp 5.000.000', 'Rp 5.000.001 – Rp 10.000.000', 'Rp 10.000.001 – Rp 25.000.000', '> Rp 25.000.000'] },
     { key: 'fatherPhone', label: 'No. Telepon/WA Ayah', type: 'tel', step: 3, required: true, active: true, order: 6, placeholder: '081234567890', helpText: '10–14 digit angka' },
     { key: 'motherNik', label: 'NIK Ibu', type: 'number', step: 3, required: true, active: true, order: 7, placeholder: '16 digit angka NIK Ibu', helpText: 'Hanya angka (tepat 16 digit)' },
     { key: 'motherName', label: 'Nama Ibu', type: 'text', step: 3, required: true, active: true, order: 8, placeholder: 'Nama lengkap Ibu', helpText: '' },
@@ -183,7 +187,8 @@ database.exec(`
     payment_reviewed_at TEXT NOT NULL DEFAULT '',
     status_updated_at TEXT NOT NULL,
     sheet_sync_status TEXT NOT NULL DEFAULT 'pending',
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    deleted_at TEXT NOT NULL DEFAULT ''
   );
   CREATE TABLE IF NOT EXISTS uploaded_files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,6 +199,11 @@ database.exec(`
     mime_type TEXT NOT NULL,
     file_size INTEGER NOT NULL,
     created_at TEXT NOT NULL,
+    drive_file_id TEXT NOT NULL DEFAULT '',
+    drive_sync_status TEXT NOT NULL DEFAULT 'not_configured',
+    drive_sync_attempts INTEGER NOT NULL DEFAULT 0,
+    drive_sync_next_attempt_at TEXT NOT NULL DEFAULT '',
+    drive_sync_error TEXT NOT NULL DEFAULT '',
     UNIQUE(applicant_id, field_key)
   );
   CREATE TABLE IF NOT EXISTS sheet_sync_queue (
@@ -223,6 +233,17 @@ database.exec(`
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS admin_activity_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_user_id INTEGER,
+    admin_username TEXT NOT NULL,
+    admin_display_name TEXT NOT NULL,
+    action TEXT NOT NULL,
+    http_method TEXT NOT NULL,
+    route TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    created_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS admin_login_attempts (
     login_key TEXT PRIMARY KEY,
@@ -312,9 +333,18 @@ function migrateApplicantStorage() {
           mime_type TEXT NOT NULL,
           file_size INTEGER NOT NULL,
           created_at TEXT NOT NULL,
+          drive_file_id TEXT NOT NULL DEFAULT '',
+          drive_sync_status TEXT NOT NULL DEFAULT 'not_configured',
+          drive_sync_attempts INTEGER NOT NULL DEFAULT 0,
+          drive_sync_next_attempt_at TEXT NOT NULL DEFAULT '',
+          drive_sync_error TEXT NOT NULL DEFAULT '',
           UNIQUE(applicant_id, field_key)
         );
-        INSERT INTO uploaded_files SELECT * FROM uploaded_files_legacy;
+        INSERT INTO uploaded_files (
+          id, applicant_id, field_key, stored_name, original_name, mime_type, file_size, created_at
+        )
+        SELECT id, applicant_id, field_key, stored_name, original_name, mime_type, file_size, created_at
+        FROM uploaded_files_legacy;
         CREATE TABLE sheet_sync_queue (
           applicant_id INTEGER PRIMARY KEY REFERENCES applicants(id) ON DELETE CASCADE,
           payload_json TEXT NOT NULL,
@@ -354,10 +384,30 @@ function migrateApplicantStorage() {
 }
 
 migrateApplicantStorage();
+const uploadedFileColumns = new Set(database.prepare('PRAGMA table_info(uploaded_files)').all()
+  .map(function (column) { return column.name; }));
+const driveFileColumnAdditions = {
+  drive_file_id: "TEXT NOT NULL DEFAULT ''",
+  drive_sync_status: "TEXT NOT NULL DEFAULT 'not_configured'",
+  drive_sync_attempts: 'INTEGER NOT NULL DEFAULT 0',
+  drive_sync_next_attempt_at: "TEXT NOT NULL DEFAULT ''",
+  drive_sync_error: "TEXT NOT NULL DEFAULT ''"
+};
+Object.keys(driveFileColumnAdditions).forEach(function (name) {
+  if (!uploadedFileColumns.has(name)) {
+    database.exec('ALTER TABLE uploaded_files ADD COLUMN ' + name + ' ' + driveFileColumnAdditions[name]);
+  }
+});
+database.exec('CREATE INDEX IF NOT EXISTS idx_uploaded_files_drive_sync ON uploaded_files(drive_sync_status, drive_sync_next_attempt_at)');
 const applicantColumns = database.prepare('PRAGMA table_info(applicants)').all();
 if (!applicantColumns.some(function (column) { return column.name === 'archived_at'; })) {
   database.exec("ALTER TABLE applicants ADD COLUMN archived_at TEXT NOT NULL DEFAULT ''");
 }
+if (!applicantColumns.some(function (column) { return column.name === 'deleted_at'; })) {
+  database.exec("ALTER TABLE applicants ADD COLUMN deleted_at TEXT NOT NULL DEFAULT ''");
+}
+database.exec('CREATE INDEX IF NOT EXISTS idx_applicants_deleted_at ON applicants(deleted_at, id DESC)');
+database.exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_log_created_at ON admin_activity_log(created_at DESC)');
 database.exec(`
   CREATE TABLE IF NOT EXISTS portal_sessions (
     token_hash TEXT PRIMARY KEY,
@@ -385,11 +435,72 @@ app.use(function setSecurityHeaders(request, response, next) {
   next();
 });
 app.use(express.json({ limit: '20mb' }));
+app.use('/api/admin', function trackAdminActivity(request, response, next) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next();
+  response.once('finish', function () {
+    if (!request.adminUser) return;
+    const route = String(request.route && request.route.path || request.path || '').slice(0, 240);
+    const action = (request.method + ' ' + route).slice(0, 300);
+    try {
+      database.prepare(`
+        INSERT INTO admin_activity_log (
+          admin_user_id, admin_username, admin_display_name, action, http_method, route, status_code, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        request.adminUser.id,
+        request.adminUser.username,
+        request.adminUser.display_name,
+        action,
+        request.method,
+        route,
+        response.statusCode,
+        new Date().toISOString()
+      );
+    } catch (error) {
+      console.error('Gagal menyimpan log aktivitas admin:', error.message);
+    }
+  });
+  next();
+});
 
 function getConfig() {
   const saved = database.prepare('SELECT value FROM settings WHERE key = ?').get('siteConfig');
   if (!saved) return sanitizeConfig(structuredClone(initialConfig));
   return sanitizeConfig(JSON.parse(saved.value));
+}
+
+function normalizeGoogleResourceId(value, label, urlPattern) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  let resourceId = raw;
+  if (/^https?:\/\//i.test(raw)) {
+    const match = raw.match(urlPattern);
+    if (!match) throw new Error(label + ' harus berupa ID Google yang valid atau URL resmi Google.');
+    resourceId = match[1];
+  }
+  if (!/^[A-Za-z0-9_-]{10,200}$/.test(resourceId)) {
+    throw new Error(label + ' tidak valid.');
+  }
+  return resourceId;
+}
+
+function sanitizeGoogleIntegrationConfig(input) {
+  if (input !== undefined && (!input || typeof input !== 'object' || Array.isArray(input))) {
+    throw new Error('Pengaturan integrasi Google tidak valid.');
+  }
+  const config = input || {};
+  return {
+    spreadsheetId: normalizeGoogleResourceId(
+      config.spreadsheetId,
+      'ID Spreadsheet',
+      /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)(?:[/?#]|$)/i
+    ),
+    driveFolderId: normalizeGoogleResourceId(
+      config.driveFolderId,
+      'ID Folder Drive',
+      /^https:\/\/drive\.google\.com\/drive\/folders\/([A-Za-z0-9_-]+)(?:[/?#]|$)/i
+    )
+  };
 }
 
 function sanitizeConfig(input) {
@@ -406,6 +517,7 @@ function sanitizeConfig(input) {
     programs: configuredPrograms,
     classes: sanitizeClasses(input.classes),
     whatsappGateway: sanitizeWhatsAppGatewayConfig(input.whatsappGateway),
+    googleIntegration: sanitizeGoogleIntegrationConfig(input.googleIntegration),
     brochureImageUrl: String(input.brochureImageUrl || '').trim(),
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
@@ -770,7 +882,7 @@ function isAllowedPublicUrl(value) {
 }
 
 function getApplicantByRegistration(registrationNumber) {
-  return database.prepare('SELECT * FROM applicants WHERE registration_number = ?').get(registrationNumber);
+  return database.prepare("SELECT * FROM applicants WHERE registration_number = ? AND deleted_at = ''").get(registrationNumber);
 }
 
 function generateRegistrationNumber(year) {
@@ -895,6 +1007,48 @@ function enqueueSheetSync(applicant) {
   database.prepare('UPDATE applicants SET sheet_sync_status = ? WHERE id = ?').run('pending', applicant.id);
 }
 
+function googleSyncCredentialsAvailable() {
+  return Boolean(process.env.APPS_SCRIPT_SYNC_URL && process.env.SHEET_SYNC_TOKEN);
+}
+
+function isDriveSyncConfigured(config) {
+  const siteConfig = config || getConfig();
+  return googleSyncCredentialsAvailable() &&
+    Boolean(siteConfig.googleIntegration && siteConfig.googleIntegration.driveFolderId);
+}
+
+function queueDriveSync(applicantId, fieldKey) {
+  const file = database.prepare(
+    'SELECT stored_name FROM uploaded_files WHERE applicant_id = ? AND field_key = ?'
+  ).get(applicantId, fieldKey);
+  if (!file) throw new Error('Berkas tidak ditemukan untuk antrean Google Drive.');
+  if (!isDriveSyncConfigured()) {
+    database.prepare(`
+      UPDATE uploaded_files
+      SET drive_sync_status = 'not_configured', drive_sync_attempts = 0,
+          drive_sync_next_attempt_at = '', drive_sync_error = ''
+      WHERE applicant_id = ? AND field_key = ?
+    `).run(applicantId, fieldKey);
+    return;
+  }
+  database.prepare(`
+    UPDATE uploaded_files
+    SET drive_sync_status = 'pending', drive_sync_attempts = 0,
+        drive_sync_next_attempt_at = ?, drive_sync_error = ''
+    WHERE applicant_id = ? AND field_key = ?
+  `).run(new Date().toISOString(), applicantId, fieldKey);
+}
+
+function queueExistingDriveUploads() {
+  if (!isDriveSyncConfigured()) return;
+  database.prepare(`
+    UPDATE uploaded_files
+    SET drive_sync_status = 'pending', drive_sync_attempts = 0,
+        drive_sync_next_attempt_at = ?, drive_sync_error = ''
+    WHERE drive_sync_status = 'not_configured'
+  `).run(new Date().toISOString());
+}
+
 let syncInProgress = false;
 async function syncQueuedApplications() {
   const webhookUrl = process.env.APPS_SCRIPT_SYNC_URL;
@@ -918,6 +1072,7 @@ async function syncQueuedApplications() {
           body: JSON.stringify({
             action: 'syncRegistration',
             token: syncToken,
+            spreadsheetId: getConfig().googleIntegration.spreadsheetId,
             registration: JSON.parse(job.payload_json)
           }),
           signal: AbortSignal.timeout(20000)
@@ -948,6 +1103,82 @@ async function syncQueuedApplications() {
     }
   } finally {
     syncInProgress = false;
+  }
+}
+
+let driveSyncInProgress = false;
+async function syncQueuedDriveFiles() {
+  if (!isDriveSyncConfigured() || driveSyncInProgress) return;
+  driveSyncInProgress = true;
+  try {
+    const config = getConfig();
+    const folderId = config.googleIntegration.driveFolderId;
+    const now = new Date().toISOString();
+    const jobs = database.prepare(`
+      SELECT files.applicant_id, files.field_key, files.stored_name, files.mime_type,
+        files.drive_sync_attempts, applicants.registration_number
+      FROM uploaded_files AS files
+      JOIN applicants ON applicants.id = files.applicant_id
+      WHERE files.drive_sync_status = 'pending'
+        AND files.drive_sync_next_attempt_at <= ?
+      ORDER BY files.drive_sync_next_attempt_at
+      LIMIT 5
+    `).all(now);
+    for (const job of jobs) {
+      try {
+        const applicantDirectory = path.resolve(uploadDirectory, job.registration_number);
+        const filePath = path.resolve(applicantDirectory, path.basename(job.stored_name));
+        if (!filePath.startsWith(applicantDirectory + path.sep) || !fs.existsSync(filePath)) {
+          throw new Error('Berkas lokal tidak ditemukan untuk disalin ke Drive.');
+        }
+        const response = await fetch(process.env.APPS_SCRIPT_SYNC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'storeDocument',
+            token: process.env.SHEET_SYNC_TOKEN,
+            driveFolderId: folderId,
+            registrationNumber: job.registration_number,
+            fieldKey: job.field_key,
+            storedName: job.stored_name,
+            contentType: job.mime_type,
+            base64: fs.readFileSync(filePath).toString('base64')
+          }),
+          signal: AbortSignal.timeout(20000)
+        });
+        if (!response.ok) throw new Error('Webhook membalas HTTP ' + response.status);
+        const result = await response.json();
+        if (result.status !== 'success' || !/^[A-Za-z0-9_-]{10,200}$/.test(String(result.fileId || ''))) {
+          throw new Error(result.message || 'Apps Script tidak mengembalikan ID file Drive yang valid.');
+        }
+        database.prepare(`
+          UPDATE uploaded_files
+          SET drive_file_id = ?, drive_sync_status = 'synced', drive_sync_attempts = 0,
+              drive_sync_next_attempt_at = '', drive_sync_error = ''
+          WHERE applicant_id = ? AND field_key = ? AND stored_name = ?
+        `).run(result.fileId, job.applicant_id, job.field_key, job.stored_name);
+      } catch (error) {
+        const attempts = job.drive_sync_attempts + 1;
+        const delaySeconds = Math.min(3600, 30 * Math.pow(2, Math.min(attempts, 7)));
+        const nextAttempt = new Date(Date.now() + delaySeconds * 1000).toISOString();
+        database.prepare(`
+          UPDATE uploaded_files
+          SET drive_sync_status = 'pending', drive_sync_attempts = ?,
+              drive_sync_next_attempt_at = ?, drive_sync_error = ?
+          WHERE applicant_id = ? AND field_key = ? AND stored_name = ?
+        `).run(
+          attempts,
+          nextAttempt,
+          String(error.message || error).slice(0, 300),
+          job.applicant_id,
+          job.field_key,
+          job.stored_name
+        );
+        console.error('Google Drive sync failed for applicant', job.applicant_id, error.message);
+      }
+    }
+  } finally {
+    driveSyncInProgress = false;
   }
 }
 
@@ -992,6 +1223,8 @@ function validateAdminPassword(value) {
 const adminPermissionMenus = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'applications', label: 'Data Pendaftar' },
+  { key: 'trash', label: 'Kotak Sampah' },
+  { key: 'activityLog', label: 'Log Aktivitas' },
   { key: 'form', label: 'Form Pendaftaran' },
   { key: 'academicYear', label: 'Tahun Pelajaran' },
   { key: 'programs', label: 'Program Studi' },
@@ -1000,6 +1233,7 @@ const adminPermissionMenus = [
   { key: 'waves', label: 'Gelombang Pendaftaran' },
   { key: 'paths', label: 'Jalur Pendaftaran' },
   { key: 'timeline', label: 'Timeline Beranda' },
+  { key: 'googleIntegration', label: 'Google Drive & Sheets' },
   { key: 'payment', label: 'Metode Pembayaran' },
   { key: 'documents', label: 'Dokumen Sekolah' },
   { key: 'accounts', label: 'Manajemen Akun' }
@@ -1038,6 +1272,7 @@ const adminConfigPermissionGroups = {
   waves: ['registrationWaves'],
   paths: ['registrationPaths'],
   timeline: ['brochureImageUrl', 'timelineEvents'],
+  googleIntegration: ['googleIntegration'],
   payment: ['paymentSettings'],
   documents: ['schoolDocuments']
 };
@@ -1056,7 +1291,7 @@ function sanitizeRolePermissions(input) {
     adminPermissionMenus.forEach(function (menu) {
       let actions = roleInput[menu.key];
       if (!actions && ['academicYear', 'programs', 'classes'].includes(menu.key)) actions = roleInput.form;
-      if (!actions && menu.key === 'whatsapp') actions = { view: false, edit: false, delete: false };
+      if (!actions) actions = { view: false, edit: false, delete: false };
       if (!actions || typeof actions !== 'object' || Array.isArray(actions) ||
           ['view', 'edit', 'delete'].some(function (action) { return typeof actions[action] !== 'boolean'; })) {
         throw new Error('Hak akses ' + menu.label + ' pada role ' + role + ' tidak valid.');
@@ -1223,7 +1458,7 @@ function requirePortal(request, response, next) {
     return response.status(401).json({ message: 'Sesi portal berakhir. Silakan masuk kembali.' });
   }
   request.portalApplicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(session.applicant_id);
-  if (!request.portalApplicant || request.portalApplicant.archived_at) {
+  if (!request.portalApplicant || request.portalApplicant.archived_at || request.portalApplicant.deleted_at) {
     database.prepare('DELETE FROM portal_sessions WHERE token_hash = ?').run(tokenHash);
     setPortalCookie(request, response, '', 0);
     return response.status(401).json({ message: 'Data pendaftar tidak ditemukan.' });
@@ -1671,6 +1906,7 @@ function createApplicantUploads(applicantId, registrationNumber, uploads, now, c
         INSERT INTO uploaded_files (applicant_id, field_key, stored_name, original_name, mime_type, file_size, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(applicantId, key, storedName, upload.originalName, upload.type, upload.bytes.length, now);
+      queueDriveSync(applicantId, key);
       savedFiles.push(storedName);
     });
     return savedFiles;
@@ -1730,6 +1966,7 @@ app.get('/healthz', function (request, response) {
 app.get('/api/public-config', function (request, response) {
   const config = getConfig();
   delete config.whatsappGateway;
+  delete config.googleIntegration;
   response.json(config);
 });
 
@@ -1821,6 +2058,7 @@ app.post('/api/registrations', function (request, response) {
       portalUrl: portalUrl
     });
     setImmediate(syncQueuedApplications);
+    setImmediate(syncQueuedDriveFiles);
   } catch (error) {
     if (applicantDirectory && fs.existsSync(applicantDirectory)) {
       fs.rmSync(applicantDirectory, { recursive: true, force: true });
@@ -1868,7 +2106,7 @@ app.post('/api/public/application-result', function (request, response) {
     return response.status(400).json({ message: 'Pencarian hanya mendukung NISN atau NIK siswa dengan format yang valid.' });
   }
   const applicants = database.prepare(
-    "SELECT document_status, selection_status FROM applicants WHERE " + search.column + " = ? AND archived_at = '' LIMIT 2"
+    "SELECT document_status, selection_status FROM applicants WHERE " + search.column + " = ? AND archived_at = '' AND deleted_at = '' LIMIT 2"
   ).all(identifier);
   if (applicants.length !== 1) {
     return response.status(404).json({ message: 'Data pendaftar tidak ditemukan atau belum tersedia.' });
@@ -2015,7 +2253,7 @@ app.post('/api/portal/login', function (request, response) {
   }
   const applicant = getApplicantByRegistration(registrationNumber);
   let validPin = false;
-  if (applicant && !applicant.archived_at) {
+  if (applicant && !applicant.archived_at && !applicant.deleted_at) {
     const storedHash = Buffer.from(applicant.portal_pin_hash, 'hex');
     const suppliedHash = Buffer.from(makePinHash(pin, applicant.portal_pin_salt), 'hex');
     validPin = storedHash.length === suppliedHash.length && crypto.timingSafeEqual(storedHash, suppliedHash);
@@ -2126,6 +2364,7 @@ app.patch('/api/portal/fields/:key', requirePortal, function (request, response)
   });
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
+  setImmediate(syncQueuedDriveFiles);
   response.json({ status: 'success', documentStatus: documentStatus });
 });
 
@@ -2219,6 +2458,7 @@ app.post('/api/portal/documents/:key', requirePortal, function (request, respons
           file_size = excluded.file_size,
           created_at = excluded.created_at
       `).run(applicant.id, key, storedName, decoded.originalName, decoded.type, decoded.bytes.length, now);
+      queueDriveSync(applicant.id, key);
       database.prepare(`
         UPDATE applicants SET field_reviews_json = ?, document_status = ?, status_updated_at = ?
         WHERE id = ?
@@ -2234,6 +2474,7 @@ app.post('/api/portal/documents/:key', requirePortal, function (request, respons
       }
     }
     setImmediate(syncQueuedApplications);
+    setImmediate(syncQueuedDriveFiles);
     response.json({ status: 'success', documentStatus: documentStatus });
   } catch (error) {
     if (fs.existsSync(filePath)) {
@@ -2280,6 +2521,7 @@ app.post('/api/portal/payment-proof', requirePortal, function (request, response
           file_size = excluded.file_size,
           created_at = excluded.created_at
       `).run(applicant.id, storedName, decoded.originalName, decoded.type, decoded.bytes.length, now);
+      queueDriveSync(applicant.id, 'paymentProof');
       database.prepare(`
         UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
           reenrollment_status = ?, status_updated_at = ?
@@ -2296,6 +2538,7 @@ app.post('/api/portal/payment-proof', requirePortal, function (request, response
       }
     }
     setImmediate(syncQueuedApplications);
+    setImmediate(syncQueuedDriveFiles);
     response.json({ status: 'success', paymentStatus: 'Menunggu Verifikasi Pembayaran' });
   } catch (error) {
     if (fs.existsSync(filePath)) {
@@ -2584,6 +2827,9 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
     });
     if (!canEdit) return response.status(403).json({ message: 'Akun Anda tidak memiliki izin mengubah Master Data.' });
     const config = sanitizeConfig(merged);
+    if (config.academicYear !== previous.academicYear) {
+      throw new Error('Gunakan Mulai Tahun Pelajaran Baru agar pendaftar tahun sebelumnya diarsipkan.');
+    }
     const deletions = {
       form: [['formFields', 'key'], ['documentRequirements', 'key']],
       waves: [['registrationWaves', 'name']],
@@ -2609,13 +2855,93 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
     if (removedClass && !permissions.classes.delete) {
       throw new Error('Akun Anda tidak memiliki izin menghapus kelas.');
     }
-    database.prepare(`
-      INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `).run(JSON.stringify(config));
+    const previousDriveFolderId = previous.googleIntegration.driveFolderId;
+    const nextDriveFolderId = config.googleIntegration.driveFolderId;
+    withTransaction(function () {
+      database.prepare(`
+        INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+      `).run(JSON.stringify(config));
+      if (previousDriveFolderId !== nextDriveFolderId && isDriveSyncConfigured(config)) {
+        database.prepare(`
+          UPDATE uploaded_files
+          SET drive_sync_status = 'pending', drive_sync_attempts = 0,
+              drive_sync_next_attempt_at = ?, drive_sync_error = ''
+        `).run(new Date().toISOString());
+      } else if (previousDriveFolderId !== nextDriveFolderId) {
+        database.prepare(`
+          UPDATE uploaded_files
+          SET drive_sync_status = 'not_configured', drive_sync_attempts = 0,
+              drive_sync_next_attempt_at = '', drive_sync_error = ''
+        `).run();
+      }
+    });
+    if (previousDriveFolderId !== nextDriveFolderId && isDriveSyncConfigured(config)) {
+      setImmediate(syncQueuedDriveFiles);
+    }
     response.json(getScopedAdminConfig(config, request.adminUser.role));
   } catch (error) {
     response.status(400).json({ message: error.message || 'Pengaturan gagal disimpan.' });
+  }
+});
+
+app.post('/api/admin/academic-year/start', requireAdmin, requirePermission('academicYear', 'edit'), function (request, response) {
+  try {
+    const body = request.body || {};
+    const targetYear = String(body.academicYear || '').trim();
+    const masterMode = String(body.masterMode || '');
+    const currentYear = getConfig().academicYear;
+    const targetParts = /^(\d{4})\/(\d{4})$/.exec(targetYear);
+    const currentStart = Number(currentYear.slice(0, 4));
+    if (!targetParts || Number(targetParts[1]) !== currentStart + 1 ||
+        Number(targetParts[2]) !== Number(targetParts[1]) + 1) {
+      throw new Error('Tahun baru harus berurutan setelah tahun pelajaran aktif.');
+    }
+    if (!['copy', 'reset'].includes(masterMode)) {
+      throw new Error('Pilih apakah master data akan disalin atau dimulai dari awal.');
+    }
+
+    const previous = getConfig();
+    const nextConfig = JSON.parse(JSON.stringify(previous));
+    nextConfig.academicYear = targetYear;
+    nextConfig.registrationWaves = (masterMode === 'copy'
+      ? previous.registrationWaves
+      : initialConfig.registrationWaves).map(function (wave) {
+        return Object.assign({}, wave, { academicYear: targetYear });
+      });
+    if (masterMode === 'reset') {
+      nextConfig.registrationPaths = JSON.parse(JSON.stringify(initialConfig.registrationPaths));
+      nextConfig.classes = [];
+      nextConfig.timelineEvents = JSON.parse(JSON.stringify(initialConfig.timelineEvents));
+      nextConfig.documentRequirements = JSON.parse(JSON.stringify(initialConfig.documentRequirements));
+    }
+    const config = sanitizeConfig(nextConfig);
+    const archivedAt = new Date().toISOString();
+    let archivedCount = 0;
+    withTransaction(function () {
+      archivedCount = database.prepare(
+        "UPDATE applicants SET archived_at = ? WHERE archived_at = '' AND deleted_at = ''"
+      ).run(archivedAt).changes;
+      database.prepare(`
+        DELETE FROM portal_sessions
+        WHERE applicant_id IN (SELECT id FROM applicants WHERE archived_at = ?)
+      `).run(archivedAt);
+      database.prepare(`
+        DELETE FROM login_attempts
+        WHERE registration_number IN (SELECT registration_number FROM applicants WHERE archived_at = ?)
+      `).run(archivedAt);
+      database.prepare(`
+        INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+      `).run(JSON.stringify(config));
+    });
+    response.json({
+      status: 'success',
+      archivedCount: archivedCount,
+      config: getScopedAdminConfig(config, request.adminUser.role)
+    });
+  } catch (error) {
+    response.status(400).json({ message: error.message || 'Tahun pelajaran baru gagal dimulai.' });
   }
 });
 
@@ -2705,9 +3031,13 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
   const isViewer = !permissions.applications.edit;
   const config = getConfig();
   const applicants = canViewApplications
-    ? database.prepare("SELECT * FROM applicants WHERE archived_at " + (archived ? "!= ''" : "= ''") + ' ORDER BY id DESC LIMIT 500').all()
+    ? database.prepare("SELECT * FROM applicants WHERE archived_at " + (archived ? "!= ''" : "= ''") +
+      " AND deleted_at = '' ORDER BY id DESC LIMIT 500").all()
     : [];
-  const getFiles = database.prepare('SELECT field_key, original_name, file_size FROM uploaded_files WHERE applicant_id = ?');
+  const getFiles = database.prepare(`
+    SELECT field_key, original_name, file_size, drive_sync_status, drive_sync_error
+    FROM uploaded_files WHERE applicant_id = ?
+  `);
   const results = applicants.map(function (applicant) {
     const result = {
       id: applicant.id,
@@ -2765,6 +3095,8 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
             label: label,
             name: file.original_name,
             size: file.file_size,
+            driveSyncStatus: file.drive_sync_status,
+            driveSyncError: file.drive_sync_error,
             review: JSON.parse(applicant.field_reviews_json || '{}')[file.field_key] || null,
             url: '/api/admin/applications/' + encodeURIComponent(applicant.registration_number) + '/files/' + file.field_key
           };
@@ -2787,13 +3119,13 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
     FROM applicants
-    WHERE archived_at = ''
+    WHERE archived_at = '' AND deleted_at = ''
   `).get();
   const academicStart = Number(config.academicYear.slice(0, 4));
   const monthly = database.prepare(`
     SELECT substr(created_at, 1, 7) AS month, COUNT(*) AS count
     FROM applicants
-    WHERE archived_at = '' AND created_at >= ? AND created_at < ?
+    WHERE archived_at = '' AND deleted_at = '' AND created_at >= ? AND created_at < ?
     GROUP BY substr(created_at, 1, 7)
     ORDER BY month
   `).all(academicStart + '-07-01T00:00:00.000Z', (academicStart + 1) + '-07-01T00:00:00.000Z');
@@ -2814,26 +3146,61 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
   });
 });
 
+app.get('/api/admin/activity-log', requireAdmin, requirePermission('activityLog', 'view'), function (request, response) {
+  const entries = database.prepare(`
+    SELECT id, admin_username, admin_display_name, action, http_method, route, status_code, created_at
+    FROM admin_activity_log
+    ORDER BY id DESC
+    LIMIT 500
+  `).all();
+  response.json({ entries: entries });
+});
+
+app.get('/api/admin/trash', requireAdmin, requirePermission('trash', 'view'), function (request, response) {
+  const applicants = database.prepare(`
+    SELECT registration_number, student_name, deleted_at, created_at
+    FROM applicants
+    WHERE deleted_at <> ''
+    ORDER BY deleted_at DESC, id DESC
+    LIMIT 500
+  `).all();
+  response.json({ applicants: applicants });
+});
+
+app.post('/api/admin/trash/:registrationNumber/restore', requireAdmin, requirePermission('trash', 'edit'), function (request, response) {
+  const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
+  if (!registrationNumberPattern.test(registrationNumber)) {
+    return response.status(400).json({ message: 'Nomor pendaftaran tidak valid.' });
+  }
+  const applicant = database.prepare('SELECT id FROM applicants WHERE registration_number = ? AND deleted_at <> ?')
+    .get(registrationNumber, '');
+  if (!applicant) {
+    return response.status(404).json({ message: 'Pendaftar tidak ditemukan di Kotak Sampah.' });
+  }
+  database.prepare("UPDATE applicants SET deleted_at = '' WHERE id = ? AND deleted_at <> ''").run(applicant.id);
+  response.json({ status: 'success' });
+});
+
 app.delete('/api/admin/applications/:registrationNumber', requireAdmin, requirePermission('applications', 'delete'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const applicant = getApplicantByRegistration(registrationNumber);
-  if (!applicant || applicant.archived_at) {
+  if (!applicant || applicant.archived_at || applicant.deleted_at) {
     return response.status(404).json({ message: 'Pendaftar aktif tidak ditemukan.' });
   }
-  const archivedAt = new Date().toISOString();
+  const deletedAt = new Date().toISOString();
   withTransaction(function () {
-    database.prepare("UPDATE applicants SET archived_at = ? WHERE id = ? AND archived_at = ''")
-      .run(archivedAt, applicant.id);
+    database.prepare("UPDATE applicants SET deleted_at = ? WHERE id = ? AND archived_at = '' AND deleted_at = ''")
+      .run(deletedAt, applicant.id);
     database.prepare('DELETE FROM portal_sessions WHERE applicant_id = ?').run(applicant.id);
     database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(registrationNumber);
   });
-  response.json({ status: 'success', archivedAt: archivedAt });
+  response.json({ status: 'success', deletedAt: deletedAt });
 });
 
 app.post('/api/admin/applications/:registrationNumber/restore', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const applicant = getApplicantByRegistration(registrationNumber);
-  if (!applicant || !applicant.archived_at) {
+  if (!applicant || !applicant.archived_at || applicant.deleted_at) {
     return response.status(404).json({ message: 'Pendaftar arsip tidak ditemukan.' });
   }
   database.prepare("UPDATE applicants SET archived_at = '' WHERE id = ? AND archived_at <> ''").run(applicant.id);
@@ -2851,7 +3218,7 @@ function getActiveBulkApplicants(body) {
     return { error: 'Nomor pendaftaran tidak valid.' };
   }
   const applicants = registrationNumbers.map(getApplicantByRegistration);
-  if (applicants.some(function (applicant) { return !applicant || applicant.archived_at; })) {
+  if (applicants.some(function (applicant) { return !applicant || applicant.archived_at || applicant.deleted_at; })) {
     return { error: 'Sebagian pendaftar tidak ditemukan atau sudah diarsipkan.' };
   }
   return { applicants: applicants };
@@ -2860,16 +3227,16 @@ function getActiveBulkApplicants(body) {
 app.post('/api/admin/applications/bulk/delete', requireAdmin, requirePermission('applications', 'delete'), function (request, response) {
   const result = getActiveBulkApplicants(request.body);
   if (result.error) return response.status(400).json({ message: result.error });
-  const archivedAt = new Date().toISOString();
+  const deletedAt = new Date().toISOString();
   withTransaction(function () {
     result.applicants.forEach(function (applicant) {
-      database.prepare("UPDATE applicants SET archived_at = ? WHERE id = ? AND archived_at = ''")
-        .run(archivedAt, applicant.id);
+      database.prepare("UPDATE applicants SET deleted_at = ? WHERE id = ? AND archived_at = '' AND deleted_at = ''")
+        .run(deletedAt, applicant.id);
       database.prepare('DELETE FROM portal_sessions WHERE applicant_id = ?').run(applicant.id);
       database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(applicant.registration_number);
     });
   });
-  response.json({ status: 'success', archivedAt: archivedAt, count: result.applicants.length });
+  response.json({ status: 'success', deletedAt: deletedAt, count: result.applicants.length });
 });
 
 app.post('/api/admin/applications/bulk/selection', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
@@ -3012,7 +3379,7 @@ app.post('/api/admin/applications/bulk/class', requireAdmin, requirePermission('
 app.patch('/api/admin/applications/:registrationNumber/class', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const applicant = getApplicantByRegistration(registrationNumber);
-  if (!applicant || applicant.archived_at) return response.status(404).json({ message: 'Pendaftar aktif tidak ditemukan.' });
+  if (!applicant || applicant.archived_at || applicant.deleted_at) return response.status(404).json({ message: 'Pendaftar aktif tidak ditemukan.' });
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(400).json({ message: 'Kelas hanya dapat ditetapkan bagi siswa yang dinyatakan lulus.' });
   }
@@ -3243,7 +3610,7 @@ function createApplicantWorkbook(rows) {
 }
 
 app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
-  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' ORDER BY id").all();
+  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' AND deleted_at = '' ORDER BY id").all();
   function csvCell(value) {
     const text = String(value == null ? '' : value);
     const safeText = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? "'" + text : text;
@@ -3259,7 +3626,7 @@ app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications',
 });
 
 app.get('/api/admin/export.xlsx', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
-  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' ORDER BY id").all();
+  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' AND deleted_at = '' ORDER BY id").all();
   const workbook = createApplicantWorkbook(rows);
   response.setHeader('Content-Disposition', 'attachment; filename="rekap-pendaftar-spmb.xlsx"');
   response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -3419,10 +3786,25 @@ app.get('/api/admin/sync-status', requireAdmin, requirePermission('applications'
   const synced = database.prepare(`
     SELECT COUNT(*) AS count FROM sheet_sync_queue WHERE synced_at IS NOT NULL
   `).get().count;
+  const drivePending = database.prepare(`
+    SELECT COUNT(*) AS count FROM uploaded_files WHERE drive_sync_status = 'pending'
+  `).get().count;
+  const driveSynced = database.prepare(`
+    SELECT COUNT(*) AS count FROM uploaded_files WHERE drive_sync_status = 'synced'
+  `).get().count;
+  const driveErrors = database.prepare(`
+    SELECT COUNT(*) AS count FROM uploaded_files
+    WHERE drive_sync_status = 'pending' AND drive_sync_error != ''
+  `).get().count;
+  const config = getConfig();
   response.json({
-    configured: Boolean(process.env.APPS_SCRIPT_SYNC_URL && process.env.SHEET_SYNC_TOKEN),
+    configured: googleSyncCredentialsAvailable(),
     pending: pending,
-    synced: synced
+    synced: synced,
+    driveConfigured: isDriveSyncConfigured(config),
+    drivePending: drivePending,
+    driveSynced: driveSynced,
+    driveErrors: driveErrors
   });
 });
 
@@ -3481,7 +3863,7 @@ app.get('/admin/:section', function (request, response) {
 });
 app.get('/admin/master-data/:section', function (request, response) {
   if (!['form-pendaftaran', 'gelombang-pendaftaran', 'jalur-pendaftaran',
-    'timeline-beranda', 'metode-pembayaran', 'dokumen-sekolah', 'tahun-pelajaran',
+    'timeline-beranda', 'google-drive-sheets', 'metode-pembayaran', 'dokumen-sekolah', 'tahun-pelajaran',
     'program-studi', 'kelas', 'wa-gateway'].includes(request.params.section)) {
     return response.status(404).end();
   }
@@ -3527,8 +3909,10 @@ function refreshApplicantDocumentStatuses() {
 }
 
 refreshApplicantDocumentStatuses();
+queueExistingDriveUploads();
 const server = app.listen(port, '0.0.0.0', function () {
   console.log('SPMB server listening on port ' + port);
 });
 server.keepAliveTimeout = 65000;
 setInterval(syncQueuedApplications, 15000).unref();
+setInterval(syncQueuedDriveFiles, 15000).unref();

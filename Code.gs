@@ -27,12 +27,16 @@ function doPost(event) {
       throw new Error('Data sinkronisasi tidak ditemukan.');
     }
     const request = JSON.parse(event.postData.contents);
-    if (!request || request.action !== 'syncRegistration' || !request.registration) {
-      throw new Error('Jenis sinkronisasi tidak dikenali.');
-    }
+    if (!request || typeof request !== 'object') throw new Error('Permintaan tidak valid.');
     const expectedToken = PropertiesService.getScriptProperties().getProperty('SHEET_SYNC_TOKEN');
     if (!expectedToken || expectedToken.length < 32 || request.token !== expectedToken) {
       throw new Error('Token sinkronisasi tidak valid.');
+    }
+    if (request.action === 'storeDocument') {
+      return storeDocument_(request);
+    }
+    if (request.action !== 'syncRegistration' || !request.registration) {
+      throw new Error('Jenis sinkronisasi tidak dikenali.');
     }
     const registration = request.registration;
     if (!/^SPMB-\d{4}-(?:\d{6}|(?=[A-Z0-9]{8}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8})$/.test(String(registration.registrationNumber || ''))) {
@@ -42,7 +46,7 @@ function doPost(event) {
     lock = LockService.getScriptLock();
     lock.waitLock(30000);
     lockAcquired = true;
-    const sheet = getTargetSheet_();
+    const sheet = getTargetSheet_(request.spreadsheetId);
     ensureHeaders_(sheet);
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
     const values = makeRowValues_(headers, registration);
@@ -62,9 +66,10 @@ function doPost(event) {
   }
 }
 
-function getTargetSheet_() {
+function getTargetSheet_(requestedSpreadsheetId) {
   const properties = PropertiesService.getScriptProperties();
-  const spreadsheetId = properties.getProperty('SPREADSHEET_ID');
+  const spreadsheetId = normalizeGoogleResourceId_(requestedSpreadsheetId) ||
+    properties.getProperty('SPREADSHEET_ID');
   const spreadsheet = spreadsheetId
     ? SpreadsheetApp.openById(spreadsheetId)
     : SpreadsheetApp.getActiveSpreadsheet();
@@ -74,6 +79,53 @@ function getTargetSheet_() {
   let sheet = spreadsheet.getSheetByName(SHEET_NAME);
   if (!sheet) sheet = spreadsheet.insertSheet(SHEET_NAME);
   return sheet;
+}
+
+function storeDocument_(request) {
+  const folderId = normalizeGoogleResourceId_(request.driveFolderId);
+  const registrationNumber = String(request.registrationNumber || '');
+  const fieldKey = String(request.fieldKey || '');
+  const storedName = String(request.storedName || '');
+  const contentType = String(request.contentType || '').toLowerCase();
+  const base64 = String(request.base64 || '');
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  if (!folderId || !/^SPMB-\d{4}-(?:\d{6}|(?=[A-Z0-9]{8}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8})$/.test(registrationNumber) ||
+      !/^[A-Za-z][A-Za-z0-9_]{1,39}$/.test(fieldKey) ||
+      !/^[A-Za-z][A-Za-z0-9_]{1,39}-[a-f0-9]{24}\.(?:pdf|jpg|png)$/.test(storedName) ||
+      allowedTypes.indexOf(contentType) === -1 ||
+      !base64 || base64.length > 2800000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
+    throw new Error('Data berkas untuk Google Drive tidak valid.');
+  }
+  if ((contentType === 'application/pdf' && !storedName.endsWith('.pdf')) ||
+      (contentType === 'image/png' && !storedName.endsWith('.png')) ||
+      (contentType === 'image/jpeg' && !storedName.endsWith('.jpg'))) {
+    throw new Error('Jenis file dan nama berkas tidak sesuai.');
+  }
+  const bytes = Utilities.base64Decode(base64);
+  if (!bytes.length || bytes.length > 2 * 1024 * 1024) {
+    throw new Error('Ukuran berkas Google Drive melebihi 2 MB.');
+  }
+  const folder = DriveApp.getFolderById(folderId);
+  if (folder.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+    throw new Error('Folder Drive harus dibatasi untuk pengguna yang diizinkan, bukan publik.');
+  }
+  const fileName = registrationNumber + '_' + storedName;
+  const existingFiles = folder.getFilesByName(fileName);
+  if (existingFiles.hasNext()) {
+    const existing = existingFiles.next();
+    return jsonResponse_({ status: 'success', fileId: existing.getId() });
+  }
+  const file = folder.createFile(Utilities.newBlob(bytes, contentType, fileName));
+  return jsonResponse_({ status: 'success', fileId: file.getId() });
+}
+
+function normalizeGoogleResourceId_(value) {
+  const id = String(value || '').trim();
+  if (!/^[A-Za-z0-9_-]{10,200}$/.test(id)) {
+    if (!id) return '';
+    throw new Error('ID Google tidak valid.');
+  }
+  return id;
 }
 
 function ensureHeaders_(sheet) {

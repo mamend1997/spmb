@@ -30,6 +30,7 @@
     .login-card label, .settings-grid label, .edit-grid label, .wave-row label, .profile-form > label { display: block; margin: 14px 0 6px; color: #475467; font-size: 12px; font-weight: 700; }
     .login-card button { width: 100%; margin-top: 16px; }
     .hidden { display: none !important; }
+    [hidden] { display: none !important; }
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; padding: 18px 20px; }
     .topbar p { margin: 5px 0 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -74,8 +75,7 @@
     .sidebar-collapsed .sidebar button { display: flex; min-width: 0; align-items: center; justify-content: center; gap: 0; padding-right: 0; padding-left: 0; text-align: center; }
     .sidebar-collapsed .sidebar-collapse-toggle .ui-icon { transform: rotate(180deg); }
     .sidebar-collapsed .sidebar button > span:not(.sidebar-nav-label),
-    .sidebar-collapsed .sidebar .sidebar-nav-label > span,
-    .sidebar-collapsed .sidebar-collapse-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .sidebar-collapsed .sidebar .sidebar-nav-label > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     .sidebar-collapsed .sidebar .sidebar-nav-label { justify-content: center; }
     .sidebar-collapsed .sidebar .master-chevron { display: none; }
     .sidebar-collapse-toggle:focus-visible, .applicant-name-link:focus-visible { outline: 3px solid #fdba74; outline-offset: 2px; }
@@ -97,6 +97,7 @@
     .master-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 12px; font-weight: 700; }
     .master-row .check-control { display: flex; align-items: center; gap: 6px; min-height: 42px; font-size: 12px; }
     .master-row .check-control input { width: auto; min-height: auto; }
+    .master-row input[type="checkbox"][data-path-active] { width: 18px; height: 18px; min-height: 18px; margin: 0; padding: 0; accent-color: #ea580c; cursor: pointer; }
     .payment-check-control { display: inline-flex; align-items: center; gap: .55em; width: fit-content; color: #475467; font-size: 13px; font-weight: 600; }
     .payment-check-control input[type="checkbox"] { width: 1em; height: 1em; min-height: 1em; margin: 0; accent-color: #ea580c; }
     .field-config-row { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
@@ -117,6 +118,13 @@
     .field-move { width: 38px; min-height: 38px; padding: 0; font-size: 18px; line-height: 1; }
     .field-move:disabled { cursor: not-allowed; }
     .field-delete { min-height: 38px; padding: 8px 11px; color: #b42318 !important; background: #fef3f2 !important; }
+    .icon-delete { display: inline-grid; width: 40px; min-height: 38px; place-items: center; padding: 0; }
+    .icon-delete svg { width: 17px; height: 17px; }
+    .admin-toast { position: fixed; top: 24px; left: 50%; z-index: 200; width: max-content; max-width: min(520px, calc(100vw - 32px)); padding: 12px 18px; border: 1px solid #a6f4c5; border-radius: 12px; color: #05603a; background: #ecfdf3; box-shadow: 0 12px 32px rgb(16 24 40 / 18%); font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transform: translate(-50%, -10px); transition: opacity .18s ease, transform .18s ease; }
+    .admin-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+    .admin-toast.in-dialog { position: absolute; top: 12px; transform: translate(-50%, -10px); }
+    .admin-toast.in-dialog.is-visible { transform: translate(-50%, 0); }
+    .admin-toast[hidden] { display: none; }
     .role-permission-panel { margin: 18px 0; padding: 16px; border: 1px solid #e4e9f0; border-radius: 14px; background: #fbfcfe; }
     .permission-matrix { margin: 14px 0; overflow-x: auto; }
     .permission-matrix-row { display: grid; min-width: 470px; grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(80px, .42fr)); align-items: center; gap: 12px; padding: 9px 10px; border-bottom: 1px solid #edf0f4; }
@@ -149,13 +157,14 @@
     .bulk-select-checkbox { width: 18px !important; min-width: 18px; min-height: 18px !important; margin: 0; accent-color: #ea580c; cursor: pointer; }
     .table-wrap { overflow: auto; margin-top: 14px; border: 1px solid #e6eaf0; border-radius: 10px; }
     table { width: 100%; min-width: 1380px; border-collapse: collapse; font-size: 12px; }
+    table.admin-simple-table { min-width: 720px; }
     th, td { padding: 11px 9px; border-bottom: 1px solid #edf0f4; text-align: left; vertical-align: top; }
     th { position: sticky; top: 0; background: #f8fafc; color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
     tr:last-child td { border-bottom: 0; }
     td select { min-width: 150px; font-size: 12px; }
     .applicant-name { min-width: 170px; }
     .applicant-name strong, .applicant-name span, .applicant-name-link { display: block; margin-bottom: 4px; }
-    .applicant-name-link { min-height: 0; padding: 0; border: 0; color: #172554; background: transparent; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+    .applicant-name-link { width: auto; min-height: 0; padding: 0; border: 0; border-radius: 0; color: #172554; background: transparent; box-shadow: none; appearance: none; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
     .applicant-name-link:hover { color: #c2410c; text-decoration: underline; }
     .applicant-name span, .muted { color: #667085; font-size: 12px; }
     .file-links { display: grid; gap: 6px; min-width: 140px; }
@@ -354,6 +363,7 @@
   <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-5">
 </head>
 <body>
+  <div id="admin-toast" class="admin-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
   <main>
     <section id="login-card" class="card login-card">
       <img src="/assets/logo-pgri-cikoneng.png" width="54" height="54" alt="" style="display:block;margin:0 auto 14px">
@@ -405,7 +415,6 @@
         <nav id="admin-sidebar" class="card sidebar" aria-label="Navigasi admin">
           <button id="sidebar-collapse-toggle" class="sidebar-collapse-toggle" type="button" aria-expanded="true" aria-controls="admin-sidebar" aria-label="Ciutkan navigasi">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-            <span class="sidebar-collapse-label">Ciutkan menu</span>
           </button>
           <button type="button" class="active" data-page-target="dashboard-page" data-permission-menu="dashboard">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
@@ -414,6 +423,14 @@
           <button type="button" data-page-target="applications-page" data-permission-menu="applications">
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><rect x="8" y="3" width="8" height="5" rx="2"/><path d="M8 13h8M8 17h5"/></svg>
             <span>Data Pendaftar</span>
+          </button>
+          <button type="button" data-page-target="trash-page" data-permission-menu="trash">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>
+            <span>Kotak Sampah</span>
+          </button>
+          <button type="button" data-page-target="activity-page" data-permission-menu="activityLog">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5m0 14h16M8 15v-4m4 4V7m4 8v-6m4 6V4"/></svg>
+            <span>Log Aktivitas</span>
           </button>
           <div class="sidebar-master" data-master-nav>
             <button id="master-nav-toggle" type="button" aria-expanded="false" aria-controls="master-submenu">
@@ -463,6 +480,10 @@
               <button type="button" data-page-target="master-page" data-master-anchor="documents" data-permission-menu="documents">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 <span>Dokumen Sekolah</span>
+              </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="googleIntegration" data-permission-menu="googleIntegration">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 12h8M8 15h5"/><path d="m18 3 3 3"/></svg>
+                <span>Google Drive &amp; Sheets</span>
               </button>
             </div>
           </div>
@@ -530,8 +551,35 @@
         </div>
       </section>
 
+      <section id="trash-page" class="card section admin-page" hidden>
+        <div class="section-heading">
+          <div><h2>Kotak Sampah</h2><p>Pendaftar yang dihapus dari daftar aktif dapat dipulihkan di sini.</p></div>
+          <button id="reload-trash-button" class="secondary" type="button">Muat Ulang</button>
+        </div>
+        <p id="trash-status" class="status-line" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-simple-table">
+            <thead><tr><th>No. Pendaftaran</th><th>Nama Calon Siswa</th><th>Dihapus</th><th>Aksi</th></tr></thead>
+            <tbody id="trash-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="activity-page" class="card section admin-page" hidden>
+        <div class="section-heading">
+          <div><h2>Log Aktivitas</h2><p>Riwayat perubahan yang dilakukan melalui akun admin, tanpa menyimpan isi data formulir.</p></div>
+          <button id="reload-activity-button" class="secondary" type="button">Muat Ulang</button>
+        </div>
+        <p id="activity-status" class="status-line" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-simple-table">
+            <thead><tr><th>Waktu</th><th>Admin</th><th>Aktivitas</th><th>Hasil</th></tr></thead>
+            <tbody id="activity-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="master-page" class="card section admin-page" hidden>
-        <p id="master-page-description">Pengaturan disimpan di SQLite pada volume Railway dan langsung digunakan halaman pendaftaran.</p>
         <form id="settings-form">
           <div class="settings-grid">
             <h2 class="wide" data-master-section="form">Form Pendaftaran</h2>
@@ -580,8 +628,9 @@
             <h2 class="wide" id="master-academic-year" data-master-section="academicYear">Tahun Pelajaran</h2>
             <div class="wide" data-master-section="academicYear">
               <label for="academic-year">Tahun pelajaran aktif</label>
-              <input id="academic-year" placeholder="2027/2028" pattern="[0-9]{4}/[0-9]{4}" required>
-              <p class="helper">Tahun ini digunakan pada informasi formulir, portal, dan nomor pendaftaran baru.</p>
+              <input id="academic-year" placeholder="2027/2028" readonly>
+              <p class="helper">Untuk memulai tahun baru, pendaftar aktif tahun ini akan dipindahkan ke arsip.</p>
+              <button id="open-academic-year-dialog" class="secondary" type="button" style="margin-top:10px">Mulai Tahun Pelajaran Baru</button>
             </div>
             <h2 class="wide" id="master-programs" data-master-section="programs">Program Studi</h2>
             <div class="wide master-group" data-master-section="programs">
@@ -618,6 +667,23 @@
               <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
               <div id="school-documents-list"></div>
               <button id="add-school-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen Sekolah</button>
+            </div>
+            <h2 class="wide" id="master-google-integration" data-master-section="googleIntegration">Google Drive &amp; Sheets</h2>
+            <div class="wide master-group" data-master-section="googleIntegration">
+              <p>ID tujuan disimpan di server. Token sinkronisasi tidak ditampilkan dan tetap disimpan di environment Railway.</p>
+              <div class="settings-grid">
+                <div>
+                  <label for="google-spreadsheet-id">ID atau URL Google Spreadsheet</label>
+                  <input id="google-spreadsheet-id" maxlength="500" autocomplete="off" placeholder="ID atau https://docs.google.com/spreadsheets/d/...">
+                  <p class="helper">Kosongkan untuk memakai SPREADSHEET_ID pada Script Properties Apps Script.</p>
+                </div>
+                <div>
+                  <label for="google-drive-folder-id">ID atau URL Folder Google Drive</label>
+                  <input id="google-drive-folder-id" maxlength="500" autocomplete="off" placeholder="ID atau https://drive.google.com/drive/folders/...">
+                  <p class="helper">Berkas siswa disalin ke folder privat ini dan tetap disimpan di server Railway.</p>
+                </div>
+              </div>
+              <p class="helper">Apps Script harus dijalankan sebagai pemilik yang memiliki akses ke spreadsheet dan folder; jangan aktifkan akses publik pada folder.</p>
             </div>
             <h2 class="wide" id="master-waves" data-master-section="waves">Gelombang Pendaftaran</h2>
             <div class="wide master-group" data-master-section="waves">
@@ -798,6 +864,36 @@
     </div>
   </dialog>
 
+      <dialog id="academic-year-dialog" aria-labelledby="academic-year-dialog-title">
+        <div class="dialog-content">
+          <div class="dialog-heading">
+            <div><h2 id="academic-year-dialog-title">Mulai Tahun Pelajaran Baru</h2><p>Pendaftar aktif akan dipindahkan ke arsip dan sesi portal mereka dinonaktifkan.</p></div>
+            <button id="close-academic-year-dialog" class="secondary" type="button" aria-label="Tutup">Tutup</button>
+          </div>
+          <form id="academic-year-form">
+            <div class="settings-grid">
+              <div class="wide">
+                <label for="new-academic-year">Tahun pelajaran baru</label>
+                <input id="new-academic-year" required pattern="\d{4}/\d{4}" maxlength="9" placeholder="2028/2029">
+              </div>
+              <div class="wide">
+                <label for="academic-year-master-mode">Master data</label>
+                <select id="academic-year-master-mode" required>
+                  <option value="copy">Salin master data tahun sebelumnya</option>
+                  <option value="reset">Mulai dari awal (reset gelombang, jalur, timeline, dokumen tambahan, dan kelas)</option>
+                </select>
+                <p class="helper">Pengaturan sekolah, program, kontak, pembayaran, dan integrasi tetap dipertahankan.</p>
+              </div>
+            </div>
+            <p id="academic-year-status" class="status-line" role="status"></p>
+            <div class="dialog-actions">
+              <button id="cancel-academic-year-dialog" class="secondary" type="button">Batal</button>
+              <button id="start-academic-year-button" type="submit">Arsipkan &amp; Mulai Tahun Baru</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+
   <dialog id="review-dialog">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -859,7 +955,7 @@
           <p id="delete-confirm-applicant"></p>
         </div>
       </div>
-      <p>Pendaftar akan dikeluarkan dari daftar aktif dan dipindahkan ke arsip, bukan dihapus permanen dari penyimpanan.</p>
+      <p>Pendaftar akan dipindahkan ke Kotak Sampah. Data dan dokumennya tetap tersimpan dan dapat dipulihkan.</p>
       <p id="delete-confirm-status" class="status-line" role="status"></p>
       <div class="dialog-actions">
         <button id="cancel-delete-applicant" class="secondary" type="button">Batal</button>
@@ -1119,6 +1215,7 @@
     let pendingVerification = null;
     let issuedPortalPin = '';
     let issuedPinRegistrationNumber = '';
+    let adminToastTimer = null;
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -1138,6 +1235,24 @@
       const element = document.getElementById(id);
       element.textContent = message || '';
       element.className = 'status-line' + (kind ? ' ' + kind : '');
+      if (kind === 'success' && message) showAdminToast(message);
+    }
+
+    function showAdminToast(message) {
+      const toast = document.getElementById('admin-toast');
+      const openDialog = document.querySelector('dialog[open]');
+      (openDialog || document.body).appendChild(toast);
+      toast.classList.toggle('in-dialog', Boolean(openDialog));
+      toast.textContent = message;
+      toast.hidden = false;
+      toast.classList.remove('is-visible');
+      void toast.offsetWidth;
+      toast.classList.add('is-visible');
+      clearTimeout(adminToastTimer);
+      adminToastTimer = setTimeout(function () {
+        toast.classList.remove('is-visible');
+        toast.hidden = true;
+      }, 2000);
     }
 
     function showDashboard() {
@@ -1212,6 +1327,8 @@
     function pagePermissionMenu(pageId, anchorId) {
       if (pageId === 'dashboard-page') return 'dashboard';
       if (pageId === 'applications-page') return 'applications';
+      if (pageId === 'trash-page') return 'trash';
+      if (pageId === 'activity-page') return 'activityLog';
       if (pageId === 'accounts-page') return 'accounts';
       if (pageId === 'master-page') return anchorId || 'form';
       return '';
@@ -1220,6 +1337,8 @@
     const adminPageSlugs = {
       'dashboard-page': 'dashboard',
       'applications-page': 'pendaftar',
+      'trash-page': 'kotak-sampah',
+      'activity-page': 'log-aktivitas',
       'accounts-page': 'manajemen-akun'
     };
     const adminMasterSlugs = {
@@ -1231,6 +1350,7 @@
       waves: 'gelombang-pendaftaran',
       paths: 'jalur-pendaftaran',
       timeline: 'timeline-beranda',
+      googleIntegration: 'google-drive-sheets',
       payment: 'metode-pembayaran',
       documents: 'dokumen-sekolah'
     };
@@ -1266,10 +1386,12 @@
         element.hidden = !canAdmin(element.dataset.permissionMenu, 'view');
       });
       document.querySelectorAll('[data-permission-action]').forEach(function (element) {
-        element.hidden = !canAdmin(element.dataset.permissionMenu || 'applications', element.dataset.permissionAction);
+        const allowed = canAdmin(element.dataset.permissionMenu || 'applications', element.dataset.permissionAction);
+        element.hidden = !allowed;
+        if (element.tagName === 'BUTTON') element.disabled = !allowed || element.dataset.permissionLocked === 'true';
       });
       updateBulkActionPermissions();
-      const masterMenus = ['form', 'academicYear', 'programs', 'classes', 'whatsapp', 'waves', 'paths', 'timeline', 'payment', 'documents'];
+      const masterMenus = ['form', 'academicYear', 'programs', 'classes', 'whatsapp', 'waves', 'paths', 'timeline', 'googleIntegration', 'payment', 'documents'];
       const masterNav = document.querySelector('[data-master-nav]');
       masterNav.hidden = !masterMenus.some(function (menu) { return canAdmin(menu, 'view'); });
       updateProfileUI();
@@ -1283,7 +1405,7 @@
       const currentMenu = currentPage && pagePermissionMenu(currentPage.id,
         currentPage.id === 'master-page' && activeMasterButton ? activeMasterButton.dataset.masterAnchor : '');
       if (!currentMenu || !canAdmin(currentMenu, 'view')) {
-        const available = ['dashboard-page', 'applications-page'].find(function (pageId) {
+        const available = ['dashboard-page', 'applications-page', 'trash-page', 'activity-page'].find(function (pageId) {
           return canAdmin(pagePermissionMenu(pageId), 'view');
         });
         if (available) setAdminPage(available, undefined, false);
@@ -1320,14 +1442,7 @@
         document.querySelectorAll('[data-master-section]').forEach(function (section) {
           const isActiveSection = section.dataset.masterSection === sectionKey;
           section.hidden = !isActiveSection;
-          section.querySelectorAll('input, select, textarea, button').forEach(function (control) {
-            const action = control.dataset.permissionAction;
-            const allowed = action
-              ? canAdmin(sectionKey, action)
-              : canAdmin(sectionKey, 'edit');
-            control.disabled = !allowed;
-            if (action) control.hidden = !allowed;
-          });
+          applyMasterControlPermissions(sectionKey, section);
         });
         const mayEdit = canAdmin(sectionKey, 'edit');
         const saveSettingsButton = document.getElementById('save-settings-button');
@@ -1348,6 +1463,8 @@
         document.getElementById('master-submenu').hidden = true;
       }
       animateAdminElement(document.getElementById(pageId));
+      if (pageId === 'trash-page') loadTrash();
+      if (pageId === 'activity-page') loadActivityLog();
     }
 
     function makeOption(value, label) {
@@ -1403,17 +1520,15 @@
         name.required = true;
         name.value = item;
         name.setAttribute('aria-label', 'Nama program studi');
-        const remove = document.createElement('button');
-        remove.className = 'secondary';
-        remove.type = 'button';
-        remove.textContent = 'Hapus';
-        remove.addEventListener('click', function () {
+        const remove = makeIconDeleteButton('Hapus program studi', function () {
           if (list.children.length <= 1) {
             setStatus('settings-status', 'Minimal harus tersedia satu program studi.', 'error');
             return;
           }
           row.remove();
         });
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'programs';
         row.append(makeLabeledControl('Nama program studi', name), remove);
         list.appendChild(row);
       });
@@ -1438,16 +1553,34 @@
         name.required = true;
         name.value = item;
         name.setAttribute('aria-label', 'Nama kelas');
-        const remove = document.createElement('button');
-        remove.className = 'secondary';
-        remove.type = 'button';
-        remove.textContent = 'Hapus';
+        const remove = makeIconDeleteButton('Hapus kelas', function () { row.remove(); });
         remove.dataset.permissionAction = 'delete';
         remove.dataset.permissionMenu = 'classes';
-        remove.addEventListener('click', function () { row.remove(); });
         row.append(makeLabeledControl('Nama kelas', name), remove);
         list.appendChild(row);
       });
+    }
+
+    function makeIconDeleteButton(label, onClick) {
+      const button = document.createElement('button');
+      button.className = 'secondary field-delete icon-delete';
+      button.type = 'button';
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('fill', 'none');
+      icon.setAttribute('stroke', 'currentColor');
+      icon.setAttribute('stroke-width', '1.8');
+      icon.setAttribute('stroke-linecap', 'round');
+      icon.setAttribute('stroke-linejoin', 'round');
+      icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3');
+      icon.appendChild(path);
+      button.appendChild(icon);
+      button.addEventListener('click', onClick);
+      return button;
     }
 
     function getClassRows() {
@@ -1524,6 +1657,8 @@
         remove.className = 'secondary';
         remove.type = 'button';
         remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'waves';
         remove.addEventListener('click', function () {
           if (list.children.length <= 1) {
             setStatus('settings-status', 'Minimal harus tersedia satu gelombang.', 'error');
@@ -1616,6 +1751,8 @@
         remove.className = 'secondary';
         remove.type = 'button';
         remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'timeline';
         remove.addEventListener('click', function () { row.remove(); });
         row.append(
           makeLabeledControl('Nama tahap', title),
@@ -1685,6 +1822,8 @@
         remove.className = 'secondary';
         remove.type = 'button';
         remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'paths';
         remove.addEventListener('click', function () { row.remove(); });
         row.append(
           makeLabeledControl('Nama jalur', name),
@@ -1781,6 +1920,8 @@
         remove.className = 'secondary field-delete';
         remove.type = 'button';
         remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'form';
         remove.setAttribute('aria-label', 'Hapus field ' + field.label);
         remove.addEventListener('click', function () {
           row.remove();
@@ -1833,6 +1974,105 @@
       toggle.append(input, track, state);
       group.append(label, toggle);
       return group;
+    }
+
+    function updatePermissionSwitch(input) {
+      const toggle = input.closest('.field-switch');
+      toggle.classList.toggle('is-checked', input.checked);
+      toggle.querySelector('.field-switch-state').textContent = input.checked ? 'Ya' : 'Tidak';
+    }
+
+    function updateRolePermissionDependencies(row) {
+      const view = row.querySelector('[data-role-permission-view]');
+      const edit = row.querySelector('[data-role-permission-edit]');
+      const remove = row.querySelector('[data-role-permission-delete]');
+      if (!view.checked) {
+        edit.checked = false;
+        remove.checked = false;
+        updatePermissionSwitch(edit);
+        updatePermissionSwitch(remove);
+      } else if (!edit.checked) {
+        remove.checked = false;
+        updatePermissionSwitch(remove);
+      }
+      edit.disabled = !view.checked;
+      remove.disabled = !view.checked || !edit.checked;
+    }
+
+    function renderRolePermissionRows() {
+      const container = document.getElementById('role-permission-rows');
+      container.replaceChildren();
+      if (!rolePermissionsConfig) return;
+      const role = document.getElementById('permission-role').value;
+      const currentPermissions = rolePermissionsConfig.roles[role] || {};
+      rolePermissionsConfig.menus.forEach(function (menu) {
+        const row = document.createElement('div');
+        row.className = 'permission-matrix-row';
+        row.dataset.roleMenu = menu.key;
+        const name = document.createElement('strong');
+        name.textContent = menu.label;
+        row.appendChild(name);
+        [
+          { key: 'view', label: 'Lihat' },
+          { key: 'edit', label: 'Edit' },
+          { key: 'delete', label: 'Hapus' }
+        ].forEach(function (action) {
+          const cell = document.createElement('div');
+          cell.className = 'permission-matrix-cell';
+          const toggle = makeFieldToggle(
+            action.label,
+            'rolePermission' + action.key.charAt(0).toUpperCase() + action.key.slice(1),
+            Boolean(currentPermissions[menu.key] && currentPermissions[menu.key][action.key]),
+            'Ya',
+            'Tidak'
+          );
+          const input = toggle.querySelector('input');
+          input.setAttribute('aria-label', menu.label + ' - ' + action.label);
+          cell.appendChild(toggle);
+          row.appendChild(cell);
+        });
+        row.querySelector('[data-role-permission-view]').addEventListener('change', function () {
+          updateRolePermissionDependencies(row);
+        });
+        row.querySelector('[data-role-permission-edit]').addEventListener('change', function () {
+          updateRolePermissionDependencies(row);
+        });
+        updateRolePermissionDependencies(row);
+        container.appendChild(row);
+      });
+    }
+
+    function collectRolePermissionRows() {
+      const roles = JSON.parse(JSON.stringify(rolePermissionsConfig.roles));
+      const role = document.getElementById('permission-role').value;
+      document.querySelectorAll('#role-permission-rows [data-role-menu]').forEach(function (row) {
+        roles[role][row.dataset.roleMenu] = {
+          view: row.querySelector('[data-role-permission-view]').checked,
+          edit: row.querySelector('[data-role-permission-edit]').checked,
+          delete: row.querySelector('[data-role-permission-delete]').checked
+        };
+      });
+      return roles;
+    }
+
+    async function loadRolePermissions() {
+      try {
+        rolePermissionsConfig = await api('/api/admin/role-permissions');
+        renderRolePermissionRows();
+        setStatus('role-permissions-status', '', '');
+      } catch (error) {
+        setStatus('role-permissions-status', error.message || 'Hak akses role gagal dimuat.', 'error');
+        if (error.status === 401) showLogin();
+      }
+    }
+
+    function applyMasterControlPermissions(sectionKey, section) {
+      section.querySelectorAll('input, select, textarea, button').forEach(function (control) {
+        const action = control.dataset.permissionAction;
+        const allowed = action ? canAdmin(sectionKey, action) : canAdmin(sectionKey, 'edit');
+        control.disabled = !allowed || control.dataset.permissionLocked === 'true';
+        if (action) control.hidden = !allowed;
+      });
     }
 
     function updateFormFieldMoveButtons() {
@@ -1891,6 +2131,8 @@
         remove.className = 'secondary';
         remove.type = 'button';
         remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'form';
         remove.addEventListener('click', function () { row.remove(); });
         const isStudentPhoto = documentConfig.key === 'studentPhoto';
         const requiredToggle = makeFieldToggle('Wajib', 'documentRequired',
@@ -1901,6 +2143,7 @@
           key.setAttribute('aria-label', 'Kunci foto siswa (tetap)');
           requiredToggle.querySelector('[data-document-required]').disabled = true;
           activeToggle.querySelector('[data-document-active]').disabled = true;
+          remove.dataset.permissionLocked = 'true';
           remove.disabled = true;
           remove.title = 'Foto siswa wajib tersedia.';
         }
@@ -2000,6 +2243,7 @@
         remove.className = 'secondary field-delete';
         remove.textContent = 'Hapus';
         remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'documents';
         remove.addEventListener('click', function () { row.remove(); });
         row.append(
           makeLabeledControl('Kunci (unik)', key),
@@ -2064,12 +2308,20 @@
       setCurrentFile('payment-qr-current', payment.qrisImageUrl);
       setCurrentFile('form-pdf-current', config.formPdfUrl);
       setCurrentFile('scholarship-pdf-current', config.scholarshipPdfUrl);
+      const googleIntegration = config.googleIntegration || {};
+      document.getElementById('google-spreadsheet-id').value = googleIntegration.spreadsheetId || '';
+      document.getElementById('google-drive-folder-id').value = googleIntegration.driveFolderId || '';
       const brochurePreview = document.getElementById('brochure-image-preview');
       const brochureUrl = config.brochureImageUrl || '';
       brochurePreview.classList.toggle('hidden', !brochureUrl);
       document.getElementById('brochure-image-empty').classList.toggle('hidden', Boolean(brochureUrl));
       if (brochureUrl) brochurePreview.src = brochureUrl;
       else brochurePreview.removeAttribute('src');
+      if (currentUser) {
+        document.querySelectorAll('[data-master-section]').forEach(function (section) {
+          applyMasterControlPermissions(section.dataset.masterSection, section);
+        });
+      }
     }
 
     function setCurrentFile(id, url) {
@@ -2306,7 +2558,7 @@
       document.getElementById('bulk-confirm-context').textContent = selected.length + ' pendaftar dipilih';
       if (action === 'delete') {
         title.textContent = 'Hapus Pendaftar Terpilih?';
-        message.textContent = 'Semua pendaftar terpilih akan dipindahkan ke arsip dan sesi portal mereka akan diakhiri.';
+        message.textContent = 'Semua pendaftar terpilih akan dipindahkan ke Kotak Sampah dan sesi portal mereka akan diakhiri.';
       } else {
         title.textContent = 'Verifikasi Berkas Massal';
         message.textContent = 'Verifikasi seluruh data dan dokumen yang tersedia untuk ' + selected.length +
@@ -2371,7 +2623,7 @@
       const cancel = document.getElementById('cancel-bulk-confirm');
       button.disabled = true;
       cancel.disabled = true;
-      setStatus('bulk-confirm-status', action === 'delete' ? 'Mengarsipkan pendaftar terpilih...' : 'Memverifikasi data pendaftar...', '');
+      setStatus('bulk-confirm-status', action === 'delete' ? 'Memindahkan pendaftar ke Kotak Sampah...' : 'Memverifikasi data pendaftar...', '');
       try {
         const result = await api('/api/admin/applications/bulk/' + (action === 'delete' ? 'delete' : 'verify'), {
           method: 'POST',
@@ -2385,7 +2637,7 @@
         clearBulkSelection();
         if (!await loadApplications()) throw new Error('Tindakan tersimpan, tetapi daftar pendaftar gagal dimuat ulang.');
         setStatus('applications-status', action === 'delete'
-          ? result.count + ' pendaftar berhasil dipindahkan ke arsip.'
+          ? result.count + ' pendaftar berhasil dipindahkan ke Kotak Sampah.'
           : result.count + ' pendaftar berhasil diverifikasi.', 'success');
       } catch (error) {
         setStatus('bulk-confirm-status', error.message || 'Tindakan massal gagal.', 'error');
@@ -2754,7 +3006,16 @@
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           link.textContent = 'Lihat file · ' + file.name;
-          fileRow.appendChild(link);
+          const driveStatus = document.createElement('span');
+          driveStatus.className = 'helper';
+          driveStatus.textContent = file.driveSyncStatus === 'synced'
+            ? 'Tersalin ke Google Drive'
+            : file.driveSyncStatus === 'pending'
+              ? file.driveSyncError
+                ? 'Gagal menyalin ke Drive (akan dicoba lagi): ' + file.driveSyncError
+                : 'Menunggu sinkronisasi ke Google Drive'
+              : 'Google Drive belum dikonfigurasi';
+          fileRow.append(link, driveStatus);
         } else {
           fileRow.textContent = config.required ? 'Berkas wajib belum diunggah.' : 'Belum ada berkas.';
         }
@@ -2780,7 +3041,15 @@
               '✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'
             );
             revisionButton.hidden = Boolean(file && review && review.status === 'verified');
-            actions.append(revisionButton, verifyButton);
+            const cancelVerificationButton = document.createElement('button');
+            cancelVerificationButton.className = 'secondary';
+            cancelVerificationButton.type = 'button';
+            cancelVerificationButton.textContent = 'Batalkan Verifikasi';
+            cancelVerificationButton.hidden = !(file && review && review.status === 'verified');
+            cancelVerificationButton.addEventListener('click', function () {
+              openDocumentVerificationResetConfirmation(file);
+            });
+            actions.append(revisionButton, verifyButton, cancelVerificationButton);
             card.appendChild(actions);
           }
         }
@@ -3002,6 +3271,30 @@
       verificationConfirmDialog.showModal();
     }
 
+    function openDocumentVerificationResetConfirmation(file) {
+      if (!reviewingApplicant || !file) return;
+      const review = (reviewingApplicant.field_reviews || {})[file.key];
+      if (!review || review.status !== 'verified') {
+        setStatus('detail-status', 'Dokumen ini tidak sedang berstatus terverifikasi.', 'error');
+        return;
+      }
+      pendingVerification = {
+        scope: 'document',
+        applicant: reviewingApplicant,
+        items: [{ key: file.key, type: 'document' }],
+        status: 'pending'
+      };
+      document.getElementById('verification-confirm-title').textContent = 'Batalkan Verifikasi Dokumen?';
+      document.getElementById('verification-confirm-context').textContent =
+        reviewingApplicant.student_name + ' · ' + reviewingApplicant.registration_number;
+      document.getElementById('verification-confirm-message').textContent =
+        'Status verifikasi dokumen "' + file.label + '" akan dikembalikan ke Menunggu Verifikasi.';
+      document.getElementById('confirm-verification').textContent = 'Ya, Batalkan Verifikasi';
+      document.getElementById('confirm-verification').style.background = '#b42318';
+      setStatus('verification-confirm-status', '', '');
+      verificationConfirmDialog.showModal();
+    }
+
     async function reviewDetailGroup(group, status) {
       const step = group === 'student' ? 2 : 3;
       const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
@@ -3140,7 +3433,9 @@
         verificationConfirmDialog.close();
         pendingVerification = null;
         setStatus('detail-status', reviewStatus === 'pending'
-          ? 'Verifikasi dibatalkan. Pilih field yang perlu direvisi jika ada data yang tidak sesuai.'
+          ? pending.scope === 'document'
+            ? 'Verifikasi dokumen dibatalkan. Status dikembalikan ke Menunggu Verifikasi.'
+            : 'Verifikasi dibatalkan. Pilih field yang perlu direvisi jika ada data yang tidak sesuai.'
           : pending.scope === 'all'
             ? 'Semua data dan dokumen berhasil diverifikasi.'
             : 'Data telah diverifikasi valid.', 'success');
@@ -3248,7 +3543,7 @@
       if (!deletingApplicant) return;
       const button = document.getElementById('confirm-delete-applicant');
       button.disabled = true;
-      setStatus('delete-confirm-status', 'Memindahkan pendaftar ke arsip...', '');
+      setStatus('delete-confirm-status', 'Memindahkan pendaftar ke Kotak Sampah...', '');
       try {
         await api('/api/admin/applications/' + encodeURIComponent(deletingApplicant.registration_number), {
           method: 'DELETE'
@@ -3256,9 +3551,9 @@
         deleteConfirmDialog.close();
         deletingApplicant = null;
         if (await loadApplications()) {
-          setStatus('applications-status', 'Pendaftar berhasil dipindahkan ke arsip.', 'success');
+          setStatus('applications-status', 'Pendaftar berhasil dipindahkan ke Kotak Sampah.', 'success');
         } else {
-          setStatus('applications-status', 'Pendaftar berhasil diarsipkan, tetapi daftar gagal dimuat ulang. Silakan muat ulang halaman.', 'error');
+          setStatus('applications-status', 'Pendaftar berhasil dipindahkan ke Kotak Sampah, tetapi daftar gagal dimuat ulang. Silakan muat ulang halaman.', 'error');
         }
       } catch (error) {
         setStatus('delete-confirm-status', error.message || 'Pendaftar gagal dihapus.', 'error');
@@ -3510,13 +3805,119 @@
       }
     }
 
+    function renderTrash(applicants) {
+      const body = document.getElementById('trash-body');
+      body.replaceChildren();
+      if (!applicants.length) {
+        const row = document.createElement('tr');
+        const empty = document.createElement('td');
+        empty.colSpan = 4;
+        empty.textContent = 'Kotak Sampah kosong.';
+        row.appendChild(empty);
+        body.appendChild(row);
+        return;
+      }
+      applicants.forEach(function (applicant) {
+        const row = document.createElement('tr');
+        const registration = document.createElement('td');
+        registration.textContent = applicant.registration_number;
+        const name = document.createElement('td');
+        name.textContent = applicant.student_name;
+        const deletedAt = document.createElement('td');
+        deletedAt.textContent = applicant.deleted_at
+          ? new Date(applicant.deleted_at).toLocaleString('id-ID')
+          : '';
+        const actions = document.createElement('td');
+        const restore = document.createElement('button');
+        restore.className = 'secondary';
+        restore.type = 'button';
+        restore.textContent = 'Pulihkan';
+        restore.disabled = !canAdmin('trash', 'edit');
+        restore.addEventListener('click', async function () {
+          restore.disabled = true;
+          try {
+            await api('/api/admin/trash/' + encodeURIComponent(applicant.registration_number) + '/restore', {
+              method: 'POST'
+            });
+            await loadTrash();
+            await loadApplications();
+            setStatus('trash-status', applicant.student_name + ' berhasil dipulihkan ke daftar pendaftar.', 'success');
+          } catch (error) {
+            setStatus('trash-status', error.message || 'Pendaftar gagal dipulihkan.', 'error');
+            restore.disabled = false;
+          }
+        });
+        actions.appendChild(restore);
+        row.append(registration, name, deletedAt, actions);
+        body.appendChild(row);
+      });
+    }
+
+    async function loadTrash() {
+      setStatus('trash-status', 'Memuat Kotak Sampah...', '');
+      try {
+        const result = await api('/api/admin/trash');
+        renderTrash(result.applicants || []);
+        setStatus('trash-status', (result.applicants || []).length + ' pendaftar di Kotak Sampah.', '');
+      } catch (error) {
+        setStatus('trash-status', error.message, 'error');
+        if (error.status === 401) showLogin();
+      }
+    }
+
+    function renderActivityLog(entries) {
+      const body = document.getElementById('activity-body');
+      body.replaceChildren();
+      if (!entries.length) {
+        const row = document.createElement('tr');
+        const empty = document.createElement('td');
+        empty.colSpan = 4;
+        empty.textContent = 'Belum ada aktivitas admin yang tercatat.';
+        row.appendChild(empty);
+        body.appendChild(row);
+        return;
+      }
+      entries.forEach(function (entry) {
+        const row = document.createElement('tr');
+        const date = document.createElement('td');
+        date.textContent = entry.created_at ? new Date(entry.created_at).toLocaleString('id-ID') : '';
+        const admin = document.createElement('td');
+        admin.textContent = (entry.admin_display_name || entry.admin_username) + ' (' + entry.admin_username + ')';
+        const action = document.createElement('td');
+        action.textContent = entry.action;
+        const result = document.createElement('td');
+        result.textContent = entry.status_code >= 200 && entry.status_code < 300
+          ? 'Berhasil (' + entry.status_code + ')'
+          : 'Gagal (' + entry.status_code + ')';
+        row.append(date, admin, action, result);
+        body.appendChild(row);
+      });
+    }
+
+    async function loadActivityLog() {
+      setStatus('activity-status', 'Memuat log aktivitas...', '');
+      try {
+        const result = await api('/api/admin/activity-log');
+        renderActivityLog(result.entries || []);
+        setStatus('activity-status', (result.entries || []).length + ' aktivitas terakhir ditampilkan.', '');
+      } catch (error) {
+        setStatus('activity-status', error.message, 'error');
+        if (error.status === 401) showLogin();
+      }
+    }
+
     async function loadSyncStatus() {
       try {
         const status = await api('/api/admin/sync-status');
         const banner = document.getElementById('sync-banner');
-        banner.textContent = status.configured
-          ? 'Google Sheets terhubung · sinkronisasi otomatis aktif · ' + status.synced + ' tersinkron · ' + status.pending + ' menunggu sinkronisasi.'
-          : 'Google Sheets belum dikonfigurasi. Data tetap tersimpan di SQLite; atur APPS_SCRIPT_SYNC_URL dan SHEET_SYNC_TOKEN di Railway.';
+        const sheetStatus = status.configured
+          ? 'Sheets: ' + status.synced + ' tersinkron, ' + status.pending + ' menunggu'
+          : 'Sheets belum terhubung: atur URL Apps Script dan token di Railway';
+        const driveStatus = status.driveConfigured
+          ? 'Drive: ' + status.driveSynced + ' tersalin, ' + status.drivePending + ' menunggu' +
+            (status.driveErrors ? ', ' + status.driveErrors + ' bermasalah (akan dicoba ulang)' : '')
+          : 'Drive belum aktif: cek URL/token Apps Script di Railway dan Folder ID di Master Data → Google Drive & Sheets';
+        banner.textContent = sheetStatus + ' · ' + driveStatus;
       } catch (error) {
         document.getElementById('sync-banner').textContent = error.message;
         if (error.status === 401) showLogin();
@@ -3624,7 +4025,7 @@
           showConfig(await api('/api/admin/config'));
         }
         if (currentUser.role === 'owner') {
-          await loadUsers();
+          await Promise.all([loadUsers(), loadRolePermissions()]);
         }
         await loadApplications();
       } catch (error) {
@@ -3683,6 +4084,10 @@
             formFields: getFormFieldRows(),
             documentRequirements: getDocumentRows(),
             schoolDocuments: getSchoolDocumentRows(),
+            googleIntegration: {
+              spreadsheetId: document.getElementById('google-spreadsheet-id').value.trim(),
+              driveFolderId: document.getElementById('google-drive-folder-id').value.trim()
+            },
             whatsappGateway: {
               enabled: document.getElementById('whatsapp-enabled').checked,
               webhookUrl: document.getElementById('whatsapp-webhook-url').value.trim(),
@@ -3709,6 +4114,47 @@
         setStatus('settings-status', 'Pengaturan berhasil disimpan.', 'success');
       } catch (error) {
         setStatus('settings-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('open-academic-year-dialog').addEventListener('click', function () {
+      const currentStart = Number(String(siteConfig.academicYear || '').slice(0, 4));
+      document.getElementById('new-academic-year').value = currentStart
+        ? (currentStart + 1) + '/' + (currentStart + 2)
+        : '';
+      document.getElementById('academic-year-master-mode').value = 'copy';
+      setStatus('academic-year-status', '', '');
+      document.getElementById('academic-year-dialog').showModal();
+    });
+
+    ['close-academic-year-dialog', 'cancel-academic-year-dialog'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', function () {
+        document.getElementById('academic-year-dialog').close();
+      });
+    });
+
+    document.getElementById('academic-year-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('start-academic-year-button');
+      button.disabled = true;
+      setStatus('academic-year-status', 'Mengarsipkan pendaftar dan memperbarui pengaturan...', '');
+      try {
+        const result = await api('/api/admin/academic-year/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            academicYear: document.getElementById('new-academic-year').value.trim(),
+            masterMode: document.getElementById('academic-year-master-mode').value
+          })
+        });
+        document.getElementById('academic-year-dialog').close();
+        await loadAll();
+        setStatus('settings-status', 'Tahun pelajaran ' + result.config.academicYear +
+          ' dimulai. ' + result.archivedCount + ' pendaftar dipindahkan ke arsip.', 'success');
+      } catch (error) {
+        setStatus('academic-year-status', error.message, 'error');
       } finally {
         button.disabled = false;
       }
@@ -3864,7 +4310,7 @@
       const collapsed = document.getElementById('admin-layout').classList.toggle('sidebar-collapsed');
       this.setAttribute('aria-expanded', String(!collapsed));
       this.setAttribute('aria-label', collapsed ? 'Perluas navigasi' : 'Ciutkan navigasi');
-      this.querySelector('.sidebar-collapse-label').textContent = collapsed ? 'Perluas menu' : 'Ciutkan menu';
+      this.title = collapsed ? 'Perluas navigasi' : 'Ciutkan navigasi';
       document.querySelectorAll('#admin-sidebar button:not(#sidebar-collapse-toggle)').forEach(function (button) {
         if (!button.dataset.sidebarLabel) {
           button.dataset.sidebarLabel = button.textContent.replace(/\s+/g, ' ').trim();
@@ -4104,6 +4550,8 @@
       classAssignmentDialog.close();
     });
     document.getElementById('reload-button').addEventListener('click', loadAll);
+    document.getElementById('reload-trash-button').addEventListener('click', loadTrash);
+    document.getElementById('reload-activity-button').addEventListener('click', loadActivityLog);
     document.getElementById('export-excel-button').addEventListener('click', function () {
       window.location.assign('/api/admin/export.xlsx');
     });
@@ -4138,6 +4586,26 @@
     });
 
     document.getElementById('reload-users-button').addEventListener('click', loadUsers);
+    document.getElementById('permission-role').addEventListener('change', renderRolePermissionRows);
+    document.getElementById('save-role-permissions-button').addEventListener('click', async function () {
+      if (!rolePermissionsConfig) return;
+      const button = this;
+      button.disabled = true;
+      try {
+        const result = await api('/api/admin/role-permissions', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roles: collectRolePermissionRows() })
+        });
+        rolePermissionsConfig.roles = result.roles;
+        renderRolePermissionRows();
+        setStatus('role-permissions-status', 'Hak akses role berhasil disimpan.', 'success');
+      } catch (error) {
+        setStatus('role-permissions-status', error.message || 'Hak akses role gagal disimpan.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
     document.getElementById('profile-trigger').addEventListener('click', function () {
       const menu = document.getElementById('profile-menu');
       const opening = !menu.classList.contains('open');

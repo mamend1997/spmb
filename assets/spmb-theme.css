@@ -240,28 +240,36 @@ header.site-header {
 
 .hero-document-link {
   display: inline-flex;
-  min-height: 46px;
+  min-height: 50px;
   align-items: center;
+  justify-content: center;
   gap: 9px;
-  padding: 0 14px;
-  border: 1px solid #e6e8f0;
-  border-radius: 13px;
-  background: rgb(255 255 255 / 86%);
-  color: #475569;
-  font-size: 12px;
-  font-weight: 700;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(105deg, #3b82f6, #2563eb);
+  box-shadow: 0 10px 24px rgb(37 99 235 / 18%);
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
   text-decoration: none;
-  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.hero-document-link#scholarship-pdf-link {
+  background: linear-gradient(105deg, #22c55e, #16a34a);
+  box-shadow: 0 10px 24px rgb(22 163 74 / 18%);
 }
 
 .hero-document-link:hover {
-  transform: translateY(-1px);
-  border-color: #fdba74;
-  background: white;
-  color: #c2410c;
+  transform: translateY(-2px) scale(1.025);
+  filter: brightness(.97);
+  box-shadow: 0 14px 28px rgb(37 99 235 / 24%);
 }
 
-.hero-document-link:last-child svg { color: #7c3aed; }
+.hero-document-link#scholarship-pdf-link:hover {
+  box-shadow: 0 14px 28px rgb(22 163 74 / 24%);
+}
 
 .brochure-frame {
   position: relative;
