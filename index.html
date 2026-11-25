@@ -76,7 +76,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-10">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-11">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -767,29 +767,31 @@
           return;
         }
         nextImage.src = url;
-        nextImage.className = 'brochure-slide-enter-from-left';
+        nextImage.className = 'brochure-slide-under';
         nextImage.classList.remove('hidden');
-        nextImage.offsetWidth;
         brochureSlideTransitioning = true;
-        window.requestAnimationFrame(function () {
-          image.classList.add('brochure-slide-exit-to-right');
-          nextImage.classList.remove('brochure-slide-enter-from-left');
-          nextImage.classList.add('brochure-slide-arrived');
-        });
+        image.offsetWidth;
         function finishTransition(event) {
           if (event && event.propertyName !== 'transform') return;
-          nextImage.removeEventListener('transitionend', finishTransition);
+          image.removeEventListener('transitionend', finishTransition);
           clearTimeout(brochureSlideTransitionTimer);
           image.src = url;
           image.alt = alt;
-          image.classList.remove('brochure-slide-exit-to-right');
+          image.classList.remove('brochure-page-open-right');
           nextImage.className = 'hidden';
           nextImage.removeAttribute('src');
           brochureDisplayedUrl = url;
           brochureSlideTransitioning = false;
         }
-        nextImage.addEventListener('transitionend', finishTransition);
-        brochureSlideTransitionTimer = window.setTimeout(function () { finishTransition(); }, 750);
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          finishTransition();
+          return;
+        }
+        image.addEventListener('transitionend', finishTransition);
+        window.requestAnimationFrame(function () {
+          image.classList.add('brochure-page-open-right');
+        });
+        brochureSlideTransitionTimer = window.setTimeout(function () { finishTransition(); }, 950);
       };
       preload.onerror = function () {
         if (loadId !== brochureSlideLoadId) return;
