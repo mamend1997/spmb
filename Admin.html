@@ -4777,6 +4777,7 @@
 
     document.getElementById('create-account-form').addEventListener('submit', async function (event) {
       event.preventDefault();
+      const form = event.currentTarget;
       const button = document.getElementById('create-account-button');
       button.disabled = true;
       try {
@@ -4790,7 +4791,7 @@
             role: document.getElementById('new-account-role').value
           })
         });
-        event.currentTarget.reset();
+        form.reset();
         await loadUsers();
         setStatus('accounts-status', 'Akun berhasil dibuat. Berikan username dan password sementara secara aman; pengguna dapat mengganti password setelah masuk.', 'success');
       } catch (error) {
@@ -4927,6 +4928,7 @@
     document.getElementById('cancel-password-button').addEventListener('click', function () { passwordDialog.close(); });
     document.getElementById('password-form').addEventListener('submit', async function (event) {
       event.preventDefault();
+      const form = event.currentTarget;
       const newPassword = document.getElementById('new-password').value;
       if (newPassword !== document.getElementById('confirm-password').value) {
         return setStatus('password-status', 'Konfirmasi password baru tidak sama.', 'error');
@@ -4942,7 +4944,7 @@
             newPassword: newPassword
           })
         });
-        event.currentTarget.reset();
+        form.reset();
         passwordDialog.close();
         setStatus('password-status', 'Password berhasil diubah.', 'success');
       } catch (error) {
