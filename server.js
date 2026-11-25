@@ -3869,7 +3869,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
     totals: totals,
     monthly: monthly,
     academicYear: config.academicYear,
-    archived: archived,
+    archived: filter.archiveScope,
     canViewApplications: canViewApplications,
     reviewConfig: isViewer ? null : {
       formFields: config.formFields,
