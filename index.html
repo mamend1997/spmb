@@ -481,8 +481,8 @@
         </div>
         <p class="mt-3 text-xs leading-5 text-amber-800">Simpan nomor pendaftaran dan PIN ini. PIN tidak ditampilkan kembali setelah jendela ini ditutup.</p>
         <div class="mt-4 grid gap-2 sm:grid-cols-2">
-          <button id="download-card-button" type="button" class="rounded-lg bg-slate-900 px-4 py-3 text-sm font-bold text-white">Unduh Kartu Peserta (PDF)</button>
-          <a href="/portal.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white">Login Siswa</a>
+          <button id="download-card-button" type="button" class="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-3 text-center text-sm font-bold text-white">Unduh Kartu Peserta (PDF)</button>
+          <a href="/portal.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center rounded-full bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white">Login Siswa</a>
         </div>
       </div>
       <button id="modal-close" type="button" class="mt-6 w-full rounded-lg bg-orange-600 px-4 py-3 text-sm font-bold text-white hover:bg-orange-700">Tutup</button>
@@ -493,6 +493,11 @@
     const DEFAULT_SITE_CONFIG = {
       pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
       academicYear: '2027/2028',
+      programs: [
+        'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
+        'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
+        'BISNIS DIGITAL'
+      ],
       brochureImageUrl: '',
       formPdfUrl: '/assets/spmb-formulir-offline.pdf',
       scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
@@ -657,6 +662,7 @@
       siteConfig = Object.assign({}, DEFAULT_SITE_CONFIG, config);
       if (!Array.isArray(siteConfig.registrationWaves)) siteConfig.registrationWaves = DEFAULT_SITE_CONFIG.registrationWaves;
       if (!Array.isArray(siteConfig.timelineEvents)) siteConfig.timelineEvents = DEFAULT_SITE_CONFIG.timelineEvents;
+      if (!Array.isArray(siteConfig.programs)) siteConfig.programs = DEFAULT_SITE_CONFIG.programs;
       document.getElementById('brochure-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('timeline-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('page-title').textContent = siteConfig.pageTitle;
@@ -695,11 +701,7 @@
       if (field.key === 'wave') return [];
       if (field.key === 'registrationPath') return [];
       if (field.key === 'major' && (!field.options || !field.options.length)) {
-        return [
-          'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
-          'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
-          'BISNIS DIGITAL'
-        ];
+        return siteConfig.programs;
       }
       return field.options || [];
     }

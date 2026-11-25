@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const dns = require('node:dns').promises;
 const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
 const fs = require('node:fs');
@@ -40,6 +41,14 @@ const reenrollmentStatuses = ['Belum Daftar Ulang', 'Daftar Ulang Selesai'];
 const initialConfig = {
   pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
   academicYear: '2027/2028',
+  programs: programs,
+  classes: [],
+  whatsappGateway: {
+    enabled: false,
+    webhookUrl: '',
+    webhookToken: '',
+    events: ['registration.created', 'selection.updated', 'reenrollment.instructions']
+  },
   brochureImageUrl: '',
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
@@ -166,6 +175,7 @@ database.exec(`
     selection_status TEXT NOT NULL DEFAULT 'Menunggu Pengumuman',
     selection_score TEXT NOT NULL DEFAULT '',
     selection_note TEXT NOT NULL DEFAULT '',
+    class_assignment TEXT NOT NULL DEFAULT '',
     reenrollment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
     payment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
     payment_note TEXT NOT NULL DEFAULT '',
@@ -268,6 +278,7 @@ function migrateApplicantStorage() {
           selection_status TEXT NOT NULL DEFAULT 'Menunggu Pengumuman',
           selection_score TEXT NOT NULL DEFAULT '',
           selection_note TEXT NOT NULL DEFAULT '',
+          class_assignment TEXT NOT NULL DEFAULT '',
           reenrollment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
           payment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
           payment_note TEXT NOT NULL DEFAULT '',
@@ -329,6 +340,7 @@ function migrateApplicantStorage() {
   const additions = {
     selection_score: "TEXT NOT NULL DEFAULT ''",
     selection_note: "TEXT NOT NULL DEFAULT ''",
+    class_assignment: "TEXT NOT NULL DEFAULT ''",
     payment_status: "TEXT NOT NULL DEFAULT 'Belum Daftar Ulang'",
     payment_note: "TEXT NOT NULL DEFAULT ''",
     payment_reviewed_at: "TEXT NOT NULL DEFAULT ''",
@@ -381,11 +393,18 @@ function getConfig() {
 
 function sanitizeConfig(input) {
   if (!input || typeof input !== 'object') throw new Error('Pengaturan situs tidak valid.');
+  const configuredPrograms = sanitizePrograms(input.programs);
+  const formFields = sanitizeFormFields(input.formFields);
+  const majorField = formFields.find(function (field) { return field.key === 'major'; });
+  if (majorField) majorField.options = configuredPrograms.slice();
   const registrationWaves = sanitizeWaves(input.registrationWaves);
   const registrationPaths = sanitizePaths(input.registrationPaths, registrationWaves);
   const config = {
     pageTitle: String(input.pageTitle || '').trim(),
     academicYear: String(input.academicYear || '').trim(),
+    programs: configuredPrograms,
+    classes: sanitizeClasses(input.classes),
+    whatsappGateway: sanitizeWhatsAppGatewayConfig(input.whatsappGateway),
     brochureImageUrl: String(input.brochureImageUrl || '').trim(),
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
@@ -395,7 +414,7 @@ function sanitizeConfig(input) {
     contactUrl: String(input.contactUrl || '').trim(),
     registrationWaves: registrationWaves,
     registrationPaths: registrationPaths,
-    formFields: sanitizeFormFields(input.formFields),
+    formFields: formFields,
     documentRequirements: sanitizeDocumentRequirements(input.documentRequirements, registrationWaves, registrationPaths),
     paymentSettings: sanitizePaymentSettings(input.paymentSettings)
   };
@@ -422,6 +441,79 @@ function sanitizeConfig(input) {
     }
   });
   return config;
+}
+
+function sanitizePrograms(input) {
+  if (input === undefined) input = initialConfig.programs;
+  if (!Array.isArray(input) || input.length < 1 || input.length > 20) {
+    throw new Error('Program studi harus berisi 1–20 pilihan.');
+  }
+  const names = new Set();
+  return input.map(function (item) {
+    const name = String(item || '').trim();
+    const normalized = name.toLocaleLowerCase('id-ID');
+    if (name.length < 2 || name.length > 120 || names.has(normalized)) {
+      throw new Error('Nama program studi harus unik dan terdiri dari 2–120 karakter.');
+    }
+    names.add(normalized);
+    return name;
+  });
+}
+
+function sanitizeClasses(input) {
+  if (input === undefined) input = initialConfig.classes;
+  if (!Array.isArray(input) || input.length > 100) {
+    throw new Error('Daftar kelas harus berisi maksimal 100 pilihan.');
+  }
+  const names = new Set();
+  return input.map(function (item) {
+    const name = String(item || '').trim();
+    const normalized = name.toLocaleLowerCase('id-ID');
+    if (name.length < 2 || name.length > 60 || names.has(normalized)) {
+      throw new Error('Nama kelas harus unik dan terdiri dari 2–60 karakter.');
+    }
+    names.add(normalized);
+    return name;
+  });
+}
+
+function sanitizeWhatsAppGatewayConfig(settings) {
+  if (settings === undefined) settings = initialConfig.whatsappGateway;
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    throw new Error('Pengaturan WhatsApp Gateway tidak valid.');
+  }
+  const webhookUrl = String(settings.webhookUrl || '').trim();
+  const webhookToken = String(settings.webhookToken || '').trim();
+  if (webhookToken.length > 1000) throw new Error('Token webhook maksimal 1000 karakter.');
+  if (webhookUrl) {
+    let url;
+    try { url = new URL(webhookUrl); } catch (error) {
+      throw new Error('URL webhook WhatsApp tidak valid.');
+    }
+    if (url.protocol !== 'https:' || url.username || url.password || url.hash ||
+        !url.hostname.includes('.') || /(^|\.)((localhost|local|internal|test|invalid))$/i.test(url.hostname)) {
+      throw new Error('Webhook WhatsApp harus memakai HTTPS dan host publik yang valid.');
+    }
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname) || url.hostname.includes(':')) {
+      throw new Error('Gunakan nama host publik, bukan alamat IP, untuk webhook WhatsApp.');
+    }
+  }
+  const allowedEvents = ['registration.created', 'selection.updated', 'reenrollment.instructions'];
+  const requestedEvents = settings.events === undefined ? initialConfig.whatsappGateway.events : settings.events;
+  if (!Array.isArray(requestedEvents)) throw new Error('Jenis notifikasi WhatsApp tidak valid.');
+  const events = Array.from(new Set(requestedEvents));
+  if (events.some(function (eventName) { return !allowedEvents.includes(eventName); })) {
+    throw new Error('Jenis notifikasi WhatsApp tidak valid.');
+  }
+  if (settings.enabled === true && !webhookUrl) {
+    throw new Error('Isi URL webhook sebelum mengaktifkan WhatsApp Gateway.');
+  }
+  return {
+    enabled: settings.enabled === true,
+    webhookUrl: webhookUrl,
+    webhookToken: webhookToken,
+    events: events
+  };
 }
 
 function sanitizeWaves(waves) {
@@ -674,6 +766,39 @@ function getApplicantByRegistration(registrationNumber) {
   return database.prepare('SELECT * FROM applicants WHERE registration_number = ?').get(registrationNumber);
 }
 
+function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
+  const customData = JSON.parse(applicant.custom_data_json || '{}');
+  const activeFields = config.formFields.filter(function (field) { return field.active; });
+  const missingRequiredField = activeFields.some(function (field) {
+    if (!field.required) return false;
+    const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    const value = field.custom ? customData[field.key] : applicant[column];
+    return value == null || !String(value).trim();
+  });
+  const reviewableKeys = activeFields.filter(function (field) {
+    const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    const value = field.custom ? customData[field.key] : applicant[column];
+    return field.required || Boolean(value);
+  }).map(function (field) { return field.key; });
+  const applicableDocuments = config.documentRequirements.filter(function (document) {
+    return document.active && (document.required || uploadedFiles.has(document.key)) &&
+      (!document.wave || document.wave === applicant.wave) &&
+      (!document.registrationPath || document.registrationPath === applicant.registration_path);
+  });
+  const missingRequiredDocument = applicableDocuments.some(function (document) {
+    return document.required && !uploadedFiles.has(document.key);
+  });
+  applicableDocuments.forEach(function (document) { reviewableKeys.push(document.key); });
+  const statuses = reviewableKeys.map(function (key) { return reviews[key] && reviews[key].status; });
+  return statuses.includes('revision')
+    ? 'Perlu Perbaikan'
+    : missingRequiredField || missingRequiredDocument
+      ? 'Menunggu Verifikasi'
+      : statuses.length > 0 && statuses.every(function (status) { return status === 'verified'; })
+        ? 'Berkas Terverifikasi'
+        : 'Menunggu Verifikasi';
+}
+
 function makeSheetPayload(applicant) {
   return {
     registrationNumber: applicant.registration_number,
@@ -682,6 +807,7 @@ function makeSheetPayload(applicant) {
     waveFee: applicant.wave_fee,
     registrationPath: applicant.registration_path || '',
     major: applicant.major,
+    classAssignment: applicant.class_assignment || '',
     studentName: applicant.student_name,
     schoolOrigin: applicant.school_origin,
     nisn: applicant.nisn,
@@ -831,6 +957,10 @@ const adminPermissionMenus = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'applications', label: 'Data Pendaftar' },
   { key: 'form', label: 'Form Pendaftaran' },
+  { key: 'academicYear', label: 'Tahun Pelajaran' },
+  { key: 'programs', label: 'Program Studi' },
+  { key: 'classes', label: 'Kelas' },
+  { key: 'whatsapp', label: 'WA Gateway' },
   { key: 'waves', label: 'Gelombang Pendaftaran' },
   { key: 'paths', label: 'Jalur Pendaftaran' },
   { key: 'timeline', label: 'Timeline Beranda' },
@@ -864,7 +994,11 @@ function defaultRolePermissions() {
 }
 
 const adminConfigPermissionGroups = {
-  form: ['pageTitle', 'academicYear', 'contactLabel', 'contactUrl', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  form: ['pageTitle', 'contactLabel', 'contactUrl', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  academicYear: ['academicYear'],
+  programs: ['programs'],
+  classes: ['classes'],
+  whatsapp: ['whatsappGateway'],
   waves: ['registrationWaves'],
   paths: ['registrationPaths'],
   timeline: ['brochureImageUrl', 'timelineEvents'],
@@ -884,7 +1018,9 @@ function sanitizeRolePermissions(input) {
     }
     const permissions = {};
     adminPermissionMenus.forEach(function (menu) {
-      const actions = roleInput[menu.key];
+      let actions = roleInput[menu.key];
+      if (!actions && ['academicYear', 'programs', 'classes'].includes(menu.key)) actions = roleInput.form;
+      if (!actions && menu.key === 'whatsapp') actions = { view: false, edit: false, delete: false };
       if (!actions || typeof actions !== 'object' || Array.isArray(actions) ||
           ['view', 'edit', 'delete'].some(function (action) { return typeof actions[action] !== 'boolean'; })) {
         throw new Error('Hak akses ' + menu.label + ' pada role ' + role + ' tidak valid.');
@@ -919,7 +1055,19 @@ function getScopedAdminConfig(config, role) {
   const scopedConfig = {};
   Object.keys(adminConfigPermissionGroups).forEach(function (menu) {
     if (!permissions[menu].view) return;
-    adminConfigPermissionGroups[menu].forEach(function (key) { scopedConfig[key] = config[key]; });
+    adminConfigPermissionGroups[menu].forEach(function (key) {
+      if (key === 'whatsappGateway') {
+        const gateway = config.whatsappGateway;
+        scopedConfig.whatsappGateway = {
+          enabled: gateway.enabled,
+          webhookUrl: gateway.webhookUrl,
+          tokenConfigured: Boolean(gateway.webhookToken),
+          events: gateway.events.slice()
+        };
+      } else {
+        scopedConfig[key] = config[key];
+      }
+    });
   });
   return scopedConfig;
 }
@@ -1120,6 +1268,125 @@ function normalizeIndonesianPhone(value) {
   if (/^0\d+$/.test(phone)) return '+62' + phone.slice(1);
   if (/^\d+$/.test(phone)) return '+62' + phone;
   return phone;
+}
+
+function normalizeWhatsAppPhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('0')) return '+62' + digits.slice(1);
+  if (digits.startsWith('62')) return '+' + digits;
+  return '+62' + digits;
+}
+
+function isPublicAddress(address) {
+  const parts = address.split('.');
+  if (parts.length === 4 && parts.every(function (part) { return /^\d{1,3}$/.test(part) && Number(part) <= 255; })) {
+    const octets = parts.map(Number);
+    const first = octets[0];
+    const second = octets[1];
+    const third = octets[2];
+    if (first === 0 || first === 10 || first === 127 || first >= 224 ||
+        (first === 169 && second === 254) ||
+        (first === 172 && second >= 16 && second <= 31) ||
+        (first === 192 && second === 168) ||
+        (first === 100 && second >= 64 && second <= 127) ||
+        (first === 192 && second === 0 && (third === 0 || third === 2)) ||
+        (first === 192 && second === 88 && third === 99) ||
+        (first === 198 && (second === 18 || second === 19)) ||
+        (first === 198 && second === 51 && third === 100) ||
+        (first === 203 && second === 0 && third === 113)) return false;
+    return true;
+  }
+  const normalized = address.toLowerCase();
+  return /^[23][0-9a-f]{3}:/i.test(normalized) && !/^2001:0?db8:/i.test(normalized);
+}
+
+async function validateWebhookDestination(webhookUrl) {
+  const url = new URL(webhookUrl);
+  const records = await dns.lookup(url.hostname, { all: true, verbatim: true });
+  if (!records.length || records.some(function (record) { return !isPublicAddress(record.address); })) {
+    throw new Error('Host webhook WhatsApp harus mengarah ke alamat IP publik.');
+  }
+}
+
+function getWhatsAppRecipient(applicant) {
+  return [applicant.student_phone, applicant.father_phone, applicant.mother_phone]
+    .map(normalizeWhatsAppPhone)
+    .find(Boolean) || '';
+}
+
+function dispatchWhatsAppEvent(eventName, applicant, message, data) {
+  const gateway = getConfig().whatsappGateway;
+  if (!gateway.enabled || !gateway.events.includes(eventName)) return;
+  setImmediate(async function () {
+    try {
+      const recipient = getWhatsAppRecipient(applicant);
+      if (!recipient) throw new Error('Nomor WhatsApp siswa dan wali tidak tersedia.');
+      await validateWebhookDestination(gateway.webhookUrl);
+      const controller = new AbortController();
+      const timeout = setTimeout(function () { controller.abort(); }, 10000);
+      let response;
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (gateway.webhookToken) headers.Authorization = 'Bearer ' + gateway.webhookToken;
+        response = await fetch(gateway.webhookUrl, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            event: eventName,
+            to: recipient,
+            message: message,
+            data: data
+          }),
+          redirect: 'error',
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (!response.ok) throw new Error('Webhook merespons HTTP ' + response.status + '.');
+      console.info('WhatsApp webhook terkirim:', eventName, applicant.registration_number);
+    } catch (error) {
+      console.error('WhatsApp webhook gagal dikirim:', eventName, applicant.registration_number, error.message);
+    }
+  });
+}
+
+function dispatchSelectionNotifications(applicant, config) {
+  const status = applicant.selection_status;
+  const note = String(applicant.selection_note || '').trim();
+  const selectionMessage = [
+    'Informasi hasil seleksi SPMB SMK PGRI Cikoneng',
+    'Nama: ' + applicant.student_name,
+    'Nomor pendaftaran: ' + applicant.registration_number,
+    'Hasil: ' + status,
+    note ? 'Catatan: ' + note : ''
+  ].filter(Boolean).join('\n');
+  dispatchWhatsAppEvent('selection.updated', applicant, selectionMessage, {
+    registrationNumber: applicant.registration_number,
+    studentName: applicant.student_name,
+    selectionStatus: status,
+    note: note
+  });
+  if (!['Diterima / Lulus', 'Diterima'].includes(status)) return;
+  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  const fee = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : null;
+  const instructions = config.paymentSettings.instructions || 'Hubungi panitia untuk informasi daftar ulang.';
+  const reenrollmentMessage = [
+    'Informasi daftar ulang SPMB SMK PGRI Cikoneng',
+    'Nama: ' + applicant.student_name,
+    'Nomor pendaftaran: ' + applicant.registration_number,
+    'Tahun pelajaran: ' + config.academicYear,
+    'Biaya daftar ulang: ' + (fee === null ? 'Belum ditetapkan; silakan hubungi panitia.' : 'Rp ' + fee.toLocaleString('id-ID')),
+    'Petunjuk: ' + instructions
+  ].join('\n');
+  dispatchWhatsAppEvent('reenrollment.instructions', applicant, reenrollmentMessage, {
+    registrationNumber: applicant.registration_number,
+    studentName: applicant.student_name,
+    academicYear: config.academicYear,
+    reenrollmentFee: fee,
+    instructions: instructions
+  });
 }
 
 function validateRegistration(payload) {
@@ -1426,6 +1693,7 @@ app.get('/healthz', function (request, response) {
 
 app.get('/api/public-config', function (request, response) {
   const config = getConfig();
+  delete config.whatsappGateway;
   response.json(config);
 });
 
@@ -1501,6 +1769,21 @@ app.post('/api/registrations', function (request, response) {
         schoolOrigin: applicant.school_origin
       }
     });
+    const portalUrl = '/portal';
+    const registrationMessage = [
+      'Pendaftaran SPMB SMK PGRI Cikoneng berhasil.',
+      'Nama: ' + applicant.student_name,
+      'Nomor pendaftaran: ' + applicant.registration_number,
+      'Login portal siswa: ' + portalUrl,
+      'PIN portal: ' + pin,
+      'Simpan nomor pendaftaran dan PIN ini dengan aman.'
+    ].join('\n');
+    dispatchWhatsAppEvent('registration.created', applicant, registrationMessage, {
+      registrationNumber: applicant.registration_number,
+      studentName: applicant.student_name,
+      portalPin: pin,
+      portalUrl: portalUrl
+    });
     setImmediate(syncQueuedApplications);
   } catch (error) {
     if (applicantDirectory && fs.existsSync(applicantDirectory)) {
@@ -1561,6 +1844,110 @@ app.post('/api/public/application-result', function (request, response) {
   });
 });
 
+function buildPortalApplication(applicant, config) {
+  const uploadedFiles = new Map(database.prepare('SELECT field_key, original_name FROM uploaded_files WHERE applicant_id = ?')
+    .all(applicant.id).map(function (file) { return [file.field_key, file]; }));
+  const fieldReviews = JSON.parse(applicant.field_reviews_json || '{}');
+  const customData = JSON.parse(applicant.custom_data_json || '{}');
+  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  const visibleDocuments = config.documentRequirements.filter(function (document) {
+    return document.active && (!document.wave || document.wave === applicant.wave) &&
+      (!document.registrationPath || document.registrationPath === applicant.registration_path);
+  });
+  const visibleDocumentKeys = new Set(visibleDocuments.map(function (document) { return document.key; }));
+  uploadedFiles.forEach(function (_file, key) {
+    if (key !== 'paymentProof' && !visibleDocumentKeys.has(key)) {
+      visibleDocuments.push({
+        key: key,
+        name: (uploadTypes[key] && uploadTypes[key].label) || key,
+        required: false,
+        extensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        maxKB: 2048
+      });
+    }
+  });
+  function portalFile(document) {
+    const upload = uploadedFiles.get(document.key);
+    return {
+      key: document.key,
+      label: document.name,
+      uploaded: Boolean(upload),
+      fileName: upload ? upload.original_name : '',
+      required: Boolean(document.required),
+      extensions: document.extensions || ['pdf', 'jpg', 'jpeg', 'png'],
+      maxKB: document.maxKB || 2048,
+      review: fieldReviews[document.key] || null,
+      url: upload ? '/api/portal/documents/' + encodeURIComponent(document.key) : ''
+    };
+  }
+  return {
+    registrationNumber: applicant.registration_number,
+    registeredAt: applicant.created_at,
+    studentPhotoUrl: uploadedFiles.has('studentPhoto') ? '/api/portal/photo' : '',
+    academicYear: config.academicYear,
+    wave: applicant.wave,
+    waveFee: applicant.wave_fee,
+    registrationPath: applicant.registration_path,
+    major: applicant.major,
+    classAssignment: applicant.class_assignment || '',
+    customData: customData,
+    reviews: fieldReviews,
+    student: {
+      name: applicant.student_name,
+      school: applicant.school_origin,
+      nisn: applicant.nisn,
+      nik: applicant.student_nik,
+      familyCardNumber: applicant.family_card_number,
+      gender: applicant.gender,
+      religion: applicant.religion,
+      birthPlace: applicant.birth_place,
+      birthDate: applicant.birth_date,
+      email: applicant.email,
+      phone: applicant.student_phone
+    },
+    father: {
+      name: applicant.father_name,
+      nik: applicant.father_nik,
+      education: applicant.father_education,
+      occupation: applicant.father_occupation,
+      income: applicant.father_income,
+      phone: applicant.father_phone
+    },
+    mother: {
+      name: applicant.mother_name,
+      nik: applicant.mother_nik,
+      education: applicant.mother_education,
+      occupation: applicant.mother_occupation,
+      income: applicant.mother_income,
+      phone: applicant.mother_phone
+    },
+    address: applicant.address,
+    fields: config.formFields.filter(function (field) { return field.active; }).map(function (field) {
+      const fixed = applicant[field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); })];
+      const value = field.custom ? customData[field.key] : fixed;
+      return { key: field.key, label: field.label, value: value || '', review: fieldReviews[field.key] || null };
+    }),
+    files: visibleDocuments.map(portalFile).concat(uploadedFiles.has('paymentProof') ? [portalFile({
+      key: 'paymentProof',
+      name: 'Bukti Pembayaran Daftar Ulang',
+      required: true,
+      extensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      maxKB: 2048
+    })] : []),
+    documentStatus: applicant.document_status,
+    selectionStatus: applicant.selection_status,
+    selectionScore: applicant.selection_score,
+    selectionNote: applicant.selection_note,
+    reenrollmentStatus: applicant.reenrollment_status,
+    paymentStatus: applicant.payment_status,
+    paymentNote: applicant.payment_note,
+    paymentFee: wave ? wave.reenrollmentFee : '',
+    paymentSettings: config.paymentSettings,
+    paymentProofUrl: uploadedFiles.has('paymentProof') ? '/api/portal/documents/paymentProof' : '',
+    canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
+  };
+}
+
 app.post('/api/portal/login', function (request, response) {
   const registrationNumber = String(request.body && request.body.registrationNumber || '').trim().toUpperCase();
   const pin = String(request.body && request.body.pin || '').trim();
@@ -1590,109 +1977,35 @@ app.post('/api/portal/login', function (request, response) {
     return response.status(401).json({ message: 'Nomor pendaftaran atau PIN tidak sesuai.' });
   }
   database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(registrationNumber);
-  const config = getConfig();
-  const files = database.prepare('SELECT field_key, original_name FROM uploaded_files WHERE applicant_id = ?').all(applicant.id);
-  const uploadedFiles = new Map(files.map(function (file) { return [file.field_key, file.original_name]; }));
-  const fieldReviews = JSON.parse(applicant.field_reviews_json || '{}');
-  const customData = JSON.parse(applicant.custom_data_json || '{}');
-  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
   database.prepare('DELETE FROM portal_sessions WHERE expires_at <= ?').run(Date.now());
   const sessionToken = crypto.randomBytes(32).toString('hex');
   const sessionExpiry = Date.now() + 2 * 60 * 60 * 1000;
   database.prepare('INSERT INTO portal_sessions (token_hash, applicant_id, expires_at) VALUES (?, ?, ?)')
     .run(hashToken(sessionToken), applicant.id, sessionExpiry);
   setPortalCookie(request, response, sessionToken, 2 * 60 * 60);
-  const visibleDocuments = config.documentRequirements.filter(function (document) {
-    return document.active && (!document.wave || document.wave === applicant.wave) &&
-      (!document.registrationPath || document.registrationPath === applicant.registration_path);
-  });
-  const visibleDocumentKeys = new Set(visibleDocuments.map(function (document) { return document.key; }));
-  uploadedFiles.forEach(function (_name, key) {
-    if (key !== 'paymentProof' && !visibleDocumentKeys.has(key)) {
-      visibleDocuments.push({
-        key: key,
-        name: (uploadTypes[key] && uploadTypes[key].label) || key,
-        required: false
-      });
-    }
-  });
-  response.json({
-    status: 'success',
-    application: {
-      registrationNumber: applicant.registration_number,
-      registeredAt: applicant.created_at,
-      studentPhotoUrl: uploadedFiles.has('studentPhoto') ? '/api/portal/photo' : '',
-      academicYear: config.academicYear,
-      wave: applicant.wave,
-      waveFee: applicant.wave_fee,
-      registrationPath: applicant.registration_path,
-      major: applicant.major,
-      customData: customData,
-      reviews: fieldReviews,
-      student: {
-        name: applicant.student_name,
-        school: applicant.school_origin,
-        nisn: applicant.nisn,
-        nik: applicant.student_nik,
-        familyCardNumber: applicant.family_card_number,
-        gender: applicant.gender,
-        religion: applicant.religion,
-        birthPlace: applicant.birth_place,
-        birthDate: applicant.birth_date,
-        email: applicant.email,
-        phone: applicant.student_phone
-      },
-      father: {
-        name: applicant.father_name,
-        nik: applicant.father_nik,
-        education: applicant.father_education,
-        occupation: applicant.father_occupation,
-        income: applicant.father_income,
-        phone: applicant.father_phone
-      },
-      mother: {
-        name: applicant.mother_name,
-        nik: applicant.mother_nik,
-        education: applicant.mother_education,
-        occupation: applicant.mother_occupation,
-        income: applicant.mother_income,
-        phone: applicant.mother_phone
-      },
-      address: applicant.address,
-      fields: config.formFields.filter(function (field) { return field.active; }).map(function (field) {
-        const fixed = applicant[field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); })];
-        const value = field.custom ? customData[field.key] : fixed;
-        return { key: field.key, label: field.label, value: value || '', review: fieldReviews[field.key] || null };
-      }),
-      files: visibleDocuments.map(function (document) {
-        return {
-          key: document.key,
-          label: document.name,
-          uploaded: uploadedFiles.has(document.key),
-          fileName: uploadedFiles.get(document.key) || '',
-          required: document.required,
-          review: fieldReviews[document.key] || null
-        };
-      }).concat(uploadedFiles.has('paymentProof') ? [{
-        key: 'paymentProof',
-        label: 'Bukti Pembayaran Daftar Ulang',
-        uploaded: true,
-        fileName: uploadedFiles.get('paymentProof'),
-        required: true,
-        review: fieldReviews.paymentProof || null
-      }] : []),
-      documentStatus: applicant.document_status,
-      selectionStatus: applicant.selection_status,
-      selectionScore: applicant.selection_score,
-      selectionNote: applicant.selection_note,
-      reenrollmentStatus: applicant.reenrollment_status,
-      paymentStatus: applicant.payment_status,
-      paymentNote: applicant.payment_note,
-      paymentFee: wave ? wave.reenrollmentFee : '',
-      paymentSettings: config.paymentSettings,
-      canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
-    }
-  });
+  response.json({ status: 'success', application: buildPortalApplication(applicant, getConfig()) });
+});
+
+app.get('/api/portal/application', requirePortal, function (request, response) {
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.json({ application: buildPortalApplication(request.portalApplicant, getConfig()) });
+});
+
+app.get('/api/portal/documents/:key', requirePortal, function (request, response) {
+  const key = String(request.params.key || '');
+  if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key)) return response.status(404).end();
+  const applicant = request.portalApplicant;
+  const file = database.prepare('SELECT * FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
+    .get(applicant.id, key);
+  if (!file) return response.status(404).end();
+  const filePath = path.resolve(uploadDirectory, applicant.registration_number, file.stored_name);
+  if (!filePath.startsWith(path.resolve(uploadDirectory) + path.sep) || !fs.existsSync(filePath)) {
+    return response.status(404).end();
+  }
+  response.type(file.mime_type);
+  response.setHeader('Content-Disposition', 'inline; filename="' + file.original_name.replace(/["\\]/g, '_') + '"');
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.sendFile(filePath);
 });
 
 app.get('/api/portal/photo', requirePortal, function (request, response) {
@@ -1715,6 +2028,84 @@ app.post('/api/portal/logout', requirePortal, function (request, response) {
   database.prepare('DELETE FROM portal_sessions WHERE token_hash = ?').run(hashToken(token));
   setPortalCookie(request, response, '', 0);
   response.json({ status: 'success' });
+});
+
+app.post('/api/portal/documents/:key', requirePortal, function (request, response) {
+  const key = String(request.params.key || '');
+  if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key) || key === 'paymentProof') {
+    return response.status(404).json({ message: 'Dokumen tidak ditemukan.' });
+  }
+  const applicant = request.portalApplicant;
+  const config = getConfig();
+  const requirement = config.documentRequirements.find(function (document) {
+    return document.key === key && document.active &&
+      (!document.wave || document.wave === applicant.wave) &&
+      (!document.registrationPath || document.registrationPath === applicant.registration_path);
+  });
+  if (!requirement) return response.status(404).json({ message: 'Dokumen tidak tersedia untuk pendaftar ini.' });
+  const reviews = JSON.parse(applicant.field_reviews_json || '{}');
+  const existingUpload = database.prepare('SELECT 1 FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
+    .get(applicant.id, key);
+  if (existingUpload && (!reviews[key] || reviews[key].status !== 'revision')) {
+    return response.status(409).json({ message: 'Unggah ulang hanya tersedia untuk dokumen yang belum ada atau diminta revisi.' });
+  }
+  let decoded;
+  try {
+    decoded = decodeUpload(request.body && request.body.upload, key, getDocumentRequirement(key, config));
+  } catch (error) {
+    return response.status(400).json({ message: error.message || 'Berkas revisi tidak valid.' });
+  }
+  const extension = decoded.type === 'application/pdf' ? '.pdf' : decoded.type === 'image/png' ? '.png' : '.jpg';
+  const storedName = key + '-' + crypto.randomBytes(12).toString('hex') + extension;
+  const applicantDirectory = path.join(uploadDirectory, applicant.registration_number);
+  fs.mkdirSync(applicantDirectory, { recursive: true, mode: 0o700 });
+  const filePath = path.join(applicantDirectory, storedName);
+  try {
+    fs.writeFileSync(filePath, decoded.bytes, { mode: 0o600, flag: 'wx' });
+    const previous = database.prepare('SELECT stored_name FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
+      .get(applicant.id, key);
+    const now = new Date().toISOString();
+    reviews[key] = { status: 'pending', note: '', updatedAt: now };
+    const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
+      .all(applicant.id).map(function (file) { return file.field_key; }));
+    uploadedFiles.add(key);
+    const documentStatus = calculateDocumentStatus(applicant, config, reviews, uploadedFiles);
+    withTransaction(function () {
+      database.prepare(`
+        INSERT INTO uploaded_files (applicant_id, field_key, stored_name, original_name, mime_type, file_size, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(applicant_id, field_key) DO UPDATE SET
+          stored_name = excluded.stored_name,
+          original_name = excluded.original_name,
+          mime_type = excluded.mime_type,
+          file_size = excluded.file_size,
+          created_at = excluded.created_at
+      `).run(applicant.id, key, storedName, decoded.originalName, decoded.type, decoded.bytes.length, now);
+      database.prepare(`
+        UPDATE applicants SET field_reviews_json = ?, document_status = ?, status_updated_at = ?
+        WHERE id = ?
+      `).run(JSON.stringify(reviews), documentStatus, now, applicant.id);
+      queueSheetSync(applicant.id);
+    });
+    if (previous) {
+      const previousPath = path.join(applicantDirectory, path.basename(previous.stored_name));
+      if (previousPath !== filePath && fs.existsSync(previousPath)) {
+        try { fs.unlinkSync(previousPath); } catch (cleanupError) {
+          console.error('Revised document cleanup failed:', cleanupError.message);
+        }
+      }
+    }
+    setImmediate(syncQueuedApplications);
+    response.json({ status: 'success', documentStatus: documentStatus });
+  } catch (error) {
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (cleanupError) {
+        console.error('Failed revised document cleanup:', cleanupError.message);
+      }
+    }
+    console.error('Revised document save failed:', error.message);
+    response.status(500).json({ message: 'Dokumen revisi gagal disimpan.' });
+  }
 });
 
 app.post('/api/portal/payment-proof', requirePortal, function (request, response) {
@@ -2034,7 +2425,23 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
       if (!permissions[menu].edit) return;
       canEdit = true;
       adminConfigPermissionGroups[menu].forEach(function (key) {
-        if (Object.prototype.hasOwnProperty.call(body, key)) merged[key] = body[key];
+        if (!Object.prototype.hasOwnProperty.call(body, key)) return;
+        if (key !== 'whatsappGateway') {
+          merged[key] = body[key];
+          return;
+        }
+        const submitted = body.whatsappGateway;
+        if (!submitted || typeof submitted !== 'object' || Array.isArray(submitted)) {
+          throw new Error('Pengaturan WhatsApp Gateway tidak valid.');
+        }
+        const submittedToken = String(submitted.webhookToken || '').trim();
+        merged.whatsappGateway = Object.assign({}, previous.whatsappGateway, submitted, {
+          webhookToken: submitted.clearWebhookToken === true
+            ? ''
+            : (submittedToken || previous.whatsappGateway.webhookToken)
+        });
+        delete merged.whatsappGateway.clearWebhookToken;
+        delete merged.whatsappGateway.tokenConfigured;
       });
     });
     if (!canEdit) return response.status(403).json({ message: 'Akun Anda tidak memiliki izin mengubah Master Data.' });
@@ -2058,6 +2465,12 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
         throw new Error('Akun Anda tidak memiliki izin menghapus data pada menu ini.');
       }
     });
+    const removedClass = (previous.classes || []).some(function (className) {
+      return !config.classes.includes(className);
+    });
+    if (removedClass && !permissions.classes.delete) {
+      throw new Error('Akun Anda tidak memiliki izin menghapus kelas.');
+    }
     database.prepare(`
       INSERT INTO settings (key, value) VALUES ('siteConfig', ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
@@ -2168,6 +2581,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       document_status: applicant.document_status,
       selection_status: applicant.selection_status,
       selection_score: applicant.selection_score,
+      class_assignment: applicant.class_assignment || '',
       reenrollment_status: applicant.reenrollment_status,
       payment_status: applicant.payment_status,
       sheet_sync_status: applicant.sheet_sync_status,
@@ -2255,6 +2669,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
     reviewConfig: isViewer ? null : {
       formFields: config.formFields,
       documentRequirements: config.documentRequirements,
+      classes: config.classes,
       registrationWaves: config.registrationWaves,
       registrationPaths: config.registrationPaths
     }
@@ -2287,6 +2702,183 @@ app.post('/api/admin/applications/:registrationNumber/restore', requireAdmin, re
   response.json({ status: 'success' });
 });
 
+function getActiveBulkApplicants(body) {
+  const supplied = body && body.registrationNumbers;
+  if (!Array.isArray(supplied) || supplied.length < 1 || supplied.length > 500 ||
+      supplied.some(function (value) { return typeof value !== 'string'; })) {
+    return { error: 'Pilih 1–500 pendaftar yang valid.' };
+  }
+  const registrationNumbers = Array.from(new Set(supplied.map(function (value) { return value.trim().toUpperCase(); })));
+  if (registrationNumbers.some(function (value) { return !/^SPMB-\d{4}-\d{6}$/.test(value); })) {
+    return { error: 'Nomor pendaftaran tidak valid.' };
+  }
+  const applicants = registrationNumbers.map(getApplicantByRegistration);
+  if (applicants.some(function (applicant) { return !applicant || applicant.archived_at; })) {
+    return { error: 'Sebagian pendaftar tidak ditemukan atau sudah diarsipkan.' };
+  }
+  return { applicants: applicants };
+}
+
+app.post('/api/admin/applications/bulk/delete', requireAdmin, requirePermission('applications', 'delete'), function (request, response) {
+  const result = getActiveBulkApplicants(request.body);
+  if (result.error) return response.status(400).json({ message: result.error });
+  const archivedAt = new Date().toISOString();
+  withTransaction(function () {
+    result.applicants.forEach(function (applicant) {
+      database.prepare("UPDATE applicants SET archived_at = ? WHERE id = ? AND archived_at = ''")
+        .run(archivedAt, applicant.id);
+      database.prepare('DELETE FROM portal_sessions WHERE applicant_id = ?').run(applicant.id);
+      database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(applicant.registration_number);
+    });
+  });
+  response.json({ status: 'success', archivedAt: archivedAt, count: result.applicants.length });
+});
+
+app.post('/api/admin/applications/bulk/selection', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
+  const result = getActiveBulkApplicants(request.body);
+  if (result.error) return response.status(400).json({ message: result.error });
+  const body = request.body || {};
+  const selectionStatus = String(body.selectionStatus || '');
+  const score = String(body.selectionScore == null ? '' : body.selectionScore).trim();
+  const note = typeof body.selectionNote === 'string' ? body.selectionNote.trim().slice(0, 1000) : '';
+  if (!selectionStatuses.includes(selectionStatus)) {
+    return response.status(400).json({ message: 'Status kelulusan tidak valid.' });
+  }
+  if (score && (!/^\d{1,4}(\.\d{1,2})?$/.test(score) || Number(score) > 1000)) {
+    return response.status(400).json({ message: 'Nilai seleksi harus berupa angka antara 0 sampai 1000.' });
+  }
+  const isAccepted = ['Diterima / Lulus', 'Diterima'].includes(selectionStatus);
+  const now = new Date().toISOString();
+  withTransaction(function () {
+    const update = database.prepare(`
+      UPDATE applicants SET selection_status = ?, selection_score = ?, selection_note = ?,
+        class_assignment = CASE WHEN ? THEN class_assignment ELSE '' END,
+        payment_status = CASE WHEN ? THEN payment_status ELSE 'Belum Daftar Ulang' END,
+        payment_note = CASE WHEN ? THEN payment_note ELSE '' END,
+        payment_reviewed_at = CASE WHEN ? THEN payment_reviewed_at ELSE '' END,
+        reenrollment_status = CASE WHEN ? THEN reenrollment_status ELSE 'Belum Daftar Ulang' END,
+        status_updated_at = ? WHERE id = ?
+    `);
+    result.applicants.forEach(function (applicant) {
+      update.run(selectionStatus, score, note, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
+        isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, now, applicant.id);
+    });
+  });
+  const config = getConfig();
+  result.applicants.forEach(function (applicant) {
+    if (selectionStatus !== applicant.selection_status) {
+      dispatchSelectionNotifications(getApplicantByRegistration(applicant.registration_number), config);
+    }
+    queueSheetSync(applicant.id);
+  });
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', count: result.applicants.length });
+});
+
+app.post('/api/admin/applications/bulk/verify', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
+  const result = getActiveBulkApplicants(request.body);
+  if (result.error) return response.status(400).json({ message: result.error });
+  const config = getConfig();
+  const updates = [];
+  for (const applicant of result.applicants) {
+    const customData = JSON.parse(applicant.custom_data_json || '{}');
+    const reviews = JSON.parse(applicant.field_reviews_json || '{}');
+    const fields = config.formFields.filter(function (field) {
+      if (!field.active) return false;
+      const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+      const value = field.custom ? customData[field.key] : applicant[column];
+      return field.required || Boolean(value);
+    });
+    const missingFields = fields.filter(function (field) {
+      if (!field.required) return false;
+      const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+      const value = field.custom ? customData[field.key] : applicant[column];
+      return value == null || !String(value).trim();
+    });
+    const uploaded = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
+      .all(applicant.id).map(function (file) { return file.field_key; }));
+    const documents = config.documentRequirements.filter(function (document) {
+      return document.active && (document.required || uploaded.has(document.key)) &&
+        (!document.wave || document.wave === applicant.wave) &&
+        (!document.registrationPath || document.registrationPath === applicant.registration_path);
+    });
+    const missingDocuments = documents.filter(function (document) { return document.required && !uploaded.has(document.key); });
+    if (missingFields.length || missingDocuments.length) {
+      const missing = missingFields.map(function (field) { return field.label; })
+        .concat(missingDocuments.map(function (document) { return document.name; }));
+      return response.status(400).json({
+        message: applicant.student_name + ' (' + applicant.registration_number + ') belum lengkap: ' + missing.join(', ') + '.'
+      });
+    }
+    fields.concat(documents).forEach(function (item) {
+      reviews[item.key] = { status: 'verified', note: '', updatedAt: new Date().toISOString() };
+    });
+    updates.push({
+      applicant: applicant,
+      reviews: reviews,
+      documentStatus: calculateDocumentStatus(applicant, config, reviews, uploaded)
+    });
+  }
+  const now = new Date().toISOString();
+  withTransaction(function () {
+    const update = database.prepare(`
+      UPDATE applicants SET field_reviews_json = ?, document_status = ?, status_updated_at = ? WHERE id = ?
+    `);
+    updates.forEach(function (item) {
+      update.run(JSON.stringify(item.reviews), item.documentStatus, now, item.applicant.id);
+    });
+  });
+  updates.forEach(function (item) { queueSheetSync(item.applicant.id); });
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', count: updates.length });
+});
+
+app.post('/api/admin/applications/bulk/class', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
+  const result = getActiveBulkApplicants(request.body);
+  if (result.error) return response.status(400).json({ message: result.error });
+  const className = String(request.body && request.body.className || '').trim();
+  const config = getConfig();
+  if (!config.classes.includes(className)) {
+    return response.status(400).json({ message: 'Pilih kelas yang tersedia di Master Data.' });
+  }
+  const ineligible = result.applicants.find(function (applicant) {
+    return !['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status);
+  });
+  if (ineligible) {
+    return response.status(400).json({
+      message: ineligible.student_name + ' belum dinyatakan lulus dan belum dapat ditetapkan kelas.'
+    });
+  }
+  const now = new Date().toISOString();
+  withTransaction(function () {
+    const update = database.prepare('UPDATE applicants SET class_assignment = ?, status_updated_at = ? WHERE id = ?');
+    result.applicants.forEach(function (applicant) { update.run(className, now, applicant.id); });
+  });
+  result.applicants.forEach(function (applicant) { queueSheetSync(applicant.id); });
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', count: result.applicants.length, className: className });
+});
+
+app.patch('/api/admin/applications/:registrationNumber/class', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
+  const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
+  const applicant = getApplicantByRegistration(registrationNumber);
+  if (!applicant || applicant.archived_at) return response.status(404).json({ message: 'Pendaftar aktif tidak ditemukan.' });
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(400).json({ message: 'Kelas hanya dapat ditetapkan bagi siswa yang dinyatakan lulus.' });
+  }
+  const className = String(request.body && request.body.className || '').trim();
+  const config = getConfig();
+  if (className && !config.classes.includes(className)) {
+    return response.status(400).json({ message: 'Pilih kelas yang tersedia di Master Data.' });
+  }
+  const now = new Date().toISOString();
+  database.prepare('UPDATE applicants SET class_assignment = ?, status_updated_at = ? WHERE id = ?')
+    .run(className, now, applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', classAssignment: className });
+});
+
 app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const existing = getApplicantByRegistration(registrationNumber);
@@ -2298,6 +2890,22 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
       WHERE ((? <> '' AND nisn = ?) OR (? <> '' AND student_nik = ?)) AND id <> ?
     `).get(updated.nisn, updated.nisn, updated.studentNik, updated.studentNik, existing.id);
     if (duplicate) return response.status(409).json({ message: 'NISN atau NIK tersebut sudah dipakai pendaftar lain.' });
+    const config = getConfig();
+    const reviews = JSON.parse(existing.field_reviews_json || '{}');
+    config.formFields.filter(function (field) { return field.active && !field.custom; }).forEach(function (field) {
+      const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+      const previousValue = existing[column] == null ? '' : String(existing[column]);
+      const nextValue = updated[field.key] == null ? '' : String(updated[field.key]);
+      if (previousValue !== nextValue) delete reviews[field.key];
+    });
+    const updatedApplicant = Object.assign({}, existing);
+    Object.keys(updated).forEach(function (key) {
+      const column = key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+      updatedApplicant[column] = updated[key];
+    });
+    const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
+      .all(existing.id).map(function (file) { return file.field_key; }));
+    const documentStatus = calculateDocumentStatus(updatedApplicant, config, reviews, uploadedFiles);
     database.prepare(`
       UPDATE applicants SET
         wave = @wave, wave_fee = @waveFee, registration_path = @registrationPath, major = @major, student_name = @studentName,
@@ -2308,9 +2916,15 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
         father_occupation = @fatherOccupation, father_income = @fatherIncome, father_phone = @fatherPhone,
         mother_nik = @motherNik, mother_name = @motherName, mother_education = @motherEducation,
         mother_occupation = @motherOccupation, mother_income = @motherIncome, mother_phone = @motherPhone,
-        address = @address, status_updated_at = @updatedAt
+        address = @address, field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
+        status_updated_at = @updatedAt
       WHERE id = @id
-    `).run(Object.assign({}, updated, { id: existing.id, updatedAt: new Date().toISOString() }));
+    `).run(Object.assign({}, updated, {
+      id: existing.id,
+      fieldReviewsJson: JSON.stringify(reviews),
+      documentStatus: documentStatus,
+      updatedAt: new Date().toISOString()
+    }));
     queueSheetSync(existing.id);
     setImmediate(syncQueuedApplications);
     response.json({ status: 'success' });
@@ -2320,7 +2934,7 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
 });
 
 const applicantExportColumns = [
-    ['registration_number', 'Nomor Pendaftaran'], ['wave', 'Gelombang'], ['major', 'Program Studi'],
+    ['registration_number', 'Nomor Pendaftaran'], ['wave', 'Gelombang'], ['major', 'Program Studi'], ['class_assignment', 'Kelas'],
     ['student_name', 'Nama Siswa'], ['school_origin', 'Asal Sekolah'], ['nisn', 'NISN'],
     ['family_card_number', 'Nomor KK'], ['student_nik', 'NIK Siswa'], ['gender', 'Jenis Kelamin'],
     ['religion', 'Agama'], ['birth_place', 'Tempat Lahir'], ['birth_date', 'Tanggal Lahir'],
@@ -2541,6 +3155,7 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requirePe
   database.prepare(`
     UPDATE applicants
     SET document_status = ?, selection_status = ?, selection_score = ?, selection_note = ?,
+      class_assignment = CASE WHEN ? THEN class_assignment ELSE '' END,
       payment_status = CASE WHEN ? THEN payment_status ELSE 'Belum Daftar Ulang' END,
       payment_note = CASE WHEN ? THEN payment_note ELSE '' END,
       payment_reviewed_at = CASE WHEN ? THEN payment_reviewed_at ELSE '' END,
@@ -2550,9 +3165,12 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requirePe
   `).run(
     documentStatus, selectionStatus, score,
     String(statuses.selectionNote || '').trim().slice(0, 1000),
-    isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
+    isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
     now, applicant.id
   );
+  if (selectionStatus !== applicant.selection_status) {
+    dispatchSelectionNotifications(getApplicantByRegistration(registrationNumber), getConfig());
+  }
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
   response.json({ status: 'success' });
@@ -2576,28 +3194,23 @@ app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, r
     ? config.formFields.find(function (field) { return field.key === itemKey && field.active; })
     : config.documentRequirements.find(function (document) { return document.key === itemKey && document.active; });
   if (!item) return response.status(404).json({ message: 'Field atau dokumen tidak ditemukan.' });
+  if (status === 'verified' && itemType === 'field' && item.required) {
+    const customValues = JSON.parse(applicant.custom_data_json || '{}');
+    const column = item.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    const value = item.custom ? customValues[item.key] : applicant[column];
+    if (value == null || !String(value).trim()) {
+      return response.status(400).json({ message: 'Data wajib "' + item.label + '" belum diisi dan tidak dapat diverifikasi.' });
+    }
+  }
+  if (status === 'verified' && itemType === 'document' &&
+      !database.prepare('SELECT 1 FROM uploaded_files WHERE applicant_id = ? AND field_key = ?').get(applicant.id, itemKey)) {
+    return response.status(400).json({ message: 'Dokumen belum diunggah dan tidak dapat diverifikasi.' });
+  }
   const reviews = JSON.parse(applicant.field_reviews_json || '{}');
   reviews[itemKey] = { status: status, note: note, updatedAt: new Date().toISOString() };
-  const customData = JSON.parse(applicant.custom_data_json || '{}');
-  const itemsToReview = config.formFields.filter(function (field) {
-    if (!field.active) return false;
-    const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
-    const value = field.custom ? customData[field.key] : applicant[column];
-    return field.required || Boolean(value);
-  }).map(function (field) { return field.key; });
   const uploaded = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
     .all(applicant.id).map(function (file) { return file.field_key; }));
-  config.documentRequirements.filter(function (document) {
-    return document.active && (document.required || uploaded.has(document.key)) &&
-      (!document.wave || document.wave === applicant.wave) &&
-      (!document.registrationPath || document.registrationPath === applicant.registration_path);
-  }).forEach(function (document) { itemsToReview.push(document.key); });
-  const reviewStatuses = itemsToReview.map(function (key) { return reviews[key] && reviews[key].status; });
-  const documentStatus = reviewStatuses.includes('revision')
-    ? 'Perlu Perbaikan'
-    : reviewStatuses.length > 0 && reviewStatuses.every(function (value) { return value === 'verified'; })
-      ? 'Berkas Terverifikasi'
-      : 'Menunggu Verifikasi';
+  const documentStatus = calculateDocumentStatus(applicant, config, reviews, uploaded);
   database.prepare('UPDATE applicants SET field_reviews_json = ?, document_status = ?, status_updated_at = ? WHERE id = ?')
     .run(JSON.stringify(reviews), documentStatus, new Date().toISOString(), applicant.id);
   queueSheetSync(applicant.id);
@@ -2713,7 +3326,8 @@ app.get('/admin/:section', function (request, response) {
 });
 app.get('/admin/master-data/:section', function (request, response) {
   if (!['form-pendaftaran', 'gelombang-pendaftaran', 'jalur-pendaftaran',
-    'timeline-beranda', 'metode-pembayaran', 'dokumen-sekolah'].includes(request.params.section)) {
+    'timeline-beranda', 'metode-pembayaran', 'dokumen-sekolah', 'tahun-pelajaran',
+    'program-studi', 'kelas', 'wa-gateway'].includes(request.params.section)) {
     return response.status(404).end();
   }
   response.sendFile(path.join(__dirname, 'Admin.html'));

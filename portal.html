@@ -21,36 +21,92 @@
     .portal-identity { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; }
     .portal-identity-main { display: flex; min-width: 0; align-items: center; gap: 14px; }
     .portal-photo, .portal-photo-empty { width: 68px; height: 82px; flex: 0 0 68px; border: 1px solid #e4e9f0; border-radius: 12px; background: #f8fafc; object-fit: cover; }
-    .portal-photo[hidden], .portal-photo-empty[hidden], .reenrollment-cta[hidden] { display: none !important; }
+    .portal-photo[hidden], .portal-photo-empty[hidden], .reenrollment-cta[hidden], .portal-revision-form[hidden],
+    #payment-verified-banner[hidden], #payment-action-content[hidden] { display: none !important; }
     .portal-photo-empty { display: grid; place-items: center; color: #94a3b8; font-size: 11px; }
     .portal-badges { display: flex; flex-wrap: wrap; gap: 5px; }
-    .selection-result-panel { position: relative; display: flex; min-height: 160px; align-items: center; justify-content: space-between; gap: 20px; overflow: hidden; padding: 28px; border: 1px solid #b7eadb; border-radius: 22px; background: linear-gradient(110deg, #23b493, #058d7e 65%, #087d78); color: white; box-shadow: 0 12px 30px #05967d35; }
-    .selection-result-panel.pending { border-color: #fed7aa; background: linear-gradient(110deg, #fb923c, #ea580c 65%, #c2410c); box-shadow: 0 12px 30px #ea580c2c; }
+    .selection-result-panel { position: relative; display: flex; min-height: 160px; align-items: center; justify-content: space-between; gap: 20px; overflow: hidden; padding: 28px; border: 1px solid #bfdbfe; border-radius: 22px; background: linear-gradient(110deg, #3b82f6, #4f46e5 65%, #0e7490); color: white; box-shadow: 0 12px 30px #2563eb30; }
+    .selection-result-panel.pending { border-color: #bfdbfe; background: linear-gradient(110deg, #3b82f6, #4f46e5 65%, #0e7490); box-shadow: 0 12px 30px #2563eb30; }
+    .selection-result-panel.accepted { border-color: #a7f3d0; background: linear-gradient(110deg, #23b493, #058d7e 65%, #087d78); box-shadow: 0 12px 30px #05967d35; }
     .selection-result-panel.rejected { border-color: #fecaca; background: linear-gradient(110deg, #f87171, #dc2626 65%, #991b1b); box-shadow: 0 12px 30px #dc26262c; }
+    .selection-result-panel.reserve { border-color: #fde68a; background: linear-gradient(110deg, #fbbf24, #eab308 65%, #ca8a04); box-shadow: 0 12px 30px #ca8a0430; }
     .selection-result-content { position: relative; z-index: 1; }
     .selection-result-content h2 { max-width: 680px; color: white; font-size: clamp(20px, 3vw, 28px); font-weight: 800; line-height: 1.15; }
     .selection-result-content p { max-width: 650px; color: rgb(255 255 255 / 90%); }
-    .selection-trophy { width: 108px; height: 108px; flex: 0 0 108px; color: #fde68a; opacity: .95; }
+    .selection-result-icon { display: grid; width: 108px; height: 108px; flex: 0 0 108px; place-items: center; color: #fff; }
+    .selection-result-icon svg { grid-area: 1 / 1; width: 100%; height: 100%; }
+    #selection-icon-pending { color: #bfdbfe; animation: portal-clock-pulse 2s ease-in-out infinite; }
+    #selection-icon-accepted { color: #fde68a; animation: portal-icon-bounce 2.2s ease-in-out infinite; }
+    #selection-icon-rejected { color: #fee2e2; animation: portal-icon-shake 2.4s ease-in-out infinite; }
+    #selection-icon-reserve { color: #fef3c7; animation: portal-icon-float 2s ease-in-out infinite; }
+    @keyframes portal-clock-pulse { 50% { transform: scale(1.08) rotate(-5deg); } }
+    @keyframes portal-icon-bounce { 50% { transform: translateY(-7px) rotate(4deg); } }
+    @keyframes portal-icon-shake { 0%, 80%, 100% { transform: rotate(0); } 84% { transform: rotate(-8deg); } 88% { transform: rotate(8deg); } 92% { transform: rotate(-5deg); } }
+    @keyframes portal-icon-float { 50% { transform: translateY(-6px) scale(1.05); } }
     .reenrollment-cta { display: inline-flex; min-height: 38px; align-items: center; margin-top: 12px; padding: 9px 16px; border-radius: 999px; background: #f59e0b; color: white; font-size: 12px; font-weight: 800; text-decoration: none; }
     .reenrollment-cta:hover { background: #d97706; }
     .portal-status-panel { padding: 20px; }
     .portal-status-heading { padding-bottom: 14px; border-bottom: 1px solid #edf0f4; }
     .portal-status-cards { margin-top: 14px; }
     .portal-step-card { border-radius: 13px; }
-    .portal-step-card.current { border-color: #a7f3d0; box-shadow: 0 5px 16px #10b98112; }
+    .portal-step-card.current { border-color: #bfdbfe; box-shadow: 0 5px 16px #2563eb18; }
+    .portal-step-card.complete { border-color: #a7f3d0; box-shadow: 0 5px 16px #10b98112; }
+    .portal-step-card.revision { border-color: #fecaca; box-shadow: 0 5px 16px #dc262618; }
+    .portal-step-card.reserve { border-color: #fde68a; box-shadow: 0 5px 16px #ca8a0418; }
+    .portal-step-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .portal-step-marker { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border-radius: 50%; background: #e2e8f0; color: #64748b; font-size: 12px; font-weight: 800; }
+    .portal-step-marker.complete { background: #10b981; color: white; }
+    .portal-step-marker.current { background: #dbeafe; color: #2563eb; }
+    .portal-step-marker.rejected { background: #fee2e2; color: #dc2626; }
+    .portal-step-marker.reserve { background: #fef3c7; color: #b45309; }
+    .portal-state-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 6px 11px; font-size: 11px; font-weight: 800; line-height: 1.2; }
+    .portal-state-pill.pending { background: #dbeafe; color: #1d4ed8; }
+    .portal-state-pill.verified, .portal-state-pill.accepted { background: #d1fae5; color: #047857; }
+    .portal-state-pill.revision, .portal-state-pill.rejected { background: #ffe4e6; color: #be123c; }
+    .portal-state-pill.reserve { background: #fef3c7; color: #b45309; }
+    .portal-document-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+    .portal-document-card { display: grid; min-width: 0; gap: 10px; padding: 15px; border: 1px solid #e3e9ee; border-radius: 13px; background: linear-gradient(145deg, #fff, #fbfcfd); }
+    .portal-document-card.verified { border-color: #a7f3d0; background: linear-gradient(145deg, #fff, #ecfdf5); }
+    .portal-document-card.revision { border-color: #f5b5c0; background: linear-gradient(145deg, #fff, #fff1f2); box-shadow: 0 4px 14px #e11d4820; }
+    .portal-document-card-head { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .portal-document-category { color: #94a3b8; font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .portal-document-card h3 { margin-top: 3px; overflow-wrap: anywhere; color: #172033; font-size: 13px; font-weight: 800; }
+    .portal-document-link { width: fit-content; color: #2563eb; font-size: 11px; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+    .portal-document-link[hidden] { display: none !important; }
+    .portal-document-note { padding: 9px 10px; border: 1px solid #fecdd3; border-radius: 9px; background: #fff; color: #9f1239; font-size: 11px; line-height: 1.5; }
+    .portal-document-note strong { display: block; margin-bottom: 3px; font-size: 10px; text-transform: uppercase; }
+    .portal-revision-form { display: grid; gap: 7px; padding: 10px; border: 1px solid #f1c5cd; border-radius: 10px; background: rgb(255 255 255 / 80%); }
+    .portal-revision-form label { color: #475569; font-size: 10px; font-weight: 700; }
+    .portal-revision-form input { width: 100%; min-width: 0; font-size: 11px; }
+    .portal-revision-form button { min-height: 34px; border: 0; border-radius: 8px; background: #e11d48; color: white; font-size: 11px; font-weight: 800; }
+    .portal-revision-form button:disabled { cursor: wait; opacity: .65; }
+    .portal-document-empty { margin-top: 16px; padding: 18px; border: 1px dashed #cbd5e1; border-radius: 12px; color: #64748b; font-size: 13px; text-align: center; }
+    .portal-update-status { min-height: 18px; color: #64748b; font-size: 11px; }
+    .portal-update-status.error { color: #b91c1c; }
+    .payment-verification-notice { margin-top: 16px; padding: 12px 14px; border: 1px solid #bfdbfe; border-radius: 11px; background: #eff6ff; color: #1e40af; font-size: 12px; line-height: 1.6; }
+    .payment-verification-notice a { margin-left: 5px; color: #1d4ed8; font-weight: 800; text-decoration: underline; }
+    .reenrollment-verified { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 14px; border: 1px solid #a7f3d0; border-radius: 12px; background: #f0fdf4; }
+    .reenrollment-verified-copy { display: flex; min-width: 0; align-items: center; gap: 10px; }
+    .reenrollment-verified-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; background: #10b981; color: white; }
+    .reenrollment-proof-link { flex: 0 0 auto; border: 1px solid #dbe3ec; border-radius: 9px; padding: 8px 11px; color: #334155; background: white; font-size: 11px; font-weight: 800; text-decoration: none; }
     #print-card { display: none; }
+    @media (prefers-reduced-motion: reduce) {
+      #selection-icon-pending, #selection-icon-accepted, #selection-icon-rejected, #selection-icon-reserve { animation: none; }
+    }
     @media (max-width: 700px) {
       .detail-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
       .portal-identity { align-items: flex-start; }
       .selection-result-panel { min-height: 140px; padding: 20px; }
-      .selection-trophy { width: 68px; height: 68px; flex-basis: 68px; }
+      .selection-result-icon { width: 68px; height: 68px; flex-basis: 68px; }
+      .portal-document-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 420px) {
       .detail-grid { grid-template-columns: 1fr; }
       .portal-identity { flex-direction: column; }
       .portal-identity .flex.flex-wrap { width: 100%; }
       .selection-result-panel { align-items: flex-start; }
-      .selection-trophy { width: 44px; height: 44px; flex-basis: 44px; }
+      .selection-result-icon { width: 44px; height: 44px; flex-basis: 44px; }
+      .reenrollment-verified { align-items: flex-start; flex-direction: column; }
     }
     @media print {
       @page { size: A4; margin: 16mm; }
@@ -98,6 +154,7 @@
               <span id="portal-wave" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
               <span id="portal-path" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
               <span id="portal-major" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
+              <span id="portal-class" class="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700" hidden></span>
               <span id="portal-school" class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600"></span>
             </div>
           </div>
@@ -114,7 +171,7 @@
         </div>
       </header>
 
-      <section id="selection-result-panel" class="selection-result-panel mt-5">
+      <section id="selection-result-panel" class="selection-result-panel pending mt-5">
         <div class="selection-result-content">
           <p id="selection-result-eyebrow" class="text-xs font-extrabold uppercase tracking-wider">Pengumuman Hasil Seleksi</p>
           <h2 id="selection-result-title" class="mt-2"></h2>
@@ -122,44 +179,99 @@
           <p id="selection-note-text" class="mt-1 text-sm leading-6"></p>
           <a id="reenrollment-cta" class="reenrollment-cta" href="#payment-panel" hidden>Daftar Ulang</a>
         </div>
-        <svg class="selection-trophy" aria-hidden="true" viewBox="0 0 96 96" fill="none">
-          <path d="M29 12h38v20c0 17-8 27-19 27S29 49 29 32V12Z" fill="currentColor" opacity=".92"/>
-          <path d="M29 19H13v9c0 15 9 23 23 23M67 19h16v9c0 15-9 23-23 23M48 59v16m-17 8h34M36 75h24v8H36z" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="m48 20 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2-4.5-4.4 6.2-.9L48 20Z" fill="#b45309"/>
-        </svg>
+        <div class="selection-result-icon" aria-hidden="true">
+          <svg id="selection-icon-pending" viewBox="0 0 96 96" fill="none">
+            <circle cx="48" cy="50" r="34" stroke="currentColor" stroke-width="5"/>
+            <path d="M48 29v22l15 9M36 7h24M42 7v9m12-9v9" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="48" cy="50" r="3" fill="currentColor"/>
+          </svg>
+          <svg id="selection-icon-accepted" hidden viewBox="0 0 96 96" fill="none">
+            <path d="M29 12h38v20c0 17-8 27-19 27S29 49 29 32V12Z" fill="currentColor" opacity=".92"/>
+            <path d="M29 19H13v9c0 15 9 23 23 23M67 19h16v9c0 15-9 23-23 23M48 59v16m-17 8h34M36 75h24v8H36z" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="m48 20 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2-4.5-4.4 6.2-.9L48 20Z" fill="#b45309"/>
+          </svg>
+          <svg id="selection-icon-rejected" hidden viewBox="0 0 96 96" fill="none">
+            <circle cx="48" cy="48" r="34" stroke="currentColor" stroke-width="5" stroke-dasharray="5 5"/>
+            <path d="m34 34 28 28m0-28L34 62" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+            <path d="M20 70h56v12H20z" fill="currentColor" opacity=".8"/>
+          </svg>
+          <svg id="selection-icon-reserve" hidden viewBox="0 0 96 96" fill="none">
+            <path d="m48 10 10 24 26 2-20 17 7 26-23-14-23 14 7-26-20-17 26-2 10-24Z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+            <path d="m20 13 2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1 2-5Zm57 42 2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1 2-5Z" fill="currentColor"/>
+          </svg>
+        </div>
       </section>
 
       <section class="panel portal-status-panel mt-5">
         <div class="portal-status-heading flex flex-wrap items-center justify-between gap-3">
           <div><h2 class="text-lg font-extrabold text-slate-900">Alur & Status Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Pantau proses pendaftaran dari portal ini.</p></div>
-          <span id="overall-status" class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700"></span>
+          <span id="overall-status" class="portal-state-pill pending" aria-live="polite"></span>
         </div>
         <div class="portal-status-cards grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <article class="status-card portal-step-card">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 01</span>
+            <div class="portal-step-head"><span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 01</span><span id="registration-step-marker" class="portal-step-marker complete" aria-label="Selesai"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Formulir Pendaftaran</h3>
             <p class="mt-1 text-xs font-semibold text-emerald-700">Terkirim & tersimpan</p>
             <p id="registered-at" class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400"></p>
           </article>
           <article class="status-card portal-step-card" id="verification-step-card">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 02</span>
+            <div class="portal-step-head"><span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 02</span><span id="verification-step-marker" class="portal-step-marker current" aria-label="Sedang diproses">2</span></div>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Verifikasi Berkas</h3>
-            <p id="document-status" class="mt-1 text-xs font-semibold text-amber-700"></p>
+            <p id="document-status" class="mt-1 text-xs font-semibold text-blue-700"></p>
             <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Diperiksa oleh panitia</p>
           </article>
           <article class="status-card portal-step-card" id="selection-step-card">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 03</span>
+            <div class="portal-step-head"><span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 03</span><span id="selection-step-marker" class="portal-step-marker current" aria-label="Sedang diproses">3</span></div>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Hasil Seleksi</h3>
-            <p id="selection-status" class="mt-1 text-xs font-semibold text-amber-700"></p>
+            <p id="selection-status" class="mt-1 text-xs font-semibold text-blue-700"></p>
             <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Pengumuman resmi sekolah</p>
           </article>
           <article class="status-card portal-step-card" id="reenrollment-step-card">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 04</span>
+            <div class="portal-step-head"><span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tahap 04</span><span id="reenrollment-step-marker" class="portal-step-marker" aria-label="Menunggu">4</span></div>
             <h3 class="mt-4 text-sm font-bold text-slate-800">Daftar Ulang</h3>
             <p id="reenrollment-status" class="mt-1 text-xs font-semibold text-slate-600"></p>
             <p class="mt-6 border-t border-slate-100 pt-3 text-[11px] text-slate-400">Ikuti jadwal dari panitia</p>
           </article>
         </div>
+      </section>
+
+      <section id="portal-document-panel" class="panel mt-5 p-5 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">Status Verifikasi Berkas &amp; Dokumen</h2>
+            <p class="mt-1 max-w-3xl text-xs leading-5 text-slate-500">Periksa kelengkapan dan validasi masing-masing berkas yang telah Anda unggah. Jika ada dokumen yang ditolak, silakan unggah perbaikannya langsung di bawah ini.</p>
+          </div>
+          <span id="document-status-pill" class="portal-state-pill pending"></span>
+        </div>
+        <div id="portal-files" class="portal-document-grid"></div>
+        <p id="portal-documents-empty" class="portal-document-empty" hidden>Belum ada dokumen yang perlu ditampilkan.</p>
+        <div id="portal-review-notes" class="mt-4"></div>
+        <p id="portal-update-status" class="portal-update-status mt-3" role="status" aria-live="polite">Status diperbarui otomatis.</p>
+      </section>
+
+      <section class="panel mt-5 p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-lg font-extrabold text-slate-900">Rincian Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Informasi yang Anda kirim saat mendaftar.</p></div>
+          <span id="overall-status-details" class="portal-state-pill pending"></span>
+        </div>
+        <section class="mt-5 rounded-xl border border-slate-200 p-4 sm:p-5">
+          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Identitas Pribadi & Kontak</h3>
+          <dl id="student-details" class="detail-grid"></dl>
+        </section>
+        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+          <section class="rounded-xl border border-slate-200 p-4 sm:p-5">
+            <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Data Ayah Kandung</h3>
+            <dl id="father-details" class="detail-grid"></dl>
+          </section>
+          <section class="rounded-xl border border-slate-200 p-4 sm:p-5">
+            <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Data Ibu Kandung</h3>
+            <dl id="mother-details" class="detail-grid"></dl>
+          </section>
+        </div>
+        <section class="mt-4 rounded-xl border border-slate-200 p-4 sm:p-5">
+          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Alamat Lengkap</h3>
+          <dl class="detail-grid"><div class="detail-item"><dt>Alamat Lengkap</dt><dd id="portal-address"></dd></div></dl>
+        </section>
       </section>
 
       <section id="payment-panel" class="panel mt-5 hidden p-5 sm:p-6">
@@ -169,8 +281,20 @@
             <h2 class="mt-1 text-lg font-extrabold text-slate-900">Pembayaran Daftar Ulang</h2>
             <p id="payment-instructions" class="mt-2 max-w-2xl text-sm leading-6 text-slate-500"></p>
           </div>
-          <span id="payment-status" class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700"></span>
+          <span id="payment-status" class="portal-state-pill pending"></span>
         </div>
+        <div id="payment-verified-banner" class="reenrollment-verified" hidden>
+          <div class="reenrollment-verified-copy">
+            <span class="reenrollment-verified-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><p class="text-sm font-extrabold text-slate-900">Daftar Ulang Telah Terverifikasi</p><p class="text-xs text-slate-500">Pembayaran dan berkas daftar ulang telah diverifikasi oleh panitia sekolah.</p></div>
+          </div>
+          <a id="payment-proof-view-link" class="reenrollment-proof-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Lihat Bukti Bayar</a>
+        </div>
+        <div id="payment-verification-notice" class="payment-verification-notice" hidden role="status" aria-live="polite">
+          Bukti pembayaran telah dikirim dan sedang menunggu verifikasi admin.
+          <a id="payment-pending-proof-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Lihat bukti pembayaran</a>
+        </div>
+        <div id="payment-action-content">
         <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div id="bank-payment" class="rounded-xl border border-slate-200 p-4">
             <h3 class="text-sm font-bold text-slate-800">Transfer Bank</h3>
@@ -204,34 +328,9 @@
           </form>
           <p id="payment-proof-message" class="mt-2 text-sm" role="status"></p>
         </div>
+        </div>
       </section>
 
-      <section class="panel mt-5 p-5 sm:p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div><h2 class="text-lg font-extrabold text-slate-900">Rincian Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Informasi yang Anda kirim saat mendaftar.</p></div>
-          <span id="overall-status-details" class="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700"></span>
-        </div>
-        <section class="mt-5 rounded-xl border border-slate-200 p-4 sm:p-5">
-          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Identitas Pribadi & Kontak</h3>
-          <dl id="student-details" class="detail-grid"></dl>
-        </section>
-        <div class="mt-4 grid gap-4 lg:grid-cols-2">
-          <section class="rounded-xl border border-slate-200 p-4 sm:p-5">
-            <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Data Ayah Kandung</h3>
-            <dl id="father-details" class="detail-grid"></dl>
-          </section>
-          <section class="rounded-xl border border-slate-200 p-4 sm:p-5">
-            <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Data Ibu Kandung</h3>
-            <dl id="mother-details" class="detail-grid"></dl>
-          </section>
-        </div>
-        <section class="mt-4 rounded-xl border border-slate-200 p-4 sm:p-5">
-          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Alamat & Dokumen</h3>
-          <dl class="detail-grid"><div class="detail-item"><dt>Alamat Lengkap</dt><dd id="portal-address"></dd></div></dl>
-          <div id="portal-files" class="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"></div>
-          <div id="portal-review-notes" class="mt-4"></div>
-        </section>
-      </section>
       <p class="mt-5 text-center text-xs text-slate-400">Jika ada data yang perlu diperbaiki, hubungi panitia SPMB SMK PGRI Cikoneng.</p>
     </section>
   </main>
@@ -258,9 +357,49 @@
   <script>
     let activeApplication = null;
     let activePin = '';
+    let portalRefreshTimer = null;
+    let portalRefreshInProgress = false;
+    let portalRefreshPromise = null;
+    let portalSessionGeneration = 0;
+    const portalRefreshIntervalMs = 10000;
 
     function showText(id, value) {
       document.getElementById(id).textContent = value || '-';
+    }
+
+    function setPortalStatePill(id, value, tone) {
+      const element = document.getElementById(id);
+      element.className = 'portal-state-pill ' + tone;
+      element.textContent = value || '—';
+    }
+
+    function setPortalStateText(id, value, tone) {
+      const element = document.getElementById(id);
+      element.classList.remove('text-blue-700', 'text-emerald-700', 'text-rose-700', 'text-amber-700', 'text-slate-600');
+      element.classList.add(tone === 'verified' || tone === 'accepted' ? 'text-emerald-700'
+        : tone === 'revision' || tone === 'rejected' ? 'text-rose-700'
+          : tone === 'reserve' ? 'text-amber-700'
+            : tone === 'inactive' ? 'text-slate-600' : 'text-blue-700');
+      element.textContent = value || '—';
+    }
+
+    function getDocumentTone(status) {
+      return status === 'Berkas Terverifikasi' ? 'verified'
+        : status === 'Perlu Perbaikan' ? 'revision' : 'pending';
+    }
+
+    function getSelectionTone(status) {
+      return ['Diterima', 'Diterima / Lulus'].includes(status) ? 'accepted'
+        : status === 'Tidak Diterima' ? 'rejected'
+          : status === 'Cadangan' ? 'reserve' : 'pending';
+    }
+
+    function setStepMarker(id, state, number, label) {
+      const marker = document.getElementById(id);
+      marker.className = 'portal-step-marker' + (state ? ' ' + state : '');
+      marker.setAttribute('aria-label', label);
+      marker.textContent = state === 'complete' ? '✓'
+        : state === 'rejected' ? '!' : state === 'reserve' ? '★' : String(number);
     }
 
     function addDetail(container, label, value) {
@@ -278,6 +417,82 @@
       const container = document.getElementById(id);
       container.replaceChildren();
       entries.forEach(function (entry) { addDetail(container, entry[0], entry[1]); });
+    }
+
+    function renderPortalDocuments(application) {
+      const container = document.getElementById('portal-files');
+      const emptyState = document.getElementById('portal-documents-empty');
+      const documents = (application.files || []).filter(function (file) { return file.key !== 'paymentProof'; });
+      container.replaceChildren();
+      emptyState.hidden = documents.length > 0;
+      documents.forEach(function (file) {
+        const revision = file.review && file.review.status === 'revision';
+        const verified = file.review && file.review.status === 'verified';
+        const tone = revision ? 'revision' : verified ? 'verified' : '';
+        const card = document.createElement('article');
+        card.className = 'portal-document-card' + (tone ? ' ' + tone : '');
+        const head = document.createElement('div');
+        head.className = 'portal-document-card-head';
+        const titleGroup = document.createElement('div');
+        const category = document.createElement('p');
+        category.className = 'portal-document-category';
+        category.textContent = file.required ? 'Dokumen Utama' : 'Dokumen Tambahan';
+        const title = document.createElement('h3');
+        title.textContent = file.label;
+        titleGroup.append(category, title);
+        const badge = document.createElement('span');
+        badge.className = 'portal-state-pill ' + (revision ? 'revision' : verified ? 'verified' : 'pending');
+        badge.textContent = revision ? 'Perlu Perbaikan'
+          : verified ? 'Terverifikasi'
+            : file.uploaded ? 'Menunggu Cek'
+              : file.required ? 'Wajib Diunggah' : 'Belum Diunggah';
+        head.append(titleGroup, badge);
+        const link = document.createElement('a');
+        link.className = 'portal-document-link';
+        link.textContent = '◉ Lihat Berkas Yang Diunggah';
+        link.href = file.url || '#';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.hidden = !file.uploaded || !file.url;
+        card.append(head, link);
+        if (revision || !file.uploaded) {
+          if (revision) {
+            const note = document.createElement('div');
+            note.className = 'portal-document-note';
+            const noteTitle = document.createElement('strong');
+            noteTitle.textContent = 'Alasan penolakan / petunjuk revisi admin:';
+            const noteText = document.createElement('span');
+            noteText.textContent = file.review.note || 'Mohon unggah dokumen yang telah diperbaiki.';
+            note.append(noteTitle, noteText);
+            card.appendChild(note);
+          }
+          const form = document.createElement('form');
+          form.className = 'portal-revision-form';
+          form.dataset.documentRevisionForm = 'true';
+          form.dataset.documentKey = file.key;
+          const label = document.createElement('label');
+          label.textContent = revision ? 'Pilih file revisi baru' : 'Pilih dokumen untuk diunggah';
+          const input = document.createElement('input');
+          input.id = 'portal-upload-' + file.key;
+          label.htmlFor = input.id;
+          input.type = 'file';
+          input.required = true;
+          input.accept = (file.extensions || []).map(function (extension) { return '.' + extension; }).join(',');
+          const helper = document.createElement('span');
+          helper.className = 'text-[10px] text-slate-500';
+          helper.textContent = 'Maks. ' + Number(file.maxKB || 2048) / 1024 + ' MB (' +
+            (file.extensions || []).map(function (extension) { return extension.toUpperCase(); }).join(', ') + ')';
+          const submit = document.createElement('button');
+          submit.type = 'submit';
+          submit.textContent = revision ? '↑ Upload Revisi' : '↑ Unggah Dokumen';
+          const message = document.createElement('p');
+          message.className = 'text-xs text-slate-500';
+          message.setAttribute('role', 'status');
+          form.append(label, input, helper, submit, message);
+          card.appendChild(form);
+        }
+        container.appendChild(card);
+      });
     }
 
     function displayPortal(application, pin) {
@@ -304,32 +519,73 @@
       showText('portal-wave', application.wave);
       showText('portal-path', application.registrationPath || 'Jalur belum ditentukan');
       showText('portal-major', application.major);
+      const portalClass = document.getElementById('portal-class');
+      portalClass.hidden = !application.classAssignment;
+      portalClass.textContent = application.classAssignment ? 'Kelas: ' + application.classAssignment : '';
       showText('portal-school', 'Asal: ' + application.student.school);
       showText('registered-at', application.registeredAt ? new Date(application.registeredAt).toLocaleString('id-ID') : 'Tanggal pendaftaran tersimpan');
-      showText('document-status', application.documentStatus);
-      showText('selection-status', application.selectionStatus);
-      showText('reenrollment-status', application.reenrollmentStatus);
-      showText('overall-status', application.documentStatus);
-      showText('overall-status-details', application.documentStatus);
       showText('portal-address', application.address);
 
       const decision = application.selectionStatus || 'Menunggu Pengumuman';
       const isAccepted = ['Diterima', 'Diterima / Lulus'].includes(decision);
       const isRejected = decision === 'Tidak Diterima';
+      const isReserve = decision === 'Cadangan';
+      const selectionTone = getSelectionTone(decision);
+      const documentTone = getDocumentTone(application.documentStatus);
       const resultPanel = document.getElementById('selection-result-panel');
-      resultPanel.classList.toggle('pending', !isAccepted && !isRejected);
-      resultPanel.classList.toggle('rejected', isRejected);
+      ['pending', 'accepted', 'rejected', 'reserve'].forEach(function (tone) {
+        resultPanel.classList.toggle(tone, tone === selectionTone);
+      });
+      ['pending', 'accepted', 'rejected', 'reserve'].forEach(function (tone) {
+        document.getElementById('selection-icon-' + tone).hidden = tone !== selectionTone;
+      });
       showText('selection-result-title', isAccepted ? 'SELAMAT! ANDA DINYATAKAN LULUS SELEKSI'
-        : decision === 'Cadangan' ? 'ANDA MASUK DAFTAR CADANGAN'
-          : isRejected ? 'HASIL SELEKSI ANDA' : 'HASIL SELEKSI SEDANG DIPROSES');
+        : isReserve ? 'ANDA MASUK DAFTAR CADANGAN'
+          : isRejected ? 'ANDA DINYATAKAN TIDAK LULUS SELEKSI'
+            : 'HASIL SELEKSI AKAN SEGERA DIRILIS');
       showText('selection-result-eyebrow', isAccepted ? 'Pengumuman Hasil Seleksi' : 'Informasi Hasil Seleksi');
-      showText('selection-score-text', application.selectionScore ? 'Nilai seleksi: ' + application.selectionScore : '');
-      showText('selection-note-text', application.selectionNote || '');
+      document.getElementById('selection-score-text').textContent =
+        application.selectionScore !== null && application.selectionScore !== ''
+          ? 'Nilai seleksi: ' + application.selectionScore : '';
+      document.getElementById('selection-note-text').textContent = application.selectionNote || '';
       const reenrollmentCta = document.getElementById('reenrollment-cta');
-      reenrollmentCta.hidden = !application.canPay;
-      document.getElementById('verification-step-card').classList.toggle('current', application.documentStatus !== 'Berkas Terverifikasi');
-      document.getElementById('selection-step-card').classList.toggle('current', isAccepted || isRejected || decision === 'Cadangan');
-      document.getElementById('reenrollment-step-card').classList.toggle('current', application.canPay);
+      const reenrollmentComplete = application.reenrollmentStatus === 'Daftar Ulang Selesai';
+      reenrollmentCta.hidden = !application.canPay || reenrollmentComplete;
+      setPortalStatePill('overall-status', application.documentStatus, documentTone);
+      setPortalStatePill('document-status-pill', application.documentStatus, documentTone);
+      setPortalStatePill('overall-status-details', application.documentStatus, documentTone);
+      setPortalStateText('document-status', application.documentStatus, documentTone);
+      setPortalStateText('selection-status', decision, selectionTone);
+      const reenrollmentLabel = reenrollmentComplete ? application.reenrollmentStatus
+        : application.canPay ? application.reenrollmentStatus || 'Belum Daftar Ulang'
+          : isRejected ? 'Tidak diperlukan untuk hasil ini'
+            : isReserve ? 'Menunggu keputusan seleksi' : 'Menunggu hasil seleksi';
+      const reenrollmentTone = reenrollmentComplete ? 'verified'
+        : isRejected ? 'inactive' : 'pending';
+      setPortalStateText('reenrollment-status', reenrollmentLabel, reenrollmentTone);
+      const verificationStep = document.getElementById('verification-step-card');
+      verificationStep.classList.toggle('complete', documentTone === 'verified');
+      verificationStep.classList.toggle('current', documentTone !== 'verified');
+      verificationStep.classList.toggle('revision', documentTone === 'revision');
+      setStepMarker('verification-step-marker', documentTone === 'verified' ? 'complete'
+        : documentTone === 'revision' ? 'rejected' : 'current', 2,
+      documentTone === 'verified' ? 'Berkas terverifikasi' : documentTone === 'revision' ? 'Perlu perbaikan' : 'Menunggu verifikasi');
+      const selectionStep = document.getElementById('selection-step-card');
+      const selectionFinal = decision !== 'Menunggu Pengumuman';
+      selectionStep.classList.toggle('complete', selectionFinal && !isRejected && !isReserve);
+      selectionStep.classList.toggle('current', !selectionFinal);
+      selectionStep.classList.toggle('revision', isRejected);
+      selectionStep.classList.toggle('reserve', isReserve);
+      const selectionStepState = !selectionFinal ? 'current'
+        : selectionTone === 'accepted' ? 'complete' : selectionTone;
+      setStepMarker('selection-step-marker', selectionStepState, 3,
+        selectionFinal ? decision : 'Menunggu hasil seleksi');
+      const reenrollmentStep = document.getElementById('reenrollment-step-card');
+      reenrollmentStep.classList.toggle('complete', reenrollmentComplete);
+      reenrollmentStep.classList.toggle('current', Boolean(application.canPay) && !reenrollmentComplete);
+      setStepMarker('reenrollment-step-marker', reenrollmentComplete ? 'complete'
+        : application.canPay ? 'current' : '', 4,
+      reenrollmentComplete ? 'Daftar ulang terverifikasi' : application.canPay ? 'Menunggu daftar ulang' : 'Belum masuk tahap daftar ulang');
       const paymentPanel = document.getElementById('payment-panel');
       paymentPanel.classList.toggle('hidden', !application.canPay);
       if (application.canPay) renderPaymentOptions(application);
@@ -357,37 +613,12 @@
         ['Pendidikan', application.mother.education], ['Pekerjaan', application.mother.occupation],
         ['Penghasilan / bulan', application.mother.income], ['No. WhatsApp', application.mother.phone]
       ]);
-      const files = document.getElementById('portal-files');
-      files.replaceChildren();
-      application.files.forEach(function (file) {
-        const row = document.createElement('div');
-        row.className = 'document-chip';
-        const label = document.createElement('span');
-        label.textContent = file.label;
-        const state = document.createElement('strong');
-        state.className = file.uploaded ? 'text-emerald-700' : 'text-slate-400';
-        const review = file.review;
-        state.textContent = file.uploaded
-          ? review && review.status === 'revision' ? 'Perlu diperbaiki' : review && review.status === 'verified' ? 'Terverifikasi' : 'Terkirim'
-          : file.required ? 'Wajib diunggah' : 'Belum diunggah';
-        row.append(label, state);
-        if (review && review.note) {
-          const note = document.createElement('span');
-          note.className = 'text-[11px] text-amber-700';
-          note.textContent = review.note;
-          row.appendChild(note);
-        }
-        files.appendChild(row);
-      });
+      renderPortalDocuments(application);
       const reviewNotes = document.getElementById('portal-review-notes');
       reviewNotes.replaceChildren();
       const revisions = (application.fields || []).filter(function (field) {
         return field.review && field.review.status === 'revision' && field.review.note;
-      }).concat((application.files || []).filter(function (file) {
-        return file.review && file.review.status === 'revision' && file.review.note;
-      }).map(function (file) {
-        return { label: file.label, review: file.review };
-      }));
+      });
       if (revisions.length) {
         const title = document.createElement('h4');
         title.className = 'mb-2 text-xs font-extrabold uppercase tracking-wide text-amber-700';
@@ -413,7 +644,22 @@
 
     function renderPaymentOptions(application) {
       const settings = application.paymentSettings || {};
-      showText('payment-status', application.paymentStatus || 'Belum Daftar Ulang');
+      const paymentStatus = application.paymentStatus || 'Belum Daftar Ulang';
+      const paymentVerified = paymentStatus === 'Pembayaran Terverifikasi' &&
+        application.reenrollmentStatus === 'Daftar Ulang Selesai';
+      const paymentTone = paymentVerified ? 'verified'
+        : paymentStatus === 'Perlu Perbaikan' ? 'revision' : 'pending';
+      setPortalStatePill('payment-status', paymentStatus, paymentTone);
+      document.getElementById('payment-verified-banner').hidden = !paymentVerified;
+      document.getElementById('payment-action-content').hidden = paymentVerified;
+      const paymentPending = paymentStatus === 'Menunggu Verifikasi Pembayaran' && Boolean(application.paymentProofUrl);
+      document.getElementById('payment-verification-notice').hidden = !paymentPending;
+      const pendingProofLink = document.getElementById('payment-pending-proof-link');
+      pendingProofLink.hidden = !paymentPending;
+      if (paymentPending) pendingProofLink.href = application.paymentProofUrl;
+      const proofLink = document.getElementById('payment-proof-view-link');
+      proofLink.hidden = !paymentVerified || !application.paymentProofUrl;
+      if (application.paymentProofUrl) proofLink.href = application.paymentProofUrl;
       showText('payment-instructions', settings.instructions || 'Ikuti petunjuk pembayaran dari panitia.');
       showText('payment-fee', application.paymentFee
         ? 'Nominal daftar ulang: Rp ' + Number(application.paymentFee).toLocaleString('id-ID')
@@ -446,7 +692,7 @@
     function readFileAsBase64(file) {
       return new Promise(function (resolve, reject) {
         const reader = new FileReader();
-        reader.onerror = function () { reject(new Error('Bukti pembayaran tidak dapat dibaca.')); };
+        reader.onerror = function () { reject(new Error('File tidak dapat dibaca.')); };
         reader.onload = function () { resolve(String(reader.result).split(',')[1]); };
         reader.readAsDataURL(file);
       });
@@ -457,6 +703,74 @@
       const date = new Date(value + 'T00:00:00');
       return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     }
+
+    function stopPortalRefresh() {
+      if (portalRefreshTimer !== null) window.clearInterval(portalRefreshTimer);
+      portalRefreshTimer = null;
+    }
+
+    function startPortalRefresh() {
+      stopPortalRefresh();
+      refreshPortalApplication();
+      portalRefreshTimer = window.setInterval(refreshPortalApplication, portalRefreshIntervalMs);
+    }
+
+    function refreshPortalApplication(successMessage) {
+      if (!activeApplication || document.visibilityState === 'hidden') return Promise.resolve(false);
+      if (portalRefreshInProgress) return portalRefreshPromise || Promise.resolve(false);
+      portalRefreshInProgress = true;
+      const requestGeneration = portalSessionGeneration;
+      portalRefreshPromise = (async function () {
+        try {
+          const response = await fetch('/api/portal/application', {
+            credentials: 'same-origin',
+            cache: 'no-store'
+          });
+          const result = await response.json();
+          if (requestGeneration !== portalSessionGeneration) return false;
+          if (response.status === 401) {
+            stopPortalRefresh();
+            portalSessionGeneration += 1;
+            activeApplication = null;
+            activePin = '';
+            document.getElementById('portal-content').classList.add('hidden');
+            document.getElementById('login-panel').classList.remove('hidden');
+            const error = document.getElementById('login-error');
+            error.textContent = result.message || 'Sesi portal berakhir. Silakan masuk kembali.';
+            error.classList.remove('hidden');
+            return false;
+          }
+          if (!response.ok) throw new Error(result.message || 'Status pendaftaran belum dapat diperbarui.');
+          if (!result.application) throw new Error('Data status pendaftaran tidak tersedia.');
+          if (JSON.stringify(result.application) !== JSON.stringify(activeApplication)) {
+            displayPortal(result.application, activePin);
+          }
+          const updateStatus = document.getElementById('portal-update-status');
+          updateStatus.classList.remove('error');
+          updateStatus.textContent = (successMessage || 'Status diperbarui otomatis') + ' · ' +
+            new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          return true;
+        } catch (error) {
+          if (requestGeneration !== portalSessionGeneration) return false;
+          const updateStatus = document.getElementById('portal-update-status');
+          updateStatus.classList.add('error');
+          updateStatus.textContent = 'Koneksi status terganggu. Portal akan mencoba memperbarui kembali.';
+          console.error('Portal status refresh failed:', error);
+          return false;
+        } finally {
+          portalRefreshInProgress = false;
+          portalRefreshPromise = null;
+          if (requestGeneration !== portalSessionGeneration && activeApplication) {
+            window.setTimeout(refreshPortalApplication, 0);
+          }
+        }
+      })();
+      return portalRefreshPromise;
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && activeApplication) refreshPortalApplication();
+    });
 
     document.getElementById('login-form').addEventListener('submit', async function (event) {
       event.preventDefault();
@@ -474,7 +788,9 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || 'Tidak dapat masuk ke portal.');
+        portalSessionGeneration += 1;
         displayPortal(result.application, pin);
+        startPortalRefresh();
       } catch (requestError) {
         error.textContent = requestError.message || 'Periksa nomor pendaftaran dan PIN.';
         error.classList.remove('hidden');
@@ -484,6 +800,8 @@
     });
 
     document.getElementById('logout-button').addEventListener('click', async function () {
+      stopPortalRefresh();
+      portalSessionGeneration += 1;
       try { await fetch('/api/portal/logout', { method: 'POST', credentials: 'same-origin' }); } catch (error) { console.error(error); }
       activeApplication = null;
       activePin = '';
@@ -491,6 +809,51 @@
       document.getElementById('login-panel').classList.remove('hidden');
       document.getElementById('portal-pin').value = '';
       document.getElementById('registration-number').focus();
+    });
+
+    document.getElementById('portal-files').addEventListener('submit', async function (event) {
+      const form = event.target.closest('[data-document-revision-form]');
+      if (!form) return;
+      event.preventDefault();
+      const key = form.dataset.documentKey;
+      const input = form.querySelector('input[type="file"]');
+      const file = input.files[0];
+      const button = form.querySelector('button[type="submit"]');
+      const message = form.querySelector('[role="status"]');
+      const documentConfig = (activeApplication && activeApplication.files || []).find(function (item) { return item.key === key; });
+      if (!file || !documentConfig) return;
+      if (!file.size || file.size > Number(documentConfig.maxKB || 2048) * 1024) {
+        message.textContent = 'Ukuran file melebihi batas ' + Number(documentConfig.maxKB || 2048) / 1024 + ' MB.';
+        message.className = 'text-xs text-rose-700';
+        return;
+      }
+      button.disabled = true;
+      message.textContent = 'Mengunggah dokumen revisi...';
+      message.className = 'text-xs text-slate-500';
+      try {
+        const base64 = await readFileAsBase64(file);
+        const extension = file.name.split('.').pop().toLowerCase();
+        const contentType = file.type || (extension === 'pdf' ? 'application/pdf'
+          : extension === 'png' ? 'image/png' : 'image/jpeg');
+        const response = await fetch('/api/portal/documents/' + encodeURIComponent(key), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ upload: { name: file.name, contentType: contentType, base64: base64 } })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Dokumen revisi gagal dikirim.');
+        await refreshPortalApplication('Dokumen revisi berhasil dikirim');
+        const refreshedFile = activeApplication && activeApplication.files.find(function (item) { return item.key === key; });
+        if (refreshedFile && (!refreshedFile.uploaded || (refreshedFile.review && refreshedFile.review.status === 'revision'))) {
+          await refreshPortalApplication('Dokumen revisi berhasil dikirim');
+        }
+      } catch (error) {
+        message.textContent = error.message || 'Dokumen revisi gagal dikirim.';
+        message.className = 'text-xs text-rose-700';
+      } finally {
+        button.disabled = false;
+      }
     });
 
     document.getElementById('payment-proof-form').addEventListener('submit', async function (event) {
@@ -510,21 +873,26 @@
       message.className = 'mt-2 text-sm text-slate-500';
       try {
         const base64 = await readFileAsBase64(file);
+        const extension = file.name.split('.').pop().toLowerCase();
+        const contentType = file.type || (extension === 'pdf' ? 'application/pdf'
+          : extension === 'png' ? 'image/png' : 'image/jpeg');
         const response = await fetch('/api/portal/payment-proof', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            upload: { name: file.name, contentType: file.type, base64: base64 }
+            upload: { name: file.name, contentType: contentType, base64: base64 }
           })
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || 'Bukti pembayaran gagal dikirim.');
-        activeApplication.paymentStatus = result.paymentStatus;
-        showText('payment-status', result.paymentStatus);
         message.textContent = 'Bukti berhasil dikirim. Silakan tunggu verifikasi panitia.';
         message.className = 'mt-2 text-sm text-emerald-700';
         input.value = '';
+        await refreshPortalApplication('Bukti pembayaran berhasil dikirim');
+        if (activeApplication && activeApplication.paymentStatus !== result.paymentStatus) {
+          await refreshPortalApplication('Bukti pembayaran berhasil dikirim');
+        }
       } catch (error) {
         message.textContent = error.message || 'Bukti pembayaran gagal dikirim.';
         message.className = 'mt-2 text-sm text-red-600';

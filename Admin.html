@@ -130,8 +130,13 @@
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .section-heading p { margin: 5px 0 0; }
     .filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(180px, 250px); gap: 10px; margin-top: 18px; }
+    .bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 14px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 11px; background: #f8fafc; }
+    .bulk-actions[hidden] { display: none !important; }
+    .bulk-actions select { width: min(100%, 300px); }
+    .bulk-actions p { margin: 0 auto 0 0; color: #475467; font-size: 12px; font-weight: 700; }
+    .bulk-select-checkbox { width: 18px !important; min-width: 18px; min-height: 18px !important; margin: 0; accent-color: #ea580c; cursor: pointer; }
     .table-wrap { overflow: auto; margin-top: 14px; border: 1px solid #e6eaf0; border-radius: 10px; }
-    table { width: 100%; min-width: 1330px; border-collapse: collapse; font-size: 12px; }
+    table { width: 100%; min-width: 1380px; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 11px 9px; border-bottom: 1px solid #edf0f4; text-align: left; vertical-align: top; }
     th { position: sticky; top: 0; background: #f8fafc; color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
     tr:last-child td { border-bottom: 0; }
@@ -141,13 +146,17 @@
     .applicant-name span, .muted { color: #667085; font-size: 12px; }
     .file-links { display: grid; gap: 6px; min-width: 140px; }
     .file-links a { color: #c2410c; }
-    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 120px; }
+    .row-actions { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 156px; }
     .action-icon { display: inline-grid; width: 34px; min-width: 34px; min-height: 34px; place-items: center; padding: 0; border: 1px solid #e5e7eb; border-radius: 9px; color: #475569; background: white; transition: transform .18s ease, color .18s ease, background .18s ease; }
     .action-icon:hover { color: #c2410c; background: #fff7ed; }
-    .action-icon.action-danger { border-color: #fecaca; color: #b42318; background: #fef2f2; }
-    .action-icon.action-danger:hover { color: #991b1b; background: #fee2e2; }
+    .action-icon.action-danger { border-color: #dc2626; color: #fff; background: #dc2626; }
+    .action-icon.action-danger:hover { border-color: #b91c1c; color: #fff; background: #b91c1c; }
     .action-icon svg { width: 17px; height: 17px; }
     .action-icon.action-primary { color: #c2410c; background: #fff7ed; }
+    .action-icon.action-selection { border-color: #fde68a; color: #15803d; background: #fef3c7; }
+    .action-icon.action-selection:hover { border-color: #fcd34d; color: #166534; background: #fde68a; }
+    .action-icon.action-print { border-color: #cbd5e1; color: #ea580c; background: #f1f5f9; }
+    .action-icon.action-print:hover { border-color: #94a3b8; color: #c2410c; background: #e2e8f0; }
     .applicant-photo { width: 34px; height: 42px; border: 1px solid #e5e7eb; border-radius: 6px; object-fit: cover; }
     .applicant-photo-empty { display: grid; width: 34px; height: 42px; place-items: center; border: 1px dashed #cbd5e1; border-radius: 6px; color: #94a3b8; font-size: 12px; }
     .status-badge { display: inline-flex; align-items: center; max-width: 190px; padding: 5px 8px; border: 1px solid transparent; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.3; }
@@ -167,6 +176,7 @@
     .detail-page-heading h1 { font-size: 22px; }
     .detail-page-actions, .detail-hero-badges, .detail-hero-actions, .detail-document-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
     .detail-page-actions button, .detail-hero-actions button, .detail-document-actions button { min-height: 34px; padding: 7px 11px; font-size: 12px; }
+    #detail-class-assignment[hidden] { display: none !important; }
     .detail-page-actions .secondary, .detail-document-actions .secondary { color: #334155; background: white; border: 1px solid #dbe3ec; }
     .detail-page-actions .reset-pin-button { color: #b42318; background: #fef2f2; border: 1px solid #fecaca; }
     .detail-page-actions .reset-pin-button:hover { background: #fee2e2; }
@@ -179,7 +189,7 @@
     .detail-hero-badges { gap: 5px; }
     .detail-chip { display: inline-flex; max-width: 100%; padding: 4px 8px; overflow-wrap: anywhere; border: 1px solid #e5eaf0; border-radius: 999px; background: #f8fafc; color: #475569; font-size: 12px; font-weight: 700; }
     .detail-access { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-    .detail-access a { display: inline-flex; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #dbe3ec; border-radius: 8px; color: #334155; background: white; font-size: 12px; font-weight: 700; text-decoration: none; }
+    .detail-access a, .detail-access button { display: inline-flex; min-height: 34px; align-items: center; padding: 7px 11px; border: 1px solid #dbe3ec; border-radius: 8px; color: #334155; background: white; font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
     .detail-hero-actions .detail-verify-all { background: #15925b; }
     .detail-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 10px; }
     .detail-section-heading h2 { font-size: 15px; }
@@ -188,6 +198,8 @@
     .detail-record-card h4 { margin: 12px 0 7px; color: #64748b; font-size: 12px; font-weight: 800; letter-spacing: .04em; }
     .detail-record-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 14px; }
     .detail-record-card, .detail-document-card, .detail-payment-card { min-width: 0; padding: 14px; border: 1px solid #e4e9f0; border-radius: 12px; background: white; box-shadow: 0 6px 20px #16243a08; }
+    .detail-payment-alert { margin: 10px 0; padding: 11px 13px; border: 1px solid #bfdbfe; border-radius: 10px; color: #1e40af; background: #eff6ff; font-size: 12px; line-height: 1.6; }
+    .detail-payment-alert[hidden] { display: none !important; }
     .detail-record-card h3, .detail-document-card h3, .detail-payment-card h3 { margin: 0; font-size: 12px; }
     .detail-record-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid #edf0f4; }
     .detail-record-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 16px; padding: 12px; border: 1px solid #edf0f4; border-radius: 9px; background: #fbfcfe; }
@@ -199,15 +211,28 @@
     .detail-card-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #edf0f4; }
     .detail-card-actions button { min-height: 34px; padding: 6px 9px; font-size: 12px; }
     .detail-card-actions .detail-revision { background: #c62828; }
+    .detail-verified { background: #16965d; color: white; }
     .detail-card-actions .detail-verified { background: #16965d; }
+    .detail-verified:disabled, .detail-verify-all:disabled { cursor: not-allowed; opacity: 1; background: #16965d; }
     .detail-document-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .detail-document-card { display: grid; gap: 10px; }
     .detail-document-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .detail-revision-response { display: grid; gap: 9px; }
+    .detail-revision-note { padding: 10px 12px; border: 1px solid #f0c7ce; border-radius: 9px; background: #fff3f4; color: #7f3340; font-size: 12px; }
+    .detail-revision-note strong { display: block; color: #9f3544; font-size: 11px; }
+    .detail-revision-note p { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .detail-revision-wait { margin: 0; color: #a8791d; font-size: 12px; text-align: right; }
     .detail-file-link { display: flex; min-width: 0; align-items: center; gap: 8px; padding: 10px; border: 1px solid #edf0f4; border-radius: 8px; background: #fbfcfe; color: #475569; font-size: 12px; text-decoration: none; }
     .detail-file-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .detail-file-link:hover { color: #c2410c; }
     .detail-status-banner { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 12px; }
     .detail-payment-actions textarea { width: 100%; margin-top: 12px; }
+    .whatsapp-contact-list { display: grid; gap: 10px; margin: 16px 0; padding: 0; list-style: none; }
+    .whatsapp-contact-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; background: #fbfcfe; }
+    .whatsapp-contact-item strong, .whatsapp-contact-item span { display: block; }
+    .whatsapp-contact-item span { margin-top: 3px; color: #64748b; font-size: 13px; }
+    .whatsapp-contact-link { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; min-height: 36px; padding: 7px 12px; border-radius: 8px; background: #15925b; color: white; font-size: 13px; font-weight: 700; text-decoration: none; }
+    .whatsapp-contact-link:hover { background: #117a4c; }
     .detail-readonly-notice { padding: 12px; border: 1px solid #fde68a; border-radius: 10px; background: #fffbeb; color: #92400e; font-size: 13px; }
     #revision-note-dialog { width: min(100% - 24px, 520px); }
     #revision-note-dialog textarea { min-height: 120px; resize: vertical; }
@@ -367,6 +392,22 @@
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 <span>Form Pendaftaran</span>
               </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="academicYear" data-permission-menu="academicYear">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m4 5h4"/></svg>
+                <span>Tahun Pelajaran</span>
+              </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="programs" data-permission-menu="programs">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v15M2 20h20M8 7h3m-3 4h3m2-4h3m-3 4h3M9 20v-4h6v4"/></svg>
+                <span>Program Studi</span>
+              </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="classes" data-permission-menu="classes">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5.5 12 2l9 3.5v13L12 22l-9-3.5v-13Z"/><path d="m3.5 6 8.5 3.5L20.5 6M12 9.5V22m-4-12v5m8-5v5"/></svg>
+                <span>Kelas</span>
+              </button>
+              <button type="button" data-page-target="master-page" data-master-anchor="whatsapp" data-permission-menu="whatsapp">
+                <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-4.4A8.4 8.4 0 1 1 20 11.5Z"/><path d="M8 9c.7 2.5 2.5 4.3 5 5l1-1 2 1c-.2 1.2-1.2 2-2.4 2A8.5 8.5 0 0 1 7 9.4C7 8.2 7.8 7.2 9 7l1 2-1 1Z"/></svg>
+                <span>WA Gateway</span>
+              </button>
               <button type="button" data-page-target="master-page" data-master-anchor="waves" data-permission-menu="waves">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m-3 3h3"/></svg>
                 <span>Gelombang Pendaftaran</span>
@@ -430,11 +471,24 @@
             <option>Perlu Perbaikan</option>
           </select>
         </div>
+        <div id="bulk-actions-toolbar" class="bulk-actions" hidden>
+          <p><span id="bulk-selected-count">0</span> pendaftar dipilih</p>
+          <select id="bulk-action" aria-label="Tindakan untuk pendaftar terpilih">
+            <option value="">Pilih tindakan...</option>
+            <option value="selection" data-bulk-permission="edit">Tetapkan Kelulusan Massal</option>
+            <option value="verify" data-bulk-permission="edit">Verifikasi Berkas Massal</option>
+            <option value="class" data-bulk-permission="edit">Plotting Kelas Massal</option>
+            <option value="export" data-bulk-permission="view">Ekspor Data Terpilih</option>
+            <option value="delete" data-bulk-permission="delete">Hapus Terpilih</option>
+          </select>
+          <button id="run-bulk-action" type="button" disabled>Jalankan Tindakan</button>
+          <button id="clear-bulk-selection" class="secondary" type="button">Batal Pilihan</button>
+        </div>
         <p id="applications-status" class="status-line" role="status"></p>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>No. Pendaftaran</th><th>Foto</th><th>Nama Calon Siswa</th><th>Gelombang</th><th>Jalur</th><th>Verifikasi Berkas</th><th>Hasil Seleksi</th><th>Daftar Ulang</th><th>Siswa Resmi</th><th>Aksi</th></tr>
+              <tr><th><input id="select-all-applications" class="bulk-select-checkbox" type="checkbox" aria-label="Pilih semua pendaftar yang tampil"></th><th>No. Pendaftaran</th><th>Foto</th><th>Nama Calon Siswa</th><th>Gelombang</th><th>Jalur</th><th>Kelas</th><th>Verifikasi Berkas</th><th>Hasil Seleksi</th><th>Daftar Ulang</th><th>Siswa Resmi</th><th>Aksi</th></tr>
             </thead>
             <tbody id="applications-body"></tbody>
           </table>
@@ -459,7 +513,6 @@
                 <p id="brochure-image-empty">Brosur belum diunggah. Area beranda akan menampilkan placeholder.</p>
               </div>
             </div>
-            <div data-master-section="form"><label for="academic-year">Tahun ajaran</label><input id="academic-year" placeholder="2027/2028" pattern="[0-9]{4}/[0-9]{4}" required></div>
             <div data-master-section="form"><label for="contact-label">Nama Contact Person</label><input id="contact-label" maxlength="60" required></div>
             <div class="wide" data-master-section="form"><label for="contact-url">Tautan Contact Person</label><input id="contact-url" type="url" required></div>
             <div class="wide" data-master-section="form">
@@ -489,6 +542,42 @@
               <p>Pengaturan berlaku pada formulir baru; dokumen pendaftar lama tetap tersimpan.</p>
               <div id="document-list"></div>
               <button id="add-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen</button>
+            </div>
+            <h2 class="wide" id="master-academic-year" data-master-section="academicYear">Tahun Pelajaran</h2>
+            <div class="wide" data-master-section="academicYear">
+              <label for="academic-year">Tahun pelajaran aktif</label>
+              <input id="academic-year" placeholder="2027/2028" pattern="[0-9]{4}/[0-9]{4}" required>
+              <p class="helper">Tahun ini digunakan pada informasi formulir, portal, dan nomor pendaftaran baru.</p>
+            </div>
+            <h2 class="wide" id="master-programs" data-master-section="programs">Program Studi</h2>
+            <div class="wide master-group" data-master-section="programs">
+              <p>Daftar ini langsung menjadi pilihan Program Studi pada formulir pendaftaran dan validasi data siswa.</p>
+              <div id="programs-list"></div>
+              <button id="add-program-button" class="secondary" type="button" style="margin-top:10px">Tambah Program Studi</button>
+            </div>
+            <h2 class="wide" id="master-classes" data-master-section="classes">Kelas</h2>
+            <div class="wide master-group" data-master-section="classes">
+              <p>Daftarkan kelas yang dapat dipilih untuk siswa berstatus Diterima/Lulus. Siswa yang belum lulus tidak dapat ditetapkan ke kelas.</p>
+              <div id="classes-list"></div>
+              <button id="add-class-button" class="secondary" type="button" style="margin-top:10px">Tambah Kelas</button>
+            </div>
+            <h2 class="wide" id="master-whatsapp" data-master-section="whatsapp">WhatsApp Gateway</h2>
+            <div class="wide master-group" data-master-section="whatsapp">
+              <p>Webhook menerima permintaan POST JSON. Jika token diisi, server mengirimkannya melalui header <code>Authorization: Bearer</code>. URL/token hanya dipakai server dan tidak dikirim ke halaman publik.</p>
+              <div class="settings-grid">
+                <label class="payment-check-control"><input id="whatsapp-enabled" type="checkbox"> Aktifkan notifikasi WhatsApp</label>
+                <div class="wide"><label for="whatsapp-webhook-url">URL webhook (HTTPS)</label><input id="whatsapp-webhook-url" type="url" placeholder="https://domain-anda.example/webhook" autocomplete="url"></div>
+                <div class="wide"><label for="whatsapp-webhook-token">Token webhook (opsional)</label><input id="whatsapp-webhook-token" type="password" maxlength="1000" placeholder="Kosongkan untuk mempertahankan token tersimpan" autocomplete="new-password"><p id="whatsapp-token-status" class="helper">Belum ada token tersimpan.</p></div>
+                <label class="payment-check-control"><input id="whatsapp-clear-token" type="checkbox"> Hapus token tersimpan</label>
+                <fieldset class="wide">
+                  <legend>Notifikasi otomatis</legend>
+                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="registration.created"> Pendaftaran berhasil dan data login portal (nomor pendaftaran + PIN)</label>
+                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="selection.updated"> Hasil penetapan kelulusan</label>
+                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reenrollment.instructions"> Informasi daftar ulang dan biaya untuk siswa yang diterima</label>
+                </fieldset>
+                <p class="wide">Nomor tujuan dipilih berurutan: WhatsApp calon siswa, lalu ayah, lalu ibu bila nomor sebelumnya kosong. Webhook tidak menerima notifikasi bila tidak ada nomor tujuan.</p>
+                <p class="wide">Payload berisi <code>event</code>, <code>to</code>, <code>message</code>, dan <code>data</code>. Event: <code>registration.created</code>, <code>selection.updated</code>, atau <code>reenrollment.instructions</code>. Respons HTTP selain 2xx atau kegagalan koneksi dicatat pada log server.</p>
+              </div>
             </div>
             <h2 class="wide" id="master-documents" data-master-section="documents">Dokumen Sekolah</h2>
             <div class="wide master-group" data-master-section="documents">
@@ -571,7 +660,7 @@
           </div>
           <div class="detail-page-actions">
             <button id="detail-selection-button" type="button">Penetapan Kelulusan</button>
-            <button id="detail-view-pin-button" class="secondary" type="button">Lihat PIN</button>
+            <button id="detail-class-button" type="button" class="secondary" hidden>Plotting Kelas</button>
             <button id="detail-reset-pin-button" class="reset-pin-button" type="button">Reset PIN</button>
             <button id="detail-print-button" class="secondary" type="button">Cetak Kartu</button>
           </div>
@@ -590,10 +679,11 @@
               <span id="detail-doc-status" class="status-badge pending"></span>
               <span id="detail-selection-status" class="status-badge pending"></span>
               <span id="detail-reenrollment-status" class="status-badge neutral"></span>
+              <span id="detail-class-assignment" class="detail-chip" hidden></span>
             </div>
           </div>
           <div class="detail-access">
-            <a id="detail-whatsapp" class="secondary" href="#" target="_blank" rel="noopener noreferrer" hidden>WhatsApp</a>
+            <button id="detail-whatsapp" type="button" hidden>WhatsApp</button>
           </div>
           <div class="detail-hero-actions" data-detail-edit-actions>
             <button id="detail-verify-all" class="detail-verify-all" type="button">✓ Verifikasi Semua (Data &amp; Berkas)</button>
@@ -607,6 +697,7 @@
           <section class="detail-record-card">
             <div class="detail-record-head"><h3>Data Calon Siswa</h3><span id="detail-student-status" class="status-badge pending"></span></div>
             <div id="detail-student-data" class="detail-record-grid"></div>
+            <div id="detail-student-revision-notice" class="detail-revision-response" hidden></div>
             <div class="detail-card-actions" data-detail-edit-actions>
               <button class="detail-revision" type="button" data-detail-review-all="student" data-review-status="revision">✕ Minta Revisi Data</button>
               <button class="detail-verified" type="button" data-detail-review-all="student" data-review-status="verified">✓ Terima Data</button>
@@ -621,6 +712,7 @@
               <div id="detail-mother-data" class="detail-record-grid"></div>
               <h4>WALI, PENGHASILAN &amp; DOMISILI</h4>
               <div id="detail-household-data" class="detail-record-grid"></div>
+              <div id="detail-parent-revision-notice" class="detail-revision-response" hidden></div>
               <div class="detail-card-actions" data-detail-edit-actions>
                 <button class="detail-revision" type="button" data-detail-review-all="parent" data-review-status="revision">✕ Minta Revisi Data</button>
                 <button class="detail-verified" type="button" data-detail-review-all="parent" data-review-status="verified">✓ Terima Data</button>
@@ -635,6 +727,7 @@
         <section class="detail-payment-card">
           <div class="detail-section-heading"><div><h2>Daftar Ulang &amp; Bukti Pembayaran</h2><p>Periksa konfirmasi pembayaran daftar ulang yang diunggah oleh calon peserta didik.</p></div><span id="detail-payment-status" class="status-badge neutral"></span></div>
           <div id="detail-payment-info" class="detail-status-banner"></div>
+          <div id="detail-payment-alert" class="detail-payment-alert" hidden role="status">Pendaftar telah mengunggah bukti pembayaran. Silakan periksa keabsahan transfer.</div>
           <p id="detail-payment-note" class="muted"></p>
           <p id="detail-payment-proof"></p>
           <div class="detail-payment-actions" data-detail-edit-actions>
@@ -698,6 +791,30 @@
     </div>
   </dialog>
 
+  <dialog id="verification-confirm-dialog" aria-labelledby="verification-confirm-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2 id="verification-confirm-title">Konfirmasi Verifikasi</h2><p id="verification-confirm-context"></p></div>
+      </div>
+      <p id="verification-confirm-message"></p>
+      <p id="verification-confirm-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-verification-confirm" class="secondary" type="button">Batal</button>
+        <button id="confirm-verification" class="detail-verified" type="button">Ya, Terima Data</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="whatsapp-contacts-dialog" aria-labelledby="whatsapp-contacts-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2 id="whatsapp-contacts-title">Kontak WhatsApp</h2><p id="whatsapp-contacts-context"></p></div>
+        <button id="close-whatsapp-contacts" class="secondary" type="button">Tutup</button>
+      </div>
+      <ul id="whatsapp-contacts-list" class="whatsapp-contact-list"></ul>
+    </div>
+  </dialog>
+
   <dialog id="delete-confirm-dialog" aria-labelledby="delete-confirm-title">
     <div class="dialog-content">
       <div class="dialog-heading">
@@ -711,6 +828,57 @@
       <div class="dialog-actions">
         <button id="cancel-delete-applicant" class="secondary" type="button">Batal</button>
         <button id="confirm-delete-applicant" type="button" style="background:#b42318">Ya, Hapus</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="bulk-selection-dialog" aria-labelledby="bulk-selection-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2 id="bulk-selection-title">Tetapkan Kelulusan Massal</h2><p id="bulk-selection-context"></p></div>
+      </div>
+      <label for="bulk-selection-decision">Keputusan kelulusan *</label>
+      <select id="bulk-selection-decision">
+        <option>Menunggu Pengumuman</option><option>Diterima / Lulus</option><option>Cadangan</option><option>Tidak Diterima</option>
+      </select>
+      <label for="bulk-selection-score">Nilai seleksi (opsional)</label>
+      <input id="bulk-selection-score" type="number" min="0" max="1000" step="0.01">
+      <label for="bulk-selection-note">Catatan hasil seleksi (opsional)</label>
+      <textarea id="bulk-selection-note" rows="2" maxlength="1000"></textarea>
+      <p id="bulk-selection-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-bulk-selection" class="secondary" type="button">Batal</button>
+        <button id="save-bulk-selection" type="button">Terapkan Kelulusan</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="bulk-confirm-dialog" aria-labelledby="bulk-confirm-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2 id="bulk-confirm-title">Konfirmasi Tindakan Massal</h2><p id="bulk-confirm-context"></p></div>
+      </div>
+      <p id="bulk-confirm-message"></p>
+      <p id="bulk-confirm-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-bulk-confirm" class="secondary" type="button">Batal</button>
+        <button id="confirm-bulk-action" type="button">Konfirmasi</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="class-assignment-dialog" aria-labelledby="class-assignment-title">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2 id="class-assignment-title">Plotting Kelas</h2><p id="class-assignment-context"></p></div>
+      </div>
+      <label for="class-assignment-select">Pilih kelas *</label>
+      <select id="class-assignment-select" required></select>
+      <p class="helper">Penetapan kelas hanya tersedia bagi siswa yang dinyatakan Diterima/Lulus.</p>
+      <p id="class-assignment-status" class="status-line" role="status"></p>
+      <div class="dialog-actions">
+        <button id="cancel-class-assignment" class="secondary" type="button">Batal</button>
+        <button id="save-class-assignment" type="button">Kirim</button>
       </div>
     </div>
   </dialog>
@@ -843,7 +1011,12 @@
     const editDialog = document.getElementById('edit-dialog');
     const reviewDialog = document.getElementById('review-dialog');
     const deleteConfirmDialog = document.getElementById('delete-confirm-dialog');
+    const bulkSelectionDialog = document.getElementById('bulk-selection-dialog');
+    const bulkConfirmDialog = document.getElementById('bulk-confirm-dialog');
+    const classAssignmentDialog = document.getElementById('class-assignment-dialog');
     const revisionNoteDialog = document.getElementById('revision-note-dialog');
+    const verificationConfirmDialog = document.getElementById('verification-confirm-dialog');
+    const whatsappContactsDialog = document.getElementById('whatsapp-contacts-dialog');
     const resetPinConfirmDialog = document.getElementById('reset-pin-confirm-dialog');
     const portalPinDialog = document.getElementById('portal-pin-dialog');
     const profileDialog = document.getElementById('profile-dialog');
@@ -885,6 +1058,7 @@
     ];
     let siteConfig = null;
     let applicants = [];
+    let selectedApplicantNumbers = new Set();
     let editingRegistrationNumber = '';
     let currentUser = null;
     let rolePermissionsConfig = null;
@@ -894,7 +1068,11 @@
     let adminReviewConfig = null;
     let currentDetailRegistrationNumber = '';
     let deletingApplicant = null;
+    let pendingBulkAction = '';
+    let classAssignmentTargets = [];
+    let classAssignmentMode = 'single';
     let pendingRevisionReview = null;
+    let pendingVerification = null;
     let issuedPortalPin = '';
     let issuedPinRegistrationNumber = '';
 
@@ -927,6 +1105,7 @@
 
     function showLogin() {
       currentUser = null;
+      selectedApplicantNumbers.clear();
       issuedPortalPin = '';
       issuedPinRegistrationNumber = '';
       closeProfileMenu();
@@ -1001,6 +1180,10 @@
     };
     const adminMasterSlugs = {
       form: 'form-pendaftaran',
+      academicYear: 'tahun-pelajaran',
+      programs: 'program-studi',
+      classes: 'kelas',
+      whatsapp: 'wa-gateway',
       waves: 'gelombang-pendaftaran',
       paths: 'jalur-pendaftaran',
       timeline: 'timeline-beranda',
@@ -1041,7 +1224,8 @@
       document.querySelectorAll('[data-permission-action]').forEach(function (element) {
         element.hidden = !canAdmin(element.dataset.permissionMenu || 'applications', element.dataset.permissionAction);
       });
-      const masterMenus = ['form', 'waves', 'paths', 'timeline', 'payment', 'documents'];
+      updateBulkActionPermissions();
+      const masterMenus = ['form', 'academicYear', 'programs', 'classes', 'whatsapp', 'waves', 'paths', 'timeline', 'payment', 'documents'];
       const masterNav = document.querySelector('[data-master-nav]');
       masterNav.hidden = !masterMenus.some(function (menu) { return canAdmin(menu, 'view'); });
       updateProfileUI();
@@ -1160,6 +1344,72 @@
         label.textContent = item.label;
         column.append(wrap, label);
         chart.appendChild(column);
+      });
+    }
+
+    function renderProgramRows(items) {
+      const list = document.getElementById('programs-list');
+      list.replaceChildren();
+      (items || []).forEach(function (item) {
+        const row = document.createElement('div');
+        row.className = 'timeline-admin-row';
+        row.dataset.program = 'true';
+        const name = document.createElement('input');
+        name.dataset.programName = 'true';
+        name.maxLength = 120;
+        name.required = true;
+        name.value = item;
+        name.setAttribute('aria-label', 'Nama program studi');
+        const remove = document.createElement('button');
+        remove.className = 'secondary';
+        remove.type = 'button';
+        remove.textContent = 'Hapus';
+        remove.addEventListener('click', function () {
+          if (list.children.length <= 1) {
+            setStatus('settings-status', 'Minimal harus tersedia satu program studi.', 'error');
+            return;
+          }
+          row.remove();
+        });
+        row.append(makeLabeledControl('Nama program studi', name), remove);
+        list.appendChild(row);
+      });
+    }
+
+    function getProgramRows() {
+      return Array.from(document.querySelectorAll('[data-program]')).map(function (row) {
+        return row.querySelector('[data-program-name]').value.trim();
+      });
+    }
+
+    function renderClassRows(items) {
+      const list = document.getElementById('classes-list');
+      list.replaceChildren();
+      (items || []).forEach(function (item) {
+        const row = document.createElement('div');
+        row.className = 'timeline-admin-row';
+        row.dataset.classRow = 'true';
+        const name = document.createElement('input');
+        name.dataset.className = 'true';
+        name.maxLength = 60;
+        name.required = true;
+        name.value = item;
+        name.setAttribute('aria-label', 'Nama kelas');
+        const remove = document.createElement('button');
+        remove.className = 'secondary';
+        remove.type = 'button';
+        remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.dataset.permissionMenu = 'classes';
+        remove.addEventListener('click', function () { row.remove(); });
+        row.append(makeLabeledControl('Nama kelas', name), remove);
+        list.appendChild(row);
+      });
+    }
+
+    function getClassRows() {
+      return Array.from(document.querySelectorAll('[data-class-row]')).map(function (row) {
+        return row.querySelector('[data-class-name]').value.trim();
       });
     }
 
@@ -1722,16 +1972,29 @@
 
     function showConfig(config) {
       siteConfig = config;
-      document.getElementById('page-title').value = config.pageTitle;
-      document.getElementById('academic-year').value = config.academicYear;
-      document.getElementById('contact-label').value = config.contactLabel;
-      document.getElementById('contact-url').value = config.contactUrl;
+      document.getElementById('page-title').value = config.pageTitle || '';
+      document.getElementById('academic-year').value = config.academicYear || '';
+      document.getElementById('contact-label').value = config.contactLabel || '';
+      document.getElementById('contact-url').value = config.contactUrl || '';
       renderTimelineRows(config.timelineEvents || []);
       renderWaveRows(config.registrationWaves || []);
       renderRegistrationPathsAdmin(config.registrationPaths || []);
       renderFormFieldRows(config.formFields || []);
       renderDocumentRows(config.documentRequirements || []);
       renderSchoolDocumentRows(config.schoolDocuments || []);
+      renderProgramRows(config.programs || programs);
+      renderClassRows(config.classes || []);
+      const whatsapp = config.whatsappGateway || {};
+      document.getElementById('whatsapp-enabled').checked = whatsapp.enabled === true;
+      document.getElementById('whatsapp-webhook-url').value = whatsapp.webhookUrl || '';
+      document.getElementById('whatsapp-webhook-token').value = '';
+      document.getElementById('whatsapp-token-status').textContent = whatsapp.tokenConfigured
+        ? 'Token sudah tersimpan. Kosongkan kolom untuk mempertahankannya.'
+        : 'Belum ada token tersimpan.';
+      document.getElementById('whatsapp-clear-token').checked = false;
+      document.querySelectorAll('[data-whatsapp-event]').forEach(function (checkbox) {
+        checkbox.checked = (whatsapp.events || []).includes(checkbox.dataset.whatsappEvent);
+      });
       const payment = config.paymentSettings || {};
       document.getElementById('bank-enabled').checked = payment.bankEnabled !== false;
       document.getElementById('bank-name').value = payment.bankName || '';
@@ -1768,6 +2031,10 @@
 
     function renderApplications(data) {
       applicants = data.applicants || [];
+      const currentRegistrations = new Set(applicants.map(function (applicant) { return applicant.registration_number; }));
+      selectedApplicantNumbers.forEach(function (registrationNumber) {
+        if (!currentRegistrations.has(registrationNumber)) selectedApplicantNumbers.delete(registrationNumber);
+      });
       currentMonthly = data.monthly || [];
       adminReviewConfig = data.reviewConfig || null;
       const readOnly = currentUser.role === 'viewer';
@@ -1785,15 +2052,25 @@
       applicationBody.replaceChildren();
       if (!applicants.length) {
         setStatus('applications-status', 'Belum ada data pendaftar.', '');
+        filterApplications();
         return;
       }
       setStatus('applications-status', '', '');
       applicants.forEach(function (applicant) {
         const row = document.createElement('tr');
         row.dataset.search = [
-          applicant.registration_number, applicant.student_name, applicant.nisn || '', applicant.wave, applicant.major
+          applicant.registration_number, applicant.student_name, applicant.nisn || '', applicant.wave, applicant.major,
+          applicant.class_assignment || ''
         ].join(' ').toLowerCase();
         row.dataset.documentStatus = applicant.document_status;
+        const selectionCell = document.createElement('td');
+        const selectApplicant = document.createElement('input');
+        selectApplicant.className = 'bulk-select-checkbox';
+        selectApplicant.type = 'checkbox';
+        selectApplicant.dataset.selectApplicant = applicant.registration_number;
+        selectApplicant.checked = selectedApplicantNumbers.has(applicant.registration_number);
+        selectApplicant.setAttribute('aria-label', 'Pilih ' + applicant.student_name);
+        selectionCell.appendChild(selectApplicant);
         const registrationNumber = document.createElement('td');
         const regNumber = document.createElement('strong');
         regNumber.textContent = applicant.registration_number;
@@ -1833,29 +2110,35 @@
         wave.textContent = applicant.wave;
         const path = document.createElement('td');
         path.textContent = applicant.registration_path || '—';
+        const classCell = document.createElement('td');
+        classCell.textContent = applicant.class_assignment || 'Belum ditetapkan';
         const documentStatus = makeStatusBadge(applicant.document_status, statusTone(applicant.document_status));
         const selectionLabel = applicant.selection_status === 'Diterima' ? 'Diterima / Lulus' : applicant.selection_status;
         const selectionStatus = makeStatusBadge(selectionLabel, statusTone(selectionLabel));
-        const reenrollmentLabel = applicant.reenrollment_status +
-          (applicant.payment_status && applicant.payment_status !== applicant.reenrollment_status ? ' · ' + applicant.payment_status : '');
-        const reenrollmentStatus = makeStatusBadge(reenrollmentLabel, statusTone(reenrollmentLabel));
+        const enrollment = enrollmentTableState(applicant);
+        const reenrollmentStatus = makeStatusBadge(enrollment.label, statusTone(enrollment.label));
         const officialStatus = document.createElement('span');
-        const officiallyEnrolled = applicant.reenrollment_status === 'Daftar Ulang Selesai';
-        officialStatus.className = 'official-status ' + (officiallyEnrolled ? 'yes' : 'no');
-        officialStatus.textContent = officiallyEnrolled ? 'Resmi' : 'Belum resmi';
+        officialStatus.className = 'official-status ' + (enrollment.official ? 'yes' : 'no');
+        officialStatus.textContent = enrollment.official ? 'Resmi' : 'Belum resmi';
         const actions = document.createElement('td');
         actions.className = 'row-actions';
         if (readOnly) {
           actions.textContent = 'Hanya lihat';
         } else {
-          actions.append(
-            createIconAction('Lihat dan verifikasi', '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/><path d="m17 18 1.5 1.5L22 16"/>', function () {
-              showApplicantDetail(applicant);
-            }, true),
-            createIconAction('Cetak kartu', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
-              printApplicantCard(applicant);
-            })
-          );
+          actions.appendChild(createIconAction('Lihat dan verifikasi', '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/><path d="m17 18 1.5 1.5L22 16"/>', function () {
+            showApplicantDetail(applicant);
+          }, true));
+          const selectionAction = createIconAction('Penetapan kelulusan', '<path d="m5 12 4 4L19 6"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/>', function () {
+            reviewingApplicant = applicant;
+            openReviewDialog(applicant, 'selection');
+          });
+          selectionAction.classList.add('action-selection');
+          actions.appendChild(selectionAction);
+          const printAction = createIconAction('Cetak kartu', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
+            printApplicantCard(applicant);
+          });
+          printAction.classList.add('action-print');
+          actions.appendChild(printAction);
           if (canAdmin('applications', 'delete')) {
             actions.append(createIconAction('Hapus pendaftar', '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/>', function () {
               openDeleteConfirmation(applicant);
@@ -1863,7 +2146,8 @@
             actions.lastElementChild.classList.add('action-danger');
           }
         }
-        [registrationNumber, photoCell, applicantCell, wave, path, makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), makeCell(officialStatus), actions]
+        [selectionCell, registrationNumber, photoCell, applicantCell, wave, path, classCell,
+          makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), makeCell(officialStatus), actions]
           .forEach(function (cell) { row.appendChild(cell); });
         applicationBody.appendChild(row);
       });
@@ -1874,6 +2158,7 @@
         });
         if (detailApplicant) renderApplicantDetail(detailApplicant);
       }
+      updateBulkControls();
     }
 
     function makeCell(content) {
@@ -1882,12 +2167,272 @@
       return cell;
     }
 
+    function selectedApplicants() {
+      return applicants.filter(function (applicant) {
+        return selectedApplicantNumbers.has(applicant.registration_number);
+      });
+    }
+
+    function updateBulkActionPermissions() {
+      const select = document.getElementById('bulk-action');
+      select.querySelectorAll('[data-bulk-permission]').forEach(function (option) {
+        option.hidden = !canAdmin('applications', option.dataset.bulkPermission);
+      });
+      if (select.selectedOptions.length && select.selectedOptions[0].hidden) select.value = '';
+      updateBulkControls();
+    }
+
+    function updateBulkControls() {
+      const toolbar = document.getElementById('bulk-actions-toolbar');
+      const count = selectedApplicantNumbers.size;
+      toolbar.hidden = count === 0;
+      document.getElementById('bulk-selected-count').textContent = String(count);
+      const action = document.getElementById('bulk-action');
+      const runButton = document.getElementById('run-bulk-action');
+      action.disabled = count === 0;
+      runButton.disabled = count === 0 || !action.value;
+      const visibleCheckboxes = Array.from(applicationBody.querySelectorAll('[data-select-applicant]'))
+        .filter(function (checkbox) { return !checkbox.closest('tr').hidden; });
+      const selectAll = document.getElementById('select-all-applications');
+      const selectedVisible = visibleCheckboxes.filter(function (checkbox) { return checkbox.checked; }).length;
+      selectAll.disabled = visibleCheckboxes.length === 0;
+      selectAll.checked = visibleCheckboxes.length > 0 && selectedVisible === visibleCheckboxes.length;
+      selectAll.indeterminate = selectedVisible > 0 && selectedVisible < visibleCheckboxes.length;
+    }
+
+    function clearBulkSelection() {
+      selectedApplicantNumbers.clear();
+      applicationBody.querySelectorAll('[data-select-applicant]').forEach(function (checkbox) {
+        checkbox.checked = false;
+      });
+      updateBulkControls();
+    }
+
+    function exportSelectedApplicants() {
+      const selected = selectedApplicants();
+      if (!selected.length) return;
+      const columns = [
+        ['registration_number', 'Nomor Pendaftaran'], ['student_name', 'Nama Siswa'], ['nisn', 'NISN'],
+        ['wave', 'Gelombang'], ['registration_path', 'Jalur'], ['major', 'Program Studi'],
+        ['class_assignment', 'Kelas'], ['document_status', 'Verifikasi Berkas'],
+        ['selection_status', 'Hasil Seleksi'], ['payment_status', 'Status Pembayaran'],
+        ['reenrollment_status', 'Daftar Ulang']
+      ];
+      function csvCell(value) {
+        let text = String(value == null ? '' : value);
+        if (/^[=+\-@]/.test(text)) text = "'" + text;
+        return '"' + text.replace(/"/g, '""') + '"';
+      }
+      const csv = '\uFEFF' + [columns.map(function (column) { return csvCell(column[1]); }).join(',')]
+        .concat(selected.map(function (applicant) {
+          return columns.map(function (column) { return csvCell(applicant[column[0]]); }).join(',');
+        })).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'pendaftar-terpilih.csv';
+      link.click();
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function openBulkConfirmation(action) {
+      const selected = selectedApplicants();
+      if (!selected.length) return;
+      pendingBulkAction = action;
+      const title = document.getElementById('bulk-confirm-title');
+      const message = document.getElementById('bulk-confirm-message');
+      document.getElementById('bulk-confirm-context').textContent = selected.length + ' pendaftar dipilih';
+      if (action === 'delete') {
+        title.textContent = 'Hapus Pendaftar Terpilih?';
+        message.textContent = 'Semua pendaftar terpilih akan dipindahkan ke arsip dan sesi portal mereka akan diakhiri.';
+      } else {
+        title.textContent = 'Verifikasi Berkas Massal';
+        message.textContent = 'Verifikasi seluruh data dan dokumen yang tersedia untuk ' + selected.length +
+          ' pendaftar terpilih. Semua data wajib harus lengkap dan semua dokumen wajib harus tersedia.';
+      }
+      const confirmButton = document.getElementById('confirm-bulk-action');
+      confirmButton.textContent = action === 'delete' ? 'Ya, Hapus Terpilih' : 'Ya, Verifikasi';
+      confirmButton.style.background = action === 'delete' ? '#b42318' : '#15925b';
+      setStatus('bulk-confirm-status', '', '');
+      bulkConfirmDialog.showModal();
+    }
+
+    function runBulkAction() {
+      const action = document.getElementById('bulk-action').value;
+      if (!selectedApplicants().length) return;
+      if (action === 'selection') {
+        document.getElementById('bulk-selection-context').textContent =
+          selectedApplicantNumbers.size + ' pendaftar akan menerima keputusan kelulusan yang sama.';
+        document.getElementById('bulk-selection-score').value = '';
+        document.getElementById('bulk-selection-note').value = '';
+        setStatus('bulk-selection-status', '', '');
+        bulkSelectionDialog.showModal();
+      } else if (action === 'verify' || action === 'delete') {
+        openBulkConfirmation(action);
+      } else if (action === 'export') {
+        exportSelectedApplicants();
+      } else if (action === 'class') {
+        openClassAssignment(selectedApplicants(), true);
+      }
+    }
+
+    async function saveBulkSelection() {
+      const button = document.getElementById('save-bulk-selection');
+      button.disabled = true;
+      setStatus('bulk-selection-status', 'Menyimpan keputusan kelulusan...', '');
+      try {
+        const result = await api('/api/admin/applications/bulk/selection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            registrationNumbers: selectedApplicants().map(function (applicant) { return applicant.registration_number; }),
+            selectionStatus: document.getElementById('bulk-selection-decision').value,
+            selectionScore: document.getElementById('bulk-selection-score').value,
+            selectionNote: document.getElementById('bulk-selection-note').value
+          })
+        });
+        bulkSelectionDialog.close();
+        clearBulkSelection();
+        if (!await loadApplications()) throw new Error('Keputusan tersimpan, tetapi daftar pendaftar gagal dimuat ulang.');
+        setStatus('applications-status', result.count + ' pendaftar berhasil diperbarui.', 'success');
+      } catch (error) {
+        setStatus('bulk-selection-status', error.message || 'Penetapan kelulusan massal gagal.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function confirmBulkAction() {
+      if (!pendingBulkAction) return;
+      const action = pendingBulkAction;
+      const button = document.getElementById('confirm-bulk-action');
+      const cancel = document.getElementById('cancel-bulk-confirm');
+      button.disabled = true;
+      cancel.disabled = true;
+      setStatus('bulk-confirm-status', action === 'delete' ? 'Mengarsipkan pendaftar terpilih...' : 'Memverifikasi data pendaftar...', '');
+      try {
+        const result = await api('/api/admin/applications/bulk/' + (action === 'delete' ? 'delete' : 'verify'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            registrationNumbers: selectedApplicants().map(function (applicant) { return applicant.registration_number; })
+          })
+        });
+        bulkConfirmDialog.close();
+        pendingBulkAction = '';
+        clearBulkSelection();
+        if (!await loadApplications()) throw new Error('Tindakan tersimpan, tetapi daftar pendaftar gagal dimuat ulang.');
+        setStatus('applications-status', action === 'delete'
+          ? result.count + ' pendaftar berhasil dipindahkan ke arsip.'
+          : result.count + ' pendaftar berhasil diverifikasi.', 'success');
+      } catch (error) {
+        setStatus('bulk-confirm-status', error.message || 'Tindakan massal gagal.', 'error');
+      } finally {
+        button.disabled = false;
+        cancel.disabled = false;
+      }
+    }
+
+    function openClassAssignment(targets, bulk) {
+      const selected = (targets || []).filter(Boolean);
+      if (!selected.length) return;
+      const classes = (adminReviewConfig && adminReviewConfig.classes) || (siteConfig && siteConfig.classes) || [];
+      if (!classes.length) {
+        setStatus('applications-status', 'Tambahkan daftar kelas terlebih dahulu di Master Data → Kelas.', 'error');
+        return;
+      }
+      const ineligible = selected.find(function (applicant) {
+        return !['Diterima', 'Diterima / Lulus'].includes(applicant.selection_status);
+      });
+      if (ineligible) {
+        setStatus('applications-status', ineligible.student_name + ' belum dinyatakan lulus dan belum dapat ditetapkan kelas.', 'error');
+        return;
+      }
+      classAssignmentTargets = selected;
+      classAssignmentMode = bulk ? 'bulk' : 'single';
+      document.getElementById('class-assignment-title').textContent =
+        bulk ? 'Plotting Kelas Calon Siswa Terpilih' : 'Penetapan Kelas Siswa';
+      document.getElementById('class-assignment-context').textContent = bulk
+        ? selected.length + ' siswa lulus akan ditempatkan pada kelas yang dipilih.'
+        : selected[0].student_name + ' · ' + selected[0].registration_number;
+      const select = document.getElementById('class-assignment-select');
+      select.replaceChildren();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = bulk ? 'Pilih kelas...' : 'Belum ditetapkan';
+      select.appendChild(placeholder);
+      classes.forEach(function (className) {
+        const option = document.createElement('option');
+        option.value = className;
+        option.textContent = className;
+        select.appendChild(option);
+      });
+      select.required = bulk;
+      select.value = bulk ? '' : selected[0].class_assignment || '';
+      setStatus('class-assignment-status', '', '');
+      classAssignmentDialog.showModal();
+    }
+
+    async function saveClassAssignment() {
+      if (!classAssignmentTargets.length) return;
+      const className = document.getElementById('class-assignment-select').value;
+      if (classAssignmentMode === 'bulk' && !className) {
+        setStatus('class-assignment-status', 'Pilih kelas untuk semua siswa terpilih.', 'error');
+        return;
+      }
+      const button = document.getElementById('save-class-assignment');
+      button.disabled = true;
+      setStatus('class-assignment-status', 'Menyimpan penetapan kelas...', '');
+      try {
+        const isBulk = classAssignmentMode === 'bulk';
+        const target = classAssignmentTargets[0];
+        const result = await api(isBulk
+          ? '/api/admin/applications/bulk/class'
+          : '/api/admin/applications/' + encodeURIComponent(target.registration_number) + '/class', {
+          method: isBulk ? 'POST' : 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(isBulk
+            ? {
+              registrationNumbers: classAssignmentTargets.map(function (applicant) { return applicant.registration_number; }),
+              className: className
+            }
+            : { className: className })
+        });
+        classAssignmentDialog.close();
+        if (isBulk) clearBulkSelection();
+        classAssignmentTargets = [];
+        if (!await loadApplications()) throw new Error('Kelas tersimpan, tetapi daftar pendaftar gagal dimuat ulang.');
+        setStatus(isBulk ? 'applications-status' : 'detail-status', isBulk
+          ? result.count + ' siswa berhasil ditempatkan di kelas ' + result.className + '.'
+          : result.classAssignment
+            ? 'Siswa berhasil ditetapkan ke kelas ' + result.classAssignment + '.'
+            : 'Penetapan kelas siswa berhasil dihapus.', 'success');
+      } catch (error) {
+        setStatus('class-assignment-status', error.message || 'Penetapan kelas gagal.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
     function statusTone(status) {
       const value = String(status || '').toLowerCase();
       if (value.includes('perlu perbaikan') || value.includes('tidak diterima')) return 'revision';
       if (value.includes('terverifikasi') || value.includes('selesai') || value.includes('diterima')) return 'verified';
       if (value.includes('menunggu')) return 'pending';
       return 'neutral';
+    }
+
+    function enrollmentTableState(applicant) {
+      const accepted = ['Diterima', 'Diterima / Lulus'].includes(applicant.selection_status);
+      const complete = accepted &&
+        applicant.payment_status === 'Pembayaran Terverifikasi' &&
+        applicant.reenrollment_status === 'Daftar Ulang Selesai';
+      if (complete) return { label: 'Daftar Ulang Selesai', official: true };
+      if (!accepted) return { label: 'Belum Daftar Ulang', official: false };
+      if (['Menunggu Verifikasi Pembayaran', 'Perlu Perbaikan'].includes(applicant.payment_status)) {
+        return { label: applicant.payment_status, official: false };
+      }
+      return { label: 'Belum Daftar Ulang', official: false };
     }
 
     function makeStatusBadge(status, tone) {
@@ -1920,17 +2465,96 @@
 
     function summarizeFieldReviews(fields, applicant) {
       const applicable = fields.filter(function (field) {
-        return Boolean(applicantValue(applicant, field));
+        return field.required || Boolean(applicantValue(applicant, field));
       });
       if (!applicable.length) return 'Belum ada data untuk diverifikasi';
       const reviews = applicant.field_reviews || {};
       if (applicable.some(function (field) { return reviews[field.key] && reviews[field.key].status === 'revision'; })) {
         return 'Perlu Perbaikan';
       }
+      if (applicable.some(function (field) { return field.required && !applicantValue(applicant, field); })) {
+        return 'Data wajib belum lengkap';
+      }
       if (applicable.every(function (field) { return reviews[field.key] && reviews[field.key].status === 'verified'; })) {
         return 'Terverifikasi';
       }
       return 'Menunggu Verifikasi';
+    }
+
+    function renderRevisionNotice(container, items, reviews, waitingMessage) {
+      if (!items.length) {
+        container.replaceChildren();
+        container.hidden = true;
+        return;
+      }
+      const notes = Array.from(new Set(items.map(function (item) {
+        return reviews[item.key] && reviews[item.key].note || '';
+      }).filter(Boolean)));
+      const noteBox = document.createElement('div');
+      noteBox.className = 'detail-revision-note';
+      const heading = document.createElement('strong');
+      heading.textContent = 'CATATAN PENOLAKAN / REVISI:';
+      const note = document.createElement('p');
+      note.textContent = notes.length ? notes.join('\n') : 'Mohon perbaiki data atau berkas sesuai keterangan panitia.';
+      noteBox.append(heading, note);
+      const waiting = document.createElement('p');
+      waiting.className = 'detail-revision-wait';
+      waiting.textContent = waitingMessage;
+      container.replaceChildren(noteBox, waiting);
+      container.hidden = false;
+    }
+
+    function normalizeWhatsAppLink(phone) {
+      const digits = String(phone || '').replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.startsWith('0')) return '62' + digits.slice(1);
+      if (digits.startsWith('8')) return '62' + digits;
+      return digits;
+    }
+
+    function renderWhatsAppContacts(applicant) {
+      const list = document.getElementById('whatsapp-contacts-list');
+      list.replaceChildren();
+      const contacts = [
+        { label: 'WhatsApp Siswa', phone: applicant.student_phone },
+        { label: 'WhatsApp Ayah', phone: applicant.father_phone },
+        { label: 'WhatsApp Ibu', phone: applicant.mother_phone }
+      ].map(function (contact) {
+        return Object.assign({}, contact, { linkPhone: normalizeWhatsAppLink(contact.phone) });
+      }).filter(function (contact) { return contact.linkPhone; });
+      if (!contacts.length) {
+        const empty = document.createElement('li');
+        empty.className = 'detail-status-banner';
+        empty.textContent = 'Tidak ada nomor WhatsApp yang tercatat.';
+        list.appendChild(empty);
+        return;
+      }
+      contacts.forEach(function (contact) {
+        const item = document.createElement('li');
+        item.className = 'whatsapp-contact-item';
+        const description = document.createElement('div');
+        const label = document.createElement('strong');
+        label.textContent = contact.label;
+        const phone = document.createElement('span');
+        phone.textContent = String(contact.phone || '');
+        description.append(label, phone);
+        const link = document.createElement('a');
+        link.className = 'whatsapp-contact-link';
+        link.href = 'https://wa.me/' + contact.linkPhone;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Hubungi';
+        item.append(description, link);
+        list.appendChild(item);
+      });
+    }
+
+    function openWhatsAppContacts() {
+      if (!reviewingApplicant) return;
+      document.getElementById('whatsapp-contacts-context').textContent =
+        reviewingApplicant.student_name + ' · ' + reviewingApplicant.registration_number;
+      renderWhatsAppContacts(reviewingApplicant);
+      whatsappContactsDialog.showModal();
     }
 
     function renderApplicantDetail(applicant) {
@@ -1961,19 +2585,20 @@
       document.getElementById('detail-major').textContent = applicant.major || 'Program belum ditentukan';
       document.getElementById('detail-school').textContent = 'Asal: ' + (applicant.school_origin || '—');
       document.getElementById('detail-registration-number').textContent = applicant.registration_number || '';
+      const classAssignment = document.getElementById('detail-class-assignment');
+      classAssignment.hidden = !applicant.class_assignment;
+      classAssignment.textContent = applicant.class_assignment ? 'Kelas: ' + applicant.class_assignment : '';
+      const passed = ['Diterima', 'Diterima / Lulus'].includes(applicant.selection_status);
+      document.getElementById('detail-class-button').hidden =
+        readOnly || !passed || !((adminReviewConfig && adminReviewConfig.classes) || []).length;
       setDetailStatusBadge('detail-doc-status', applicant.document_status);
       setDetailStatusBadge('detail-selection-status', applicant.selection_status === 'Diterima'
         ? 'Diterima / Lulus' : applicant.selection_status);
-      setDetailStatusBadge('detail-reenrollment-status', applicant.reenrollment_status || 'Belum Daftar Ulang');
-      const phone = String(applicant.student_phone || '').replace(/\D/g, '');
+      setDetailStatusBadge('detail-reenrollment-status', enrollmentTableState(applicant).label);
       const wa = document.getElementById('detail-whatsapp');
-      if (phone) {
-        wa.href = 'https://wa.me/' + (phone.charAt(0) === '0' ? '62' + phone.slice(1) : phone.charAt(0) === '8' ? '62' + phone : phone);
-        wa.hidden = false;
-      } else {
-        wa.removeAttribute('href');
-        wa.hidden = true;
-      }
+      const hasWhatsAppContact = [applicant.student_phone, applicant.father_phone, applicant.mother_phone]
+        .some(function (phone) { return Boolean(normalizeWhatsAppLink(phone)); });
+      wa.hidden = readOnly || !hasWhatsAppContact;
 
       const studentEntries = studentFields.map(function (field) {
         return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
@@ -1997,18 +2622,33 @@
       const parentReviewStatus = summarizeFieldReviews(parentFields, applicant);
       setDetailStatusBadge('detail-student-status', studentReviewStatus);
       setDetailStatusBadge('detail-parent-status', parentReviewStatus);
-      applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="verified"]').textContent =
-        studentReviewStatus === 'Terverifikasi' ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
-      applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="verified"]').textContent =
-        parentReviewStatus === 'Terverifikasi' ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
-      applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="revision"]').hidden =
-        studentReviewStatus === 'Terverifikasi';
-      applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="revision"]').hidden =
-        parentReviewStatus === 'Terverifikasi';
+      const studentVerifyButton = applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="verified"]');
+      const parentVerifyButton = applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="verified"]');
+      const studentRevisionButton = applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="revision"]');
+      const parentRevisionButton = applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="revision"]');
+      const studentRevisionFields = studentFields.filter(function (field) {
+        return reviews[field.key] && reviews[field.key].status === 'revision';
+      });
+      const parentRevisionFields = parentFields.filter(function (field) {
+        return reviews[field.key] && reviews[field.key].status === 'revision';
+      });
+      const studentRevisionNotice = document.getElementById('detail-student-revision-notice');
+      const parentRevisionNotice = document.getElementById('detail-parent-revision-notice');
+      renderRevisionNotice(studentRevisionNotice, studentRevisionFields, reviews, 'Menunggu perbaikan data dari pendaftar.');
+      renderRevisionNotice(parentRevisionNotice, parentRevisionFields, reviews, 'Menunggu perbaikan data dari pendaftar.');
+      studentVerifyButton.textContent = studentReviewStatus === 'Terverifikasi'
+        ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
+      parentVerifyButton.textContent = parentReviewStatus === 'Terverifikasi'
+        ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
+      studentVerifyButton.disabled = studentReviewStatus === 'Terverifikasi';
+      parentVerifyButton.disabled = parentReviewStatus === 'Terverifikasi';
+      studentRevisionButton.hidden = studentReviewStatus === 'Terverifikasi' || studentRevisionFields.length > 0;
+      parentRevisionButton.hidden = parentReviewStatus === 'Terverifikasi' || parentRevisionFields.length > 0;
       document.getElementById('detail-readonly-notice').hidden = !readOnly;
       document.querySelectorAll('[data-detail-edit-actions]').forEach(function (element) { element.hidden = readOnly; });
+      studentVerifyButton.parentElement.hidden = readOnly || studentRevisionFields.length > 0;
+      parentVerifyButton.parentElement.hidden = readOnly || parentRevisionFields.length > 0;
       document.getElementById('detail-selection-button').hidden = readOnly;
-      document.getElementById('detail-view-pin-button').hidden = readOnly;
       document.getElementById('detail-reset-pin-button').hidden = readOnly;
       document.getElementById('detail-print-button').hidden = readOnly;
       document.querySelector('.detail-record-layout').hidden = readOnly;
@@ -2025,6 +2665,7 @@
         const file = (applicant.files || []).find(function (item) { return item.key === config.key; });
         if (!config.required && !file) return;
         const review = reviews[config.key] || null;
+        const revisionRequested = Boolean(review && review.status === 'revision');
         const card = document.createElement('article');
         card.className = 'detail-document-card';
         const head = document.createElement('div');
@@ -2032,13 +2673,13 @@
         const title = document.createElement('h3');
         title.textContent = config.name;
         head.appendChild(title);
-        head.appendChild(makeStatusBadge(file
-          ? review && review.status === 'revision' ? 'Perlu Perbaikan'
-            : review && review.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'
-          : 'Belum Diunggah', file
-            ? review && review.status === 'revision' ? 'revision'
-              : review && review.status === 'verified' ? 'verified' : 'pending'
-            : 'revision'));
+        const documentStatus = revisionRequested ? 'Perlu Perbaikan / Ditolak'
+          : file ? review && review.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'
+            : 'Belum Diunggah';
+        const documentTone = revisionRequested ? 'revision'
+          : file ? review && review.status === 'verified' ? 'verified' : 'pending'
+            : 'revision';
+        head.appendChild(makeStatusBadge(documentStatus, documentTone));
         const fileRow = document.createElement('div');
         fileRow.className = 'detail-file-link';
         if (file) {
@@ -2052,22 +2693,30 @@
           fileRow.textContent = config.required ? 'Berkas wajib belum diunggah.' : 'Belum ada berkas.';
         }
         card.append(head, fileRow);
+        if (revisionRequested) {
+          const revisionNotice = document.createElement('div');
+          revisionNotice.className = 'detail-revision-response';
+          renderRevisionNotice(revisionNotice, [{ key: config.key }], reviews,
+            file ? 'Menunggu upload ulang dari pendaftar.' : 'Menunggu unggah berkas dari pendaftar.');
+          card.appendChild(revisionNotice);
+        }
         if (!readOnly) {
-          const actions = document.createElement('div');
-          actions.className = 'detail-document-actions';
-          const verifyButton = createDetailReviewButton(
-            review && review.status === 'verified' ? '✓ Data telah diverifikasi valid' : '✓ Terima Dokumen',
-            config.key, 'document', 'verified', 'detail-verified'
-          );
-          const revisionButton = createDetailReviewButton(
-            '✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'
-          );
-          revisionButton.hidden = Boolean(review && review.status === 'verified');
-          actions.append(
-            revisionButton,
-            verifyButton
-          );
-          card.appendChild(actions);
+          if (!revisionRequested) {
+            const actions = document.createElement('div');
+            actions.className = 'detail-document-actions';
+            const verifyButton = createDetailReviewButton(
+              !file ? 'Unggah berkas dahulu'
+                : review && review.status === 'verified' ? '✓ Data telah diverifikasi valid' : '✓ Terima Dokumen',
+              config.key, 'document', 'verified', 'detail-verified'
+            );
+            verifyButton.disabled = !file || Boolean(review && review.status === 'verified');
+            const revisionButton = createDetailReviewButton(
+              '✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'
+            );
+            revisionButton.hidden = Boolean(file && review && review.status === 'verified');
+            actions.append(revisionButton, verifyButton);
+            card.appendChild(actions);
+          }
         }
         documentList.appendChild(card);
       });
@@ -2078,11 +2727,11 @@
         documentList.appendChild(empty);
       }
       const reviewableFields = fields.filter(function (field) {
-        return applicantValue(applicant, field);
+        return field.required || applicantValue(applicant, field);
       });
+      const uploadedDocumentKeys = new Set((applicant.files || []).map(function (file) { return file.key; }));
       const reviewableDocuments = documentConfigs.filter(function (item) {
-        return (item.required || (applicant.files || []).some(function (file) { return file.key === item.key; })) &&
-          (applicant.files || []).some(function (file) { return file.key === item.key; });
+        return item.required || uploadedDocumentKeys.has(item.key);
       });
       const reviewableItems = reviewableFields.map(function (field) { return field.key; })
         .concat(reviewableDocuments.map(function (item) { return item.key; }));
@@ -2091,6 +2740,7 @@
       });
       document.getElementById('detail-verify-all').textContent = allReviewableItemsVerified
         ? '✓ Data telah diverifikasi valid' : '✓ Verifikasi Semua (Data & Berkas)';
+      document.getElementById('detail-verify-all').disabled = allReviewableItemsVerified;
 
       const paymentStatus = applicant.payment_status || applicant.reenrollment_status || 'Belum Daftar Ulang';
       setDetailStatusBadge('detail-payment-status', paymentStatus);
@@ -2101,6 +2751,8 @@
       document.getElementById('detail-payment-note').textContent = applicant.payment_note || 'Tidak ada catatan khusus dari calon siswa / pendaftar.';
       document.getElementById('detail-payment-review-note').value = applicant.payment_note || '';
       const paymentProof = (applicant.files || []).find(function (file) { return file.key === 'paymentProof'; });
+      document.getElementById('detail-payment-alert').hidden =
+        paymentStatus !== 'Menunggu Verifikasi Pembayaran' || !paymentProof;
       const proofContainer = document.getElementById('detail-payment-proof');
       proofContainer.replaceChildren();
       if (paymentProof) {
@@ -2193,10 +2845,73 @@
       });
     }
 
+    function getReviewableFields(scope) {
+      const step = scope === 'student' ? 2 : scope === 'parent' ? 3 : null;
+      return (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
+        return field.active !== false && (step === null || field.step === step) &&
+          (field.required || Boolean(applicantValue(reviewingApplicant, field)));
+      });
+    }
+
+    function getReviewableDocuments() {
+      const applicantFiles = new Set((reviewingApplicant.files || []).map(function (file) { return file.key; }));
+      return (adminReviewConfig && adminReviewConfig.documentRequirements || []).filter(function (item) {
+        return item.active !== false && (!item.wave || item.wave === reviewingApplicant.wave) &&
+          (!item.registrationPath || item.registrationPath === reviewingApplicant.registration_path) &&
+          (item.required || applicantFiles.has(item.key));
+      });
+    }
+
+    function openVerificationConfirmation(scope) {
+      if (!reviewingApplicant) return;
+      const fields = getReviewableFields(scope);
+      const missingFields = fields.filter(function (field) {
+        return field.required && !applicantValue(reviewingApplicant, field);
+      });
+      if (missingFields.length) {
+        setStatus('detail-status', 'Verifikasi dibatalkan. Lengkapi data wajib: ' +
+          missingFields.map(function (field) { return field.label; }).join(', ') + '.', 'error');
+        return;
+      }
+      const items = fields.map(function (field) { return { key: field.key, type: 'field' }; });
+      if (scope === 'all') {
+        const files = new Set((reviewingApplicant.files || []).map(function (file) { return file.key; }));
+        const documents = getReviewableDocuments();
+        const missingDocuments = documents.filter(function (item) { return item.required && !files.has(item.key); });
+        if (missingDocuments.length) {
+          setStatus('detail-status', 'Verifikasi dibatalkan. Unggah dokumen wajib terlebih dahulu: ' +
+            missingDocuments.map(function (item) { return item.name; }).join(', ') + '.', 'error');
+          return;
+        }
+        documents.forEach(function (item) {
+          if (files.has(item.key)) items.push({ key: item.key, type: 'document' });
+        });
+      }
+      if (!items.length) {
+        setStatus('detail-status', 'Belum ada data atau berkas untuk diverifikasi.', 'error');
+        return;
+      }
+      pendingVerification = { scope: scope, applicant: reviewingApplicant, items: items };
+      const all = scope === 'all';
+      document.getElementById('verification-confirm-title').textContent =
+        all ? 'Konfirmasi Verifikasi Semua' : 'Konfirmasi Terima Data';
+      document.getElementById('verification-confirm-context').textContent =
+        reviewingApplicant.student_name + ' · ' + reviewingApplicant.registration_number;
+      document.getElementById('verification-confirm-message').textContent = all
+        ? 'Verifikasi seluruh data dan dokumen yang tersedia untuk pendaftar ini?'
+        : 'Tandai semua ' + (scope === 'student' ? 'data calon siswa' : 'data orang tua / wali') +
+          ' sebagai valid?';
+      document.getElementById('confirm-verification').textContent =
+        all ? 'Ya, Verifikasi Semua' : 'Ya, Terima Data';
+      setStatus('verification-confirm-status', '', '');
+      verificationConfirmDialog.showModal();
+    }
+
     async function reviewDetailGroup(group, status) {
       const step = group === 'student' ? 2 : 3;
       const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
-        return field.active !== false && field.step === step && applicantValue(reviewingApplicant, field);
+        return field.active !== false && field.step === step &&
+          (field.required || Boolean(applicantValue(reviewingApplicant, field)));
       });
       if (!fields.length) {
         setStatus('detail-status', 'Tidak ada data terisi untuk diperiksa pada bagian ini.', 'error');
@@ -2211,18 +2926,7 @@
         );
         return;
       }
-      const button = applicantDetailPage.querySelector('[data-detail-review-all="' + group + '"][data-review-status="' + status + '"]');
-      button.disabled = true;
-      try {
-        for (const field of fields) await updateApplicantReview(reviewingApplicant, field.key, 'field', status, '');
-        await loadApplications();
-        setStatus('detail-status', status === 'verified' ? 'Data telah diverifikasi valid.' : 'Data dikembalikan untuk perbaikan.', 'success');
-      } catch (error) {
-        setStatus('detail-status', error.message || 'Status data gagal diperbarui.', 'error');
-        await loadApplications();
-      } finally {
-        button.disabled = false;
-      }
+      if (status === 'verified') openVerificationConfirmation(group);
     }
 
     function openRevisionNoteDialog(applicant, button, items, context) {
@@ -2272,29 +2976,33 @@
     }
 
     async function verifyAllApplicantData() {
-      if (!reviewingApplicant) return;
-      const button = document.getElementById('detail-verify-all');
-      const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
-        return field.active !== false && applicantValue(reviewingApplicant, field);
-      }).map(function (field) { return { key: field.key, type: 'field' }; });
-      const documents = (adminReviewConfig && adminReviewConfig.documentRequirements || []).filter(function (item) {
-        return item.active !== false && (!item.wave || item.wave === reviewingApplicant.wave) &&
-          (!item.registrationPath || item.registrationPath === reviewingApplicant.registration_path) &&
-          (item.required || (reviewingApplicant.files || []).some(function (file) { return file.key === item.key; })) &&
-          (reviewingApplicant.files || []).some(function (file) { return file.key === item.key; });
-      }).map(function (item) { return { key: item.key, type: 'document' }; });
-      const items = fields.concat(documents);
-      if (!items.length) return setStatus('detail-status', 'Belum ada data atau berkas untuk diverifikasi.', 'error');
-      button.disabled = true;
+      openVerificationConfirmation('all');
+    }
+
+    async function confirmVerification() {
+      if (!pendingVerification) return;
+      const pending = pendingVerification;
+      const confirmButton = document.getElementById('confirm-verification');
+      const cancelButton = document.getElementById('cancel-verification-confirm');
+      confirmButton.disabled = true;
+      cancelButton.disabled = true;
+      setStatus('verification-confirm-status', 'Menyimpan verifikasi...', '');
       try {
-        for (const item of items) await updateApplicantReview(reviewingApplicant, item.key, item.type, 'verified', '');
-        await loadApplications();
-        setStatus('detail-status', 'Data telah diverifikasi valid.', 'success');
+        for (const item of pending.items) {
+          await updateApplicantReview(pending.applicant, item.key, item.type, 'verified', '');
+        }
+        if (!await loadApplications()) throw new Error('Verifikasi tersimpan, tetapi tabel gagal dimuat ulang.');
+        verificationConfirmDialog.close();
+        pendingVerification = null;
+        setStatus('detail-status', pending.scope === 'all'
+          ? 'Semua data dan dokumen berhasil diverifikasi.'
+          : 'Data telah diverifikasi valid.', 'success');
       } catch (error) {
-        setStatus('detail-status', error.message || 'Verifikasi berhenti sebelum seluruh item selesai.', 'error');
+        setStatus('verification-confirm-status', error.message || 'Verifikasi gagal disimpan.', 'error');
         await loadApplications();
       } finally {
-        button.disabled = false;
+        confirmButton.disabled = false;
+        cancelButton.disabled = false;
       }
     }
 
@@ -2544,6 +3252,7 @@
         row.hidden = (query && row.dataset.search.indexOf(query) === -1) ||
           (status && row.dataset.documentStatus !== status);
       });
+      updateBulkControls();
     }
 
     function buildEditForm() {
@@ -2567,7 +3276,8 @@
           const values = field.kind === 'wave'
             ? (config.registrationWaves || []).map(function (wave) { return wave.name; })
             : field.kind === 'program'
-              ? ((configuredField && configuredField.options.length) ? configuredField.options : programs)
+              ? ((configuredField && configuredField.options.length) ? configuredField.options
+                : (siteConfig && siteConfig.programs && siteConfig.programs.length ? siteConfig.programs : programs))
               : field.kind === 'gender' ? ['Laki-laki', 'Perempuan']
                 : field.kind === 'religion' ? religions : educationLevels;
           values.forEach(function (value) { control.appendChild(makeOption(value, value)); });
@@ -2736,8 +3446,10 @@
 
     async function loadAll() {
       try {
-        if (currentUser.role === 'owner') {
+        if (Object.keys(adminMasterSlugs).some(function (menu) { return canAdmin(menu, 'view'); })) {
           showConfig(await api('/api/admin/config'));
+        }
+        if (currentUser.role === 'owner') {
           await loadUsers();
         }
         await loadApplications();
@@ -2784,6 +3496,8 @@
           body: JSON.stringify({
             pageTitle: document.getElementById('page-title').value.trim(),
             academicYear: document.getElementById('academic-year').value.trim(),
+            programs: getProgramRows(),
+            classes: getClassRows(),
             brochureImageUrl: siteConfig.brochureImageUrl || '',
             formPdfUrl: siteConfig.formPdfUrl,
             scholarshipPdfUrl: siteConfig.scholarshipPdfUrl,
@@ -2795,6 +3509,14 @@
             formFields: getFormFieldRows(),
             documentRequirements: getDocumentRows(),
             schoolDocuments: getSchoolDocumentRows(),
+            whatsappGateway: {
+              enabled: document.getElementById('whatsapp-enabled').checked,
+              webhookUrl: document.getElementById('whatsapp-webhook-url').value.trim(),
+              webhookToken: document.getElementById('whatsapp-webhook-token').value,
+              clearWebhookToken: document.getElementById('whatsapp-clear-token').checked,
+              events: Array.from(document.querySelectorAll('[data-whatsapp-event]:checked'))
+                .map(function (checkbox) { return checkbox.dataset.whatsappEvent; })
+            },
             paymentSettings: {
               bankEnabled: document.getElementById('bank-enabled').checked,
               bankName: document.getElementById('bank-name').value.trim(),
@@ -2969,6 +3691,16 @@
       this.setAttribute('aria-expanded', String(!isExpanded));
       document.getElementById('master-submenu').hidden = isExpanded;
     });
+    document.getElementById('add-program-button').addEventListener('click', function () {
+      renderProgramRows(getProgramRows().concat(''));
+      const inputs = document.querySelectorAll('[data-program-name]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    });
+    document.getElementById('add-class-button').addEventListener('click', function () {
+      renderClassRows(getClassRows().concat(''));
+      const inputs = document.querySelectorAll('[data-class-name]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    });
     document.getElementById('save-reviews-button').addEventListener('click', async function () {
       if (!reviewingApplicant) return;
       const button = document.getElementById('save-reviews-button');
@@ -3053,10 +3785,16 @@
     document.getElementById('detail-back-button').addEventListener('click', function () {
       setAdminPage('applications-page');
     });
+    document.getElementById('detail-whatsapp').addEventListener('click', openWhatsAppContacts);
+    document.getElementById('close-whatsapp-contacts').addEventListener('click', function () {
+      whatsappContactsDialog.close();
+    });
     document.getElementById('detail-selection-button').addEventListener('click', function () {
       if (reviewingApplicant) openReviewDialog(reviewingApplicant, 'selection');
     });
-    document.getElementById('detail-view-pin-button').addEventListener('click', openPortalPinDialog);
+    document.getElementById('detail-class-button').addEventListener('click', function () {
+      if (reviewingApplicant) openClassAssignment([reviewingApplicant], false);
+    });
     document.getElementById('detail-reset-pin-button').addEventListener('click', openResetPinConfirmation);
     document.getElementById('cancel-reset-pin').addEventListener('click', function () { resetPinConfirmDialog.close(); });
     document.getElementById('confirm-reset-pin').addEventListener('click', resetPortalPin);
@@ -3068,6 +3806,17 @@
       if (reviewingApplicant) printApplicantCard(reviewingApplicant);
     });
     document.getElementById('detail-verify-all').addEventListener('click', verifyAllApplicantData);
+    document.getElementById('confirm-verification').addEventListener('click', confirmVerification);
+    document.getElementById('cancel-verification-confirm').addEventListener('click', function () {
+      pendingVerification = null;
+      verificationConfirmDialog.close();
+    });
+    verificationConfirmDialog.addEventListener('cancel', function (event) {
+      if (document.getElementById('confirm-verification').disabled) event.preventDefault();
+    });
+    verificationConfirmDialog.addEventListener('close', function () {
+      pendingVerification = null;
+    });
     applicantDetailPage.addEventListener('click', async function (event) {
       const reviewButton = event.target.closest('[data-detail-review-key]');
       if (reviewButton) {
@@ -3124,6 +3873,40 @@
     });
     document.getElementById('application-search').addEventListener('input', filterApplications);
     document.getElementById('status-filter').addEventListener('change', filterApplications);
+    document.getElementById('select-all-applications').addEventListener('change', function () {
+      const checked = this.checked;
+      applicationBody.querySelectorAll('[data-select-applicant]').forEach(function (checkbox) {
+        if (checkbox.closest('tr').hidden) return;
+        checkbox.checked = checked;
+        if (checked) selectedApplicantNumbers.add(checkbox.dataset.selectApplicant);
+        else selectedApplicantNumbers.delete(checkbox.dataset.selectApplicant);
+      });
+      updateBulkControls();
+    });
+    applicationBody.addEventListener('change', function (event) {
+      const checkbox = event.target.closest('[data-select-applicant]');
+      if (!checkbox) return;
+      if (checkbox.checked) selectedApplicantNumbers.add(checkbox.dataset.selectApplicant);
+      else selectedApplicantNumbers.delete(checkbox.dataset.selectApplicant);
+      updateBulkControls();
+    });
+    document.getElementById('bulk-action').addEventListener('change', updateBulkControls);
+    document.getElementById('run-bulk-action').addEventListener('click', runBulkAction);
+    document.getElementById('clear-bulk-selection').addEventListener('click', clearBulkSelection);
+    document.getElementById('save-bulk-selection').addEventListener('click', saveBulkSelection);
+    document.getElementById('cancel-bulk-selection').addEventListener('click', function () {
+      bulkSelectionDialog.close();
+    });
+    document.getElementById('confirm-bulk-action').addEventListener('click', confirmBulkAction);
+    document.getElementById('cancel-bulk-confirm').addEventListener('click', function () {
+      pendingBulkAction = '';
+      bulkConfirmDialog.close();
+    });
+    document.getElementById('save-class-assignment').addEventListener('click', saveClassAssignment);
+    document.getElementById('cancel-class-assignment').addEventListener('click', function () {
+      classAssignmentTargets = [];
+      classAssignmentDialog.close();
+    });
     document.getElementById('reload-button').addEventListener('click', loadAll);
     document.getElementById('export-button').addEventListener('click', function () {
       window.location.assign('/api/admin/export.csv');

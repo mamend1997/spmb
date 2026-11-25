@@ -1,7 +1,7 @@
 const SHEET_NAME = 'Pendaftaran SPMB';
 const SHEET_HEADERS = [
   'Timestamp', 'Nomor Pendaftaran', 'Gelombang Pendaftaran', 'Biaya Gelombang',
-  'Jalur Pendaftaran', 'Program Studi', 'Nama Lengkap Siswa', 'Asal Sekolah', 'NISN',
+  'Jalur Pendaftaran', 'Program Studi', 'Kelas', 'Nama Lengkap Siswa', 'Asal Sekolah', 'NISN',
   'No. Kartu Keluarga (KK)', 'NIK Siswa', 'Jenis Kelamin', 'Agama',
   'Tempat Lahir', 'Tanggal Lahir', 'Email Siswa / Orang Tua', 'No WhatsApp Siswa',
   'NIK Ayah', 'Nama Ayah', 'Pendidikan Terakhir Ayah', 'Pekerjaan Ayah',
@@ -109,6 +109,7 @@ function makeRowValues_(headers, data) {
     'Biaya Gelombang': data.waveFee,
     'Jalur Pendaftaran': data.registrationPath,
     'Program Studi': data.major,
+    'Kelas': data.classAssignment,
     'Nama Lengkap Siswa': data.studentName,
     'Asal Sekolah': data.schoolOrigin,
     'NISN': textNumber_(data.nisn),
