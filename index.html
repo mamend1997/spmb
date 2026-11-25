@@ -44,6 +44,9 @@
     .radio-option input { accent-color: #ea580c; width: 1rem; height: 1rem; }
     .helper { margin-top: .4rem; font-size: .75rem; color: #8a929e; }
     .error-text { color: #dc2626; }
+    .field-error { grid-column: 1 / -1; margin-top: -.75rem; color: #b91c1c; font-size: .75rem; line-height: 1.4; }
+    .upload-status { margin-top: .35rem; font-size: .75rem; color: #64748b; overflow-wrap: anywhere; }
+    .field-row > .upload-status { grid-column: 2; }
     .required-mark { color: #ea580c; }
     .step-item { display: flex; width: 100%; min-width: 0; align-items: center; gap: .55rem; border: 1px solid #e2e8f0; border-radius: .65rem; background: #f8fafc; padding: .65rem .75rem; color: #64748b; cursor: pointer; font-family: inherit; font-size: .75rem; font-weight: 700; line-height: 1.35; text-align: left; }
     .step-item:focus-visible { outline: 2px solid #ea580c; outline-offset: 2px; }
@@ -57,6 +60,7 @@
     @media (max-width: 640px) {
       .field-row { grid-template-columns: 1fr; gap: .45rem; padding: 1rem; }
       .field-label { padding-top: 0; }
+      .field-row > .upload-status { grid-column: 1; }
       .section-banner { margin-left: 1rem !important; margin-right: 1rem !important; }
       .step-item { align-items: flex-start; padding: .55rem; }
     }
@@ -314,7 +318,7 @@
             </div>
             <div class="field-row">
               <label class="field-label" for="studentPhoto">Pas Foto Calon Siswa (3×4)</label>
-              <div>              <input class="field-control file-input" id="studentPhoto" data-upload-key="studentPhoto" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><p class="helper">Opsional · JPG/PNG · maksimal 2 MB</p></div>
+              <div><input class="field-control file-input" id="studentPhoto" data-upload-key="studentPhoto" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png"><p class="helper">Wajib diunggah · JPG/PNG · maksimal 2 MB</p></div>
             </div>
           </div>
           <div class="no-print flex flex-col gap-3 px-5 py-7 sm:flex-row sm:justify-between">
@@ -406,27 +410,27 @@
 
         <section id="form-step-4" class="form-step" hidden>
           <div class="section-banner mx-6 mt-4 rounded-md bg-gradient-to-r from-orange-600 to-orange-500 px-4 py-2.5 text-sm font-bold tracking-wide text-white shadow-sm">TAHAP 4: UNGGAH BERKAS</div>
-          <p class="px-6 pt-3 text-xs leading-5 text-slate-500">Berkas bersifat opsional dan dapat dikosongkan. Format PDF/JPG/PNG, maksimal 2 MB per berkas. Berkas disimpan privat di penyimpanan aplikasi.</p>
+          <p class="px-6 pt-3 text-xs leading-5 text-slate-500">Periksa status wajib atau opsional pada setiap berkas. Format PDF/JPG/PNG, maksimal 2 MB per berkas. Nama berkas yang dipilih ditampilkan di bawah kolom. Berkas disimpan privat dan perlu dipilih ulang jika halaman dimuat kembali.</p>
           <div>
             <div class="field-row">
               <label class="field-label" for="familyCardFile">Kartu Keluarga (KK)</label>
-              <input class="field-control file-input" id="familyCardFile" data-upload-key="familyCardFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <div><input class="field-control file-input" id="familyCardFile" data-upload-key="familyCardFile" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><p class="helper">Opsional · PDF/JPG/PNG · maksimal 2 MB</p></div>
             </div>
             <div class="field-row">
               <label class="field-label" for="birthCertificate">Akta Kelahiran</label>
-              <input class="field-control file-input" id="birthCertificate" data-upload-key="birthCertificate" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <div><input class="field-control file-input" id="birthCertificate" data-upload-key="birthCertificate" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><p class="helper">Opsional · PDF/JPG/PNG · maksimal 2 MB</p></div>
             </div>
             <div class="field-row">
               <label class="field-label" for="diploma">Ijazah / Surat Keterangan Lulus (SKL)</label>
-              <input class="field-control file-input" id="diploma" data-upload-key="diploma" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <div><input class="field-control file-input" id="diploma" data-upload-key="diploma" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><p class="helper">Opsional · PDF/JPG/PNG · maksimal 2 MB</p></div>
             </div>
             <div class="field-row">
               <label class="field-label" for="reportCard">Rapor Terakhir</label>
-              <input class="field-control file-input" id="reportCard" data-upload-key="reportCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <div><input class="field-control file-input" id="reportCard" data-upload-key="reportCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><p class="helper">Opsional · PDF/JPG/PNG · maksimal 2 MB</p></div>
             </div>
             <div class="field-row">
               <label class="field-label" for="sktm">SKTM (jika diperlukan)</label>
-              <input class="field-control file-input" id="sktm" data-upload-key="sktm" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+              <div><input class="field-control file-input" id="sktm" data-upload-key="sktm" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"><p class="helper">Opsional · PDF/JPG/PNG · maksimal 2 MB</p></div>
             </div>
           </div>
           <div class="no-print px-5 py-8">
@@ -474,6 +478,10 @@
       <h2 id="modal-title" class="text-lg font-extrabold text-slate-900">Informasi Beasiswa</h2>
       <div id="modal-message" class="mt-2 text-sm leading-6 text-slate-600"></div>
       <div id="modal-summary" class="mt-4 hidden rounded-lg border border-slate-100 bg-slate-50 p-4"></div>
+      <div id="confirmation-actions" class="mt-5 hidden flex flex-col gap-3 sm:flex-row">
+        <button id="confirmation-back" type="button" class="inline-flex flex-1 items-center justify-center rounded-full border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">Periksa kembali</button>
+        <button id="confirmation-submit" type="button" class="inline-flex flex-1 items-center justify-center rounded-full bg-orange-600 px-4 py-3 text-sm font-bold text-white hover:bg-orange-700">Ya, kirim pendaftaran</button>
+      </div>
       <div id="success-receipt" class="hidden">
         <div id="print-card" class="mt-4 rounded-lg border border-slate-300 bg-white p-4">
           <div class="flex items-center gap-3 border-2 border-slate-700 p-3">
@@ -541,8 +549,12 @@
     const submitButton = document.getElementById('submit-button');
     const formError = document.getElementById('form-error');
     const modalCloseButton = document.getElementById('modal-close');
+    const confirmationActions = document.getElementById('confirmation-actions');
+    const confirmationBackButton = document.getElementById('confirmation-back');
+    const confirmationSubmitButton = document.getElementById('confirmation-submit');
     let siteConfig = DEFAULT_SITE_CONFIG;
     let activeStepNumber = 1;
+    let registrationConfirmed = false;
     let revealObserver = null;
     let brochureSlideUrls = [];
     let brochureSlideIndex = 0;
@@ -1050,13 +1062,46 @@
             mark.hidden = !input.required;
           }
         }
-        const helper = row.querySelector('.helper');
-        if (helper) helper.textContent = [documentConfig.description, input.required ? 'Wajib diunggah' : 'Opsional',
+        let helper = row.querySelector('.helper');
+        if (!helper) {
+          helper = document.createElement('p');
+          helper.className = 'helper';
+          input.insertAdjacentElement('afterend', helper);
+        }
+        helper.textContent = [documentConfig.description, input.required ? 'Wajib diunggah' : 'Opsional',
           documentConfig.extensions.map(function (extension) { return extension.toUpperCase(); }).join('/'),
           'maks. ' + (documentConfig.maxKB || 2048) + ' KB'].filter(Boolean).join(' · ');
       });
       document.querySelectorAll('#form-step-4 .field-row').forEach(function (row) {
         if (row.querySelector('[data-upload-key]') && !existingRows.has(row)) row.hidden = true;
+      });
+      initializeUploadStatuses();
+    }
+
+    function refreshUploadStatus(input) {
+      const status = document.getElementById('upload-status-' + input.dataset.uploadKey);
+      if (!status) return;
+      const file = input.files[0];
+      status.textContent = file ? 'Dipilih: ' + file.name : 'Belum dipilih';
+    }
+
+    function initializeUploadStatuses() {
+      document.querySelectorAll('.file-input[data-upload-key]').forEach(function (input) {
+        const key = input.dataset.uploadKey;
+        const wrapper = input.parentElement;
+        let status = document.getElementById('upload-status-' + key);
+        if (!status) {
+          status = document.createElement('p');
+          status.id = 'upload-status-' + key;
+          status.className = 'upload-status';
+          status.setAttribute('aria-live', 'polite');
+          wrapper.appendChild(status);
+        }
+        if (!input.dataset.uploadStatusBound) {
+          input.addEventListener('change', function () { refreshUploadStatus(input); });
+          input.dataset.uploadStatusBound = 'true';
+        }
+        refreshUploadStatus(input);
       });
     }
 
@@ -1126,11 +1171,105 @@
       setActiveStep(Number.isInteger(step) && step >= 1 && step <= formSteps.length ? step : 1, false);
     }
 
+    function setFieldError(control, message) {
+      if (!control || !control.id) return;
+      const row = control.closest('.field-row');
+      if (!row) return;
+      const errorId = 'field-error-' + control.id;
+      let error = document.getElementById(errorId);
+      if (!error) {
+        error = document.createElement('p');
+        error.id = errorId;
+        error.className = 'field-error';
+        error.setAttribute('role', 'alert');
+        row.appendChild(error);
+      }
+      error.textContent = message;
+      control.setAttribute('aria-invalid', 'true');
+      const describedBy = new Set(String(control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+      describedBy.add(errorId);
+      control.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
+    }
+
+    function clearFieldError(control) {
+      if (!control || !control.id) return;
+      const error = document.getElementById('field-error-' + control.id);
+      if (!error) return;
+      error.remove();
+      control.removeAttribute('aria-invalid');
+      const describedBy = String(control.getAttribute('aria-describedby') || '').split(/\s+/)
+        .filter(function (id) { return id && id !== error.id; });
+      if (describedBy.length) control.setAttribute('aria-describedby', describedBy.join(' '));
+      else control.removeAttribute('aria-describedby');
+    }
+
+    function maskConfirmationValue(value) {
+      const text = String(value || '').trim();
+      return text ? '••••••' + text.slice(-4) : 'Belum diisi';
+    }
+
+    function showRegistrationConfirmation() {
+      const formValue = function (id) {
+        const control = document.getElementById(id);
+        return control && control.value ? control.value : 'Belum diisi';
+      };
+      const summaryFields = [
+        ['Nama siswa', formValue('studentName')],
+        ['NISN (4 digit terakhir)', maskConfirmationValue(document.getElementById('nisn').value)],
+        ['NIK siswa (4 digit terakhir)', maskConfirmationValue(document.getElementById('studentNik').value)],
+        ['Asal sekolah', formValue('schoolOrigin')],
+        ['Tanggal lahir', formValue('birthDate')],
+        ['Email', formValue('email')],
+        ['Nomor HP siswa (4 digit terakhir)', maskConfirmationValue(document.getElementById('studentPhone').value)],
+        ['Program studi', formValue('major')],
+        ['Gelombang', formValue('wave')],
+        ['Jalur pendaftaran', formValue('registrationPath')],
+        ['Penghasilan ayah / bulan', formValue('fatherIncome')],
+        ['Penghasilan ibu / bulan', formValue('motherIncome')]
+      ];
+      const selectedFiles = Array.from(document.querySelectorAll('.file-input[data-upload-key]'))
+        .filter(function (input) {
+          const row = input.closest('.field-row');
+          return input.files[0] && row && !row.hidden;
+        }).map(function (input) { return input.files[0].name; });
+      summaryFields.push(['Berkas dipilih', selectedFiles.length ? selectedFiles.join(', ') : 'Tidak ada']);
+
+      const summary = document.createElement('dl');
+      summary.className = 'space-y-2 text-sm';
+      summaryFields.forEach(function (item) {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between gap-4 border-b border-slate-200 py-1.5 last:border-0';
+        const label = document.createElement('dt');
+        label.className = 'shrink-0 text-slate-500';
+        label.textContent = item[0];
+        const value = document.createElement('dd');
+        value.className = 'break-all text-right font-semibold text-slate-800';
+        value.textContent = item[1];
+        row.append(label, value);
+        summary.appendChild(row);
+      });
+
+      modalTitle.textContent = 'Konfirmasi Pendaftaran';
+      modalMessage.textContent = 'Periksa kembali ringkasan data sebelum mengirim formulir. Data identitas ditampilkan sebagian untuk menjaga privasi.';
+      modalSummary.replaceChildren(summary);
+      modalSummary.classList.remove('hidden');
+      successReceipt.classList.add('hidden');
+      confirmationActions.classList.remove('hidden');
+      modalCloseButton.classList.add('hidden');
+      modalSymbol.className = 'mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600';
+      modalSymbol.innerHTML = '<svg aria-hidden="true" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4m0 4h.01M10.3 3.9 2.8 17a2 2 0 0 0 1.74 3h14.92a2 2 0 0 0 1.74-3l-7.46-13.1a2 2 0 0 0-3.48 0Z"/></svg>';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      confirmationBackButton.focus();
+    }
+
     function showModal(title, message, success, result) {
       modalTitle.textContent = title;
       modalMessage.textContent = message;
       modalSummary.replaceChildren();
       modalSummary.classList.add('hidden');
+      confirmationActions.classList.add('hidden');
+      modalCloseButton.classList.remove('hidden');
       successReceipt.classList.toggle('hidden', !success);
       if (success && result) {
         const summary = result.summary || {};
@@ -1294,6 +1433,17 @@
         modal.classList.remove('flex');
       }
     });
+    confirmationBackButton.addEventListener('click', function () {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      submitButton.focus();
+    });
+    confirmationSubmitButton.addEventListener('click', function () {
+      registrationConfirmed = true;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      form.requestSubmit();
+    });
 
     document.querySelectorAll('.digit-field').forEach(function (input) {
       input.addEventListener('input', function () {
@@ -1308,8 +1458,14 @@
 
     document.getElementById('wave').addEventListener('change', updateWaveFee);
     document.getElementById('registrationPath').addEventListener('change', applyDocumentConfig);
-    form.addEventListener('input', saveFormDraft);
-    form.addEventListener('change', saveFormDraft);
+    form.addEventListener('input', function (event) {
+      clearFieldError(event.target);
+      saveFormDraft();
+    });
+    form.addEventListener('change', function (event) {
+      clearFieldError(event.target);
+      saveFormDraft();
+    });
     document.querySelectorAll('[data-step-target]').forEach(function (button) {
       button.addEventListener('click', function () {
         setActiveStep(Number(button.dataset.stepTarget), true);
@@ -1343,7 +1499,12 @@
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
       formError.classList.add('hidden');
-      if (!validateAllSteps()) return;
+      if (!registrationConfirmed) {
+        if (!validateAllSteps()) return;
+        showRegistrationConfirmation();
+        return;
+      }
+      registrationConfirmed = false;
       setLoading(true);
       let payload = {};
       try {
@@ -1373,16 +1534,30 @@
           body: JSON.stringify(payload)
         });
         const result = await response.json();
-        if (!response.ok || result.status !== 'success') throw new Error(result.message || 'Pendaftaran tidak berhasil disimpan.');
+        if (!response.ok || result.status !== 'success') {
+          const error = new Error(result.message || 'Pendaftaran tidak berhasil disimpan.');
+          error.field = result.field || '';
+          throw error;
+        }
         if (!result.registrationNumber || !result.portalPin || !result.summary) {
           throw new Error('Data tersimpan, tetapi kartu peserta belum dapat dibuat. Hubungi panitia.');
         }
         sessionStorage.removeItem(formDraftStorageKey);
         form.reset();
+        initializeUploadStatuses();
         setActiveStep(1, false);
         showModal('Pendaftaran Berhasil', result.message || 'Pendaftaran berhasil disimpan.', true, result);
       } catch (error) {
         console.error('Gagal mengirim formulir SPMB:', error);
+        const duplicateField = error.field && document.getElementById(error.field);
+        if (duplicateField) {
+          setFieldError(duplicateField, error.message || 'Data ini sudah terdaftar.');
+          const stepMatch = duplicateField.closest('.form-step').id.match(/form-step-(\d+)/);
+          if (stepMatch) setActiveStep(Number(stepMatch[1]), false);
+          document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          duplicateField.focus({ preventScroll: true });
+          return;
+        }
         formError.textContent = error.message || 'Periksa koneksi internet dan coba kembali.';
         formError.classList.remove('hidden');
         showModal('Pendaftaran Belum Terkirim', error.message || 'Periksa koneksi internet dan coba kembali.', false);

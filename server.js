@@ -6,6 +6,10 @@ const express = require('express');
 const fs = require('node:fs');
 const path = require('node:path');
 const yazl = require('yazl');
+const {
+  findDuplicateRegistrationIdentifier,
+  normalizeWhatsAppPhone
+} = require('./registration-identifiers');
 
 const app = express();
 const publicLookupRequests = new Map();
@@ -1812,14 +1816,6 @@ function normalizeIndonesianPhone(value) {
   return phone;
 }
 
-function normalizeWhatsAppPhone(value) {
-  const digits = String(value || '').replace(/\D/g, '');
-  if (!digits) return '';
-  if (digits.startsWith('0')) return '+62' + digits.slice(1);
-  if (digits.startsWith('62')) return '+' + digits;
-  return '+62' + digits;
-}
-
 function isPublicAddress(address) {
   const parts = address.split('.');
   if (parts.length === 4 && parts.every(function (part) { return /^\d{1,3}$/.test(part) && Number(part) <= 255; })) {
@@ -2148,38 +2144,12 @@ function validateRegistration(payload) {
 }
 
 function assertRegistrationIdentifiersAvailable(payload) {
-  const identifiers = [
-    { column: 'nisn', value: payload.nisn, label: 'NISN' },
-    { column: 'student_nik', value: payload.studentNik, label: 'NIK siswa' }
-  ];
-  identifiers.forEach(function (identifier) {
-    if (!identifier.value) return;
-    const duplicate = database.prepare('SELECT 1 FROM applicants WHERE ' + identifier.column + ' = ? LIMIT 1')
-      .get(identifier.value);
-    if (duplicate) {
-      const error = new Error(identifier.label + ' sudah terdaftar. Periksa kembali data yang dimasukkan.');
-      error.code = 'DUPLICATE_REGISTRATION_IDENTIFIER';
-      throw error;
-    }
-  });
-
-  if (!payload.studentPhone) return;
-  const normalizedPhone = normalizeWhatsAppPhone(payload.studentPhone);
-  const phoneDigits = normalizedPhone.replace(/\D/g, '');
-  const phoneVariants = new Set([payload.studentPhone, normalizedPhone, phoneDigits]);
-  if (phoneDigits.startsWith('62')) {
-    phoneVariants.add('0' + phoneDigits.slice(2));
-    phoneVariants.add(phoneDigits.slice(2));
-  }
-  const placeholders = Array.from(phoneVariants).map(function () { return '?'; }).join(', ');
-  const duplicatePhone = database.prepare(
-    'SELECT 1 FROM applicants WHERE student_phone IN (' + placeholders + ') LIMIT 1'
-  ).get(...Array.from(phoneVariants));
-  if (duplicatePhone) {
-    const error = new Error('Nomor HP siswa sudah terdaftar. Periksa kembali data yang dimasukkan.');
-    error.code = 'DUPLICATE_REGISTRATION_IDENTIFIER';
-    throw error;
-  }
+  const duplicate = findDuplicateRegistrationIdentifier(database, payload);
+  if (!duplicate) return;
+  const error = new Error(duplicate.message);
+  error.code = 'DUPLICATE_REGISTRATION_IDENTIFIER';
+  error.field = duplicate.field;
+  throw error;
 }
 
 function isValidBirthDate(value) {
@@ -2510,6 +2480,7 @@ app.post('/api/registrations', function (request, response) {
     const status = duplicate ? 409 : 400;
     response.status(status).json({
       status: 'error',
+      field: error.field,
       message: error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER'
         ? error.message
         : error.code === 'SQLITE_CONSTRAINT_UNIQUE'

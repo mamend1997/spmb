@@ -4,7 +4,8 @@
   "private": true,
   "description": "Landing page pendaftaran SPMB SMK PGRI Cikoneng 2027/2028",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=22.13"
