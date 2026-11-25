@@ -65,7 +65,7 @@
     .admin-layout.detail-layout-active { grid-template-columns: minmax(0, 1fr); }
     .admin-layout.sidebar-collapsed:not(.detail-layout-active) { grid-template-columns: 68px minmax(0, 1fr); }
     .admin-layout .sidebar[hidden] { display: none !important; }
-    .sidebar { align-self: start; position: sticky; top: 16px; display: grid; gap: 5px; padding: 12px; }
+    .sidebar { align-self: start; position: sticky; top: 92px; display: grid; max-height: calc(100vh - 140px); gap: 5px; overflow-y: auto; padding: 12px; }
     .sidebar button { width: 100%; text-align: left; color: #475467; background: transparent; }
     .sidebar button.active, .sidebar button:hover { color: #c2410c; background: #fff7ed; }
     .sidebar-collapse-toggle { display: flex; align-items: center; gap: 10px; min-height: 40px; margin-bottom: 4px; padding: 8px 10px; border-bottom: 1px solid #edf0f4; border-radius: 8px; color: #475467; background: transparent; text-align: left; }
@@ -225,6 +225,7 @@
     .detail-card-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #edf0f4; }
     .detail-card-actions button { min-height: 34px; padding: 6px 9px; font-size: 12px; }
     .detail-card-actions .detail-revision { background: #c62828; }
+    .detail-card-actions .detail-cancel-verification { border: 1px solid #fed7aa; color: #c2410c; background: #fff7ed; }
     .detail-verified { background: #16965d; color: white; }
     .detail-card-actions .detail-verified { background: #16965d; }
     .detail-verified:disabled, .detail-verify-all:disabled { cursor: not-allowed; opacity: 1; background: #16965d; }
@@ -295,13 +296,18 @@
     dialog::backdrop { background: #10182880; }
     .dialog-content { padding: 22px; }
     .dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .revision-field-selection { margin: 14px 0; padding: 12px; border: 1px solid #dbe3ec; border-radius: 10px; }
+    .revision-field-selection legend { padding: 0 5px; color: #344054; font-size: 13px; font-weight: 700; }
+    .revision-field-list { display: grid; gap: 7px; }
+    .revision-field-option { display: flex; align-items: flex-start; gap: 9px; padding: 8px; border-radius: 8px; background: #f8fafc; color: #344054; cursor: pointer; }
+    .revision-field-option input { width: 18px; min-height: 18px; flex: 0 0 18px; margin: 1px 0 0; }
     .edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 12px; }
     .edit-grid .wide { grid-column: 1 / -1; }
     .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
     @media (max-width: 900px) {
       .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .admin-layout, .admin-layout.sidebar-collapsed:not(.detail-layout-active) { grid-template-columns: 1fr; }
-      .sidebar { position: static; display: flex; overflow: auto; }
+      .sidebar { position: static; display: flex; max-height: none; overflow: auto; }
       .sidebar button { min-width: max-content; width: auto; }
       .sidebar-collapse-toggle { flex: 0 0 auto; }
       .sidebar-collapsed .sidebar button, .sidebar-collapsed .sidebar-collapse-toggle { min-width: 42px; width: 42px; flex: 0 0 42px; }
@@ -448,7 +454,7 @@
               </button>
               <button type="button" data-page-target="master-page" data-master-anchor="timeline" data-permission-menu="timeline">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                <span>Timeline Beranda</span>
+                <span>Foto & Timeline Beranda</span>
               </button>
               <button type="button" data-page-target="master-page" data-master-anchor="payment" data-permission-menu="payment">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
@@ -487,7 +493,6 @@
         <div class="section-heading">
           <div><h2>Data Pendaftar</h2><p id="application-count">Memuat rekap...</p></div>
           <div class="actions">
-            <button id="export-button" class="dark" data-admin-roles="owner,operator" type="button">Ekspor CSV</button>
             <button id="export-excel-button" class="excel-button" data-admin-roles="owner,operator" type="button">Ekspor Excel</button>
           </div>
         </div>
@@ -525,8 +530,7 @@
         </div>
       </section>
 
-      <details id="master-page" class="card section admin-page" hidden>
-        <summary>Master Data SPMB</summary>
+      <section id="master-page" class="card section admin-page" hidden>
         <p id="master-page-description">Pengaturan disimpan di SQLite pada volume Railway dan langsung digunakan halaman pendaftaran.</p>
         <form id="settings-form">
           <div class="settings-grid">
@@ -540,7 +544,7 @@
               </div>
               <div class="brochure-admin-preview">
                 <img id="brochure-image-preview" class="hidden" alt="Pratinjau brosur beranda">
-                <p id="brochure-image-empty">Brosur belum diunggah. Area beranda akan menampilkan placeholder.</p>
+                <p id="brochure-image-empty">Belum ada foto brosur. Unggah foto untuk menampilkannya di beranda.</p>
               </div>
             </div>
             <div data-master-section="form"><label for="contact-label">Nama Contact Person</label><input id="contact-label" maxlength="60" required></div>
@@ -644,7 +648,7 @@
           <button id="save-settings-button" type="submit" style="margin-top:18px">Simpan Pengaturan</button>
         </form>
         <p id="settings-status" class="status-line" role="status"></p>
-      </details>
+      </section>
 
       <section id="accounts-page" class="card section admin-page" hidden>
         <div class="section-heading">
@@ -731,6 +735,7 @@
             <div class="detail-card-actions" data-detail-edit-actions>
               <button class="detail-revision" type="button" data-detail-review-all="student" data-review-status="revision">✕ Minta Revisi Data</button>
               <button class="detail-verified" type="button" data-detail-review-all="student" data-review-status="verified">✓ Terima Data</button>
+              <button class="detail-cancel-verification" type="button" data-detail-cancel-verification="student" hidden>Batalkan Verifikasi</button>
             </div>
           </section>
           <div class="detail-parent-stack">
@@ -746,6 +751,7 @@
               <div class="detail-card-actions" data-detail-edit-actions>
                 <button class="detail-revision" type="button" data-detail-review-all="parent" data-review-status="revision">✕ Minta Revisi Data</button>
                 <button class="detail-verified" type="button" data-detail-review-all="parent" data-review-status="verified">✓ Terima Data</button>
+                <button class="detail-cancel-verification" type="button" data-detail-cancel-verification="parent" hidden>Batalkan Verifikasi</button>
               </div>
             </section>
           </div>
@@ -921,8 +927,12 @@
           <p id="revision-note-context"></p>
         </div>
       </div>
-      <label for="revision-note-input">Jelaskan data yang perlu diperbaiki oleh siswa</label>
-      <textarea id="revision-note-input" rows="4" maxlength="1000" required placeholder="Contoh: Mohon perbaiki penulisan nama sesuai dokumen KK."></textarea>
+      <fieldset id="revision-field-selection" class="revision-field-selection" hidden>
+        <legend>Pilih data yang perlu diperbaiki</legend>
+        <div id="revision-field-list" class="revision-field-list"></div>
+      </fieldset>
+      <label for="revision-note-input">Catatan tambahan (opsional)</label>
+      <textarea id="revision-note-input" rows="4" maxlength="1000" placeholder="Tambahkan petunjuk perbaikan jika diperlukan."></textarea>
       <p id="revision-note-status" class="status-line" role="status"></p>
       <div class="dialog-actions">
         <button id="cancel-revision-note" class="secondary" type="button">Batal</button>
@@ -1328,7 +1338,6 @@
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'true');
         document.getElementById('master-submenu').hidden = false;
         document.getElementById('master-nav-toggle').classList.add('active');
-        document.getElementById('master-page').open = true;
         if (sectionKey) setTimeout(function () {
           const section = document.querySelector('[data-master-section="' + sectionKey + '"]');
           if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1883,13 +1892,25 @@
         remove.type = 'button';
         remove.textContent = 'Hapus';
         remove.addEventListener('click', function () { row.remove(); });
+        const isStudentPhoto = documentConfig.key === 'studentPhoto';
+        const requiredToggle = makeFieldToggle('Wajib', 'documentRequired',
+          isStudentPhoto || documentConfig.required, 'Wajib', 'Opsional');
+        const activeToggle = makeFieldToggle('Aktif', 'documentActive', isStudentPhoto || documentConfig.active);
+        if (isStudentPhoto) {
+          key.readOnly = true;
+          key.setAttribute('aria-label', 'Kunci foto siswa (tetap)');
+          requiredToggle.querySelector('[data-document-required]').disabled = true;
+          activeToggle.querySelector('[data-document-active]').disabled = true;
+          remove.disabled = true;
+          remove.title = 'Foto siswa wajib tersedia.';
+        }
         row.append(
           makeLabeledControl('Kunci (unik)', key),
           makeLabeledControl('Nama dokumen', name),
           makeLabeledControl('Maks. KB', maxKB),
           makeLabeledControl('Ekstensi', extensions),
-          makeFieldToggle('Wajib', 'documentRequired', documentConfig.required, 'Wajib', 'Opsional'),
-          makeFieldToggle('Aktif', 'documentActive', documentConfig.active),
+          requiredToggle,
+          activeToggle,
           remove
         );
         list.appendChild(row);
@@ -2006,6 +2027,7 @@
 
     function showConfig(config) {
       siteConfig = config;
+      if (adminReviewConfig) adminReviewConfig.classes = (config.classes || []).slice();
       document.getElementById('page-title').value = config.pageTitle || '';
       document.getElementById('academic-year').value = config.academicYear || '';
       document.getElementById('contact-label').value = config.contactLabel || '';
@@ -2376,7 +2398,7 @@
     function openClassAssignment(targets, bulk) {
       const selected = (targets || []).filter(Boolean);
       if (!selected.length) return;
-      const classes = (adminReviewConfig && adminReviewConfig.classes) || (siteConfig && siteConfig.classes) || [];
+      const classes = (siteConfig && siteConfig.classes) || (adminReviewConfig && adminReviewConfig.classes) || [];
       if (!classes.length) {
         setStatus('applications-status', 'Tambahkan daftar kelas terlebih dahulu di Master Data → Kelas.', 'error');
         return;
@@ -2666,6 +2688,8 @@
       const parentVerifyButton = applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="verified"]');
       const studentRevisionButton = applicantDetailPage.querySelector('[data-detail-review-all="student"][data-review-status="revision"]');
       const parentRevisionButton = applicantDetailPage.querySelector('[data-detail-review-all="parent"][data-review-status="revision"]');
+      const studentCancelVerificationButton = applicantDetailPage.querySelector('[data-detail-cancel-verification="student"]');
+      const parentCancelVerificationButton = applicantDetailPage.querySelector('[data-detail-cancel-verification="parent"]');
       const studentRevisionFields = studentFields.filter(function (field) {
         return reviews[field.key] && reviews[field.key].status === 'revision';
       });
@@ -2682,6 +2706,8 @@
         ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
       studentVerifyButton.disabled = studentReviewStatus === 'Terverifikasi';
       parentVerifyButton.disabled = parentReviewStatus === 'Terverifikasi';
+      studentCancelVerificationButton.hidden = studentReviewStatus !== 'Terverifikasi';
+      parentCancelVerificationButton.hidden = parentReviewStatus !== 'Terverifikasi';
       studentRevisionButton.hidden = studentReviewStatus === 'Terverifikasi' || studentRevisionFields.length > 0;
       parentRevisionButton.hidden = parentReviewStatus === 'Terverifikasi' || parentRevisionFields.length > 0;
       document.getElementById('detail-readonly-notice').hidden = !readOnly;
@@ -2943,6 +2969,35 @@
           ' sebagai valid?';
       document.getElementById('confirm-verification').textContent =
         all ? 'Ya, Verifikasi Semua' : 'Ya, Terima Data';
+      document.getElementById('confirm-verification').style.background = '';
+      setStatus('verification-confirm-status', '', '');
+      verificationConfirmDialog.showModal();
+    }
+
+    function openVerificationResetConfirmation(scope) {
+      if (!reviewingApplicant) return;
+      const reviews = reviewingApplicant.field_reviews || {};
+      const items = getReviewableFields(scope)
+        .filter(function (field) { return reviews[field.key] && reviews[field.key].status === 'verified'; })
+        .map(function (field) { return { key: field.key, type: 'field' }; });
+      if (!items.length) {
+        setStatus('detail-status', 'Tidak ada verifikasi yang dapat dibatalkan pada bagian ini.', 'error');
+        return;
+      }
+      pendingVerification = {
+        scope: scope,
+        applicant: reviewingApplicant,
+        items: items,
+        status: 'pending'
+      };
+      document.getElementById('verification-confirm-title').textContent = 'Batalkan Verifikasi?';
+      document.getElementById('verification-confirm-context').textContent =
+        reviewingApplicant.student_name + ' · ' + reviewingApplicant.registration_number;
+      document.getElementById('verification-confirm-message').textContent =
+        'Status verifikasi ' + (scope === 'student' ? 'data calon siswa' : 'data orang tua / wali') +
+        ' akan dikembalikan ke Menunggu Verifikasi. Setelah itu Anda dapat memilih field yang perlu direvisi.';
+      document.getElementById('confirm-verification').textContent = 'Ya, Batalkan Verifikasi';
+      document.getElementById('confirm-verification').style.background = '#b42318';
       setStatus('verification-confirm-status', '', '');
       verificationConfirmDialog.showModal();
     }
@@ -2961,34 +3016,83 @@
         openRevisionNoteDialog(
           reviewingApplicant,
           applicantDetailPage.querySelector('[data-detail-review-all="' + group + '"][data-review-status="revision"]'),
-          fields.map(function (field) { return { key: field.key, type: 'field' }; }),
-          group === 'student' ? 'Data calon siswa' : 'Data orang tua / wali'
+          fields.map(function (field) { return { key: field.key, type: 'field', label: field.label }; }),
+          group === 'student' ? 'Data calon siswa' : 'Data orang tua / wali',
+          true,
+          false
         );
         return;
       }
       if (status === 'verified') openVerificationConfirmation(group);
     }
 
-    function openRevisionNoteDialog(applicant, button, items, context) {
-      pendingRevisionReview = { applicant: applicant, button: button, items: items };
+    function openRevisionNoteDialog(applicant, button, items, context, showFieldSelection, requireNote) {
+      pendingRevisionReview = {
+        applicant: applicant,
+        button: button,
+        items: items,
+        fieldSelection: showFieldSelection === true,
+        requireNote: requireNote !== false
+      };
       document.getElementById('revision-note-context').textContent =
         applicant.student_name + ' · ' + applicant.registration_number + ' · ' + context;
+      const fieldSelection = document.getElementById('revision-field-selection');
+      const fieldList = document.getElementById('revision-field-list');
+      fieldSelection.hidden = !pendingRevisionReview.fieldSelection;
+      fieldList.replaceChildren();
+      if (pendingRevisionReview.fieldSelection) {
+        items.forEach(function (item) {
+          const field = (adminReviewConfig && adminReviewConfig.formFields || []).find(function (candidate) {
+            return candidate.key === item.key;
+          });
+          const option = document.createElement('label');
+          option.className = 'revision-field-option';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.dataset.revisionKey = item.key;
+          checkbox.dataset.revisionType = item.type;
+          checkbox.checked = items.length === 1;
+          const label = document.createElement('span');
+          label.textContent = item.label || (field && field.label) || item.key;
+          option.append(checkbox, label);
+          fieldList.appendChild(option);
+        });
+      }
+      document.querySelector('label[for="revision-note-input"]').textContent = pendingRevisionReview.requireNote
+        ? 'Catatan revisi *' : 'Catatan tambahan (opsional)';
       document.getElementById('revision-note-input').value = '';
       setStatus('revision-note-status', '', '');
       revisionNoteDialog.showModal();
-      document.getElementById('revision-note-input').focus();
+      if (pendingRevisionReview.fieldSelection) {
+        const firstCheckbox = fieldList.querySelector('input');
+        if (firstCheckbox && items.length > 1) firstCheckbox.focus();
+        else document.getElementById('revision-note-input').focus();
+      } else {
+        document.getElementById('revision-note-input').focus();
+      }
     }
 
     async function submitRevisionNote() {
       if (!pendingRevisionReview) return;
       const noteInput = document.getElementById('revision-note-input');
       const note = noteInput.value.trim();
-      if (!note) {
+      const pending = pendingRevisionReview;
+      const selectedItems = pending.fieldSelection
+        ? Array.from(document.querySelectorAll('#revision-field-list input:checked')).map(function (checkbox) {
+          return { key: checkbox.dataset.revisionKey, type: checkbox.dataset.revisionType };
+        })
+        : pending.items;
+      if (pending.fieldSelection && !selectedItems.length) {
+        setStatus('revision-note-status', 'Pilih setidaknya satu field yang perlu diperbaiki.', 'error');
+        const firstCheckbox = document.querySelector('#revision-field-list input');
+        if (firstCheckbox) firstCheckbox.focus();
+        return;
+      }
+      if (pending.requireNote && !note) {
         setStatus('revision-note-status', 'Catatan revisi wajib diisi.', 'error');
         noteInput.focus();
         return;
       }
-      const pending = pendingRevisionReview;
       const submitButton = document.getElementById('submit-revision-note');
       const cancelButton = document.getElementById('cancel-revision-note');
       submitButton.disabled = true;
@@ -2996,7 +3100,7 @@
       if (pending.button) pending.button.disabled = true;
       setStatus('revision-note-status', 'Mengirim permintaan revisi...', '');
       try {
-        for (const item of pending.items) {
+        for (const item of selectedItems) {
           await updateApplicantReview(pending.applicant, item.key, item.type, 'revision', note);
         }
         revisionNoteDialog.close();
@@ -3028,15 +3132,18 @@
       cancelButton.disabled = true;
       setStatus('verification-confirm-status', 'Menyimpan verifikasi...', '');
       try {
+        const reviewStatus = pending.status || 'verified';
         for (const item of pending.items) {
-          await updateApplicantReview(pending.applicant, item.key, item.type, 'verified', '');
+          await updateApplicantReview(pending.applicant, item.key, item.type, reviewStatus, '');
         }
         if (!await loadApplications()) throw new Error('Verifikasi tersimpan, tetapi tabel gagal dimuat ulang.');
         verificationConfirmDialog.close();
         pendingVerification = null;
-        setStatus('detail-status', pending.scope === 'all'
-          ? 'Semua data dan dokumen berhasil diverifikasi.'
-          : 'Data telah diverifikasi valid.', 'success');
+        setStatus('detail-status', reviewStatus === 'pending'
+          ? 'Verifikasi dibatalkan. Pilih field yang perlu direvisi jika ada data yang tidak sesuai.'
+          : pending.scope === 'all'
+            ? 'Semua data dan dokumen berhasil diverifikasi.'
+            : 'Data telah diverifikasi valid.', 'success');
       } catch (error) {
         setStatus('verification-confirm-status', error.message || 'Verifikasi gagal disimpan.', 'error');
         await loadApplications();
@@ -3928,6 +4035,11 @@
       const groupButton = event.target.closest('[data-detail-review-all]');
       if (groupButton) {
         reviewDetailGroup(groupButton.dataset.detailReviewAll, groupButton.dataset.reviewStatus);
+        return;
+      }
+      const cancelVerificationButton = event.target.closest('[data-detail-cancel-verification]');
+      if (cancelVerificationButton) {
+        openVerificationResetConfirmation(cancelVerificationButton.dataset.detailCancelVerification);
       }
     });
     document.getElementById('detail-payment-approve').addEventListener('click', function () { updateDetailPayment('approve'); });
@@ -3992,9 +4104,6 @@
       classAssignmentDialog.close();
     });
     document.getElementById('reload-button').addEventListener('click', loadAll);
-    document.getElementById('export-button').addEventListener('click', function () {
-      window.location.assign('/api/admin/export.csv');
-    });
     document.getElementById('export-excel-button').addEventListener('click', function () {
       window.location.assign('/api/admin/export.xlsx');
     });

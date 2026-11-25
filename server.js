@@ -105,7 +105,7 @@ const initialConfig = {
     { key: 'address', label: 'Alamat Lengkap', type: 'textarea', step: 3, required: true, active: true, order: 13, placeholder: 'Jalan, RT/RW, Desa/Kelurahan, Kecamatan, Kabupaten', helpText: '' }
   ],
   documentRequirements: [
-    { key: 'studentPhoto', name: 'Pas Foto Calon Siswa (3×4)', description: '', extensions: ['jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 1, wave: '', registrationPath: '' },
+    { key: 'studentPhoto', name: 'Pas Foto Calon Siswa (3×4)', description: '', extensions: ['jpg', 'jpeg', 'png'], maxKB: 2048, required: true, active: true, order: 1, wave: '', registrationPath: '' },
     { key: 'familyCardFile', name: 'Kartu Keluarga (KK)', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 2, wave: '', registrationPath: '' },
     { key: 'birthCertificate', name: 'Akta Kelahiran', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 3, wave: '', registrationPath: '' },
     { key: 'diploma', name: 'Ijazah / Surat Keterangan Lulus (SKL)', description: '', extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048, required: false, active: true, order: 4, wave: '', registrationPath: '' },
@@ -664,6 +664,12 @@ function sanitizeFormFields(fields) {
 function sanitizeDocumentRequirements(documents, waves, paths) {
   if (documents === undefined) documents = initialConfig.documentRequirements;
   if (!Array.isArray(documents) || documents.length > 40) throw new Error('Maksimal 40 jenis dokumen.');
+  if (!documents.some(function (document) { return document && document.key === 'studentPhoto'; })) {
+    if (documents.length >= 40) throw new Error('Foto siswa wajib tersedia sebagai jenis dokumen.');
+    documents = documents.concat([initialConfig.documentRequirements.find(function (document) {
+      return document.key === 'studentPhoto';
+    })]);
+  }
   const keys = new Set();
   return documents.map(function (document, index) {
     if (!document || typeof document !== 'object') throw new Error('Data dokumen tidak valid.');
@@ -692,8 +698,8 @@ function sanitizeDocumentRequirements(documents, waves, paths) {
       description: String(document.description || '').trim().slice(0, 250),
       extensions: Array.from(new Set(extensions)),
       maxKB: maxKB,
-      required: document.required === true,
-      active: document.active !== false,
+      required: key === 'studentPhoto',
+      active: key === 'studentPhoto' || document.active !== false,
       order: Number.isSafeInteger(Number(document.order)) && Number(document.order) > 0 ? Number(document.order) : index + 1,
       wave: wave,
       registrationPath: registrationPath
@@ -3493,6 +3499,34 @@ app.use(function (error, request, response, next) {
   });
 });
 
+function refreshApplicantDocumentStatuses() {
+  const config = getConfig();
+  const applicants = database.prepare('SELECT * FROM applicants').all();
+  const uploadedRows = database.prepare('SELECT applicant_id, field_key FROM uploaded_files').all();
+  const uploadedByApplicant = new Map();
+  uploadedRows.forEach(function (file) {
+    if (!uploadedByApplicant.has(file.applicant_id)) uploadedByApplicant.set(file.applicant_id, new Set());
+    uploadedByApplicant.get(file.applicant_id).add(file.field_key);
+  });
+  const update = database.prepare('UPDATE applicants SET document_status = ?, status_updated_at = ? WHERE id = ?');
+  const updatedAt = new Date().toISOString();
+  const changedApplicantIds = [];
+  applicants.forEach(function (applicant) {
+    const status = calculateDocumentStatus(
+      applicant,
+      config,
+      JSON.parse(applicant.field_reviews_json || '{}'),
+      uploadedByApplicant.get(applicant.id) || new Set()
+    );
+    if (status === applicant.document_status) return;
+    update.run(status, updatedAt, applicant.id);
+    changedApplicantIds.push(applicant.id);
+  });
+  changedApplicantIds.forEach(function (applicantId) { queueSheetSync(applicantId); });
+  if (changedApplicantIds.length) setImmediate(syncQueuedApplications);
+}
+
+refreshApplicantDocumentStatuses();
 const server = app.listen(port, '0.0.0.0', function () {
   console.log('SPMB server listening on port ' + port);
 });

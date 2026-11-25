@@ -76,7 +76,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-5">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-6">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -105,7 +105,7 @@
   </script>
 
   <main class="mx-auto max-w-6xl px-4 py-7 sm:px-6 sm:py-10">
-    <section id="beranda" class="home-hero no-print">
+    <section id="beranda" class="home-hero no-print no-brochure">
       <div class="hero-copy">
         <h1>Mulai langkah masa depanmu bersama SMK PGRI Cikoneng.</h1>
         <p>Daftar sebagai calon peserta didik baru secara online. Siapkan data diri dan dokumen, lalu pantau proses pendaftaran melalui portal siswa.</p>
@@ -130,18 +130,10 @@
           </a>
         </div>
       </div>
-      <div class="brochure-frame">
+      <div id="brochure-frame" class="brochure-frame" hidden>
         <div class="brochure-image-wrap">
           <img id="brochure-image" class="hidden" alt="Brosur SPMB SMK PGRI Cikoneng">
-          <div id="brochure-placeholder" class="brochure-placeholder">
-            <img src="/assets/logo-pgri-cikoneng.png" alt="" width="64" height="64">
-            <span class="brochure-placeholder-kicker">RUANG BROSUR SPMB</span>
-            <strong>SMK PGRI CIKONENG</strong>
-            <span>Tahun Ajaran <span id="brochure-academic-year">2027/2028</span></span>
-            <small>Foto brosur dapat diatur melalui akun admin.</small>
-          </div>
         </div>
-        <span class="brochure-caption">Informasi penerimaan peserta didik baru</span>
       </div>
     </section>
 
@@ -663,7 +655,6 @@
       if (!Array.isArray(siteConfig.registrationWaves)) siteConfig.registrationWaves = DEFAULT_SITE_CONFIG.registrationWaves;
       if (!Array.isArray(siteConfig.timelineEvents)) siteConfig.timelineEvents = DEFAULT_SITE_CONFIG.timelineEvents;
       if (!Array.isArray(siteConfig.programs)) siteConfig.programs = DEFAULT_SITE_CONFIG.programs;
-      document.getElementById('brochure-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('timeline-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('page-title').textContent = siteConfig.pageTitle;
       document.getElementById('academic-year').textContent = 'SMK PGRI CIKONENG TAHUN AJARAN ' + siteConfig.academicYear;
@@ -671,16 +662,30 @@
       document.getElementById('form-pdf-link').href = siteConfig.formPdfUrl;
       document.getElementById('scholarship-pdf-link').href = siteConfig.scholarshipPdfUrl;
       const brochureImage = document.getElementById('brochure-image');
-      const brochurePlaceholder = document.getElementById('brochure-placeholder');
+      const brochureFrame = document.getElementById('brochure-frame');
+      const homeHero = document.getElementById('beranda');
       const brochureUrl = siteConfig.brochureImageUrl || '';
-      brochureImage.onerror = function () {
+      const hideBrochure = function () {
         brochureImage.classList.add('hidden');
-        brochurePlaceholder.hidden = false;
+        brochureFrame.hidden = true;
+        homeHero.classList.add('no-brochure');
       };
-      brochureImage.classList.toggle('hidden', !brochureUrl);
-      brochurePlaceholder.hidden = Boolean(brochureUrl);
-      if (brochureUrl) brochureImage.src = brochureUrl;
-      else brochureImage.removeAttribute('src');
+      brochureImage.onload = function () {
+        brochureImage.classList.remove('hidden');
+        brochureFrame.hidden = false;
+        homeHero.classList.remove('no-brochure');
+      };
+      brochureImage.onerror = hideBrochure;
+      hideBrochure();
+      if (brochureUrl) {
+        brochureImage.src = brochureUrl;
+        if (brochureImage.complete) {
+          if (brochureImage.naturalWidth) brochureImage.onload();
+          else hideBrochure();
+        }
+      } else {
+        brochureImage.removeAttribute('src');
+      }
       renderTimelineEvents(siteConfig.timelineEvents);
       document.getElementById('contact-link').href = siteConfig.contactUrl;
       document.getElementById('contact-label').textContent = siteConfig.contactLabel;
