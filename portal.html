@@ -75,6 +75,15 @@
     .portal-document-link[hidden] { display: none !important; }
     .portal-document-note { padding: 9px 10px; border: 1px solid #fecdd3; border-radius: 9px; background: #fff; color: #9f1239; font-size: 11px; line-height: 1.5; }
     .portal-document-note strong { display: block; margin-bottom: 3px; font-size: 10px; text-transform: uppercase; }
+    .portal-field-edit { grid-column: 1 / -1; padding: 12px; border: 1px solid #fdba74; border-radius: 12px; background: #fff7ed; }
+    .portal-field-edit dt { color: #9a3412; font-weight: 800; }
+    .portal-field-instruction { margin-top: 6px; color: #9a3412; font-size: 12px; line-height: 1.5; }
+    .portal-field-edit-form { display: grid; gap: 8px; margin-top: 10px; }
+    .portal-field-edit-form input, .portal-field-edit-form select, .portal-field-edit-form textarea { width: 100%; min-width: 0; border: 1px solid #fdba74; border-radius: 9px; padding: 10px 11px; color: #172033; background: #fff; font: inherit; font-size: 13px; }
+    .portal-field-edit-form button { width: fit-content; min-height: 36px; border: 0; border-radius: 999px; padding: 8px 15px; color: #fff; background: #ea580c; font-size: 12px; font-weight: 800; }
+    .portal-field-edit-form button:disabled { cursor: wait; opacity: .65; }
+    .portal-field-edit-status { min-height: 16px; color: #64748b; font-size: 11px; }
+    .portal-field-edit-status.error { color: #b91c1c; }
     .portal-revision-form { display: grid; gap: 7px; padding: 10px; border: 1px solid #f1c5cd; border-radius: 10px; background: rgb(255 255 255 / 80%); }
     .portal-revision-form label { color: #475569; font-size: 10px; font-weight: 700; }
     .portal-revision-form input { width: 100%; min-width: 0; font-size: 11px; }
@@ -90,6 +99,10 @@
     .reenrollment-verified-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; background: #10b981; color: white; }
     .reenrollment-proof-link { flex: 0 0 auto; border: 1px solid #dbe3ec; border-radius: 9px; padding: 8px 11px; color: #334155; background: white; font-size: 11px; font-weight: 800; text-decoration: none; }
     #print-card { display: none; }
+    #print-student-photo[hidden], #print-pin-field[hidden] { display: none !important; }
+    .print-card-body { display: grid; grid-template-columns: minmax(0, 1fr) 120px; align-items: start; gap: 18px; margin-top: 14px; border: 1px solid #64748b; padding: 18px; }
+    .print-card-details { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    #print-student-photo { width: 120px; height: 160px; border: 1px solid #94a3b8; border-radius: 8px; object-fit: cover; }
     @media (prefers-reduced-motion: reduce) {
       #selection-icon-pending, #selection-icon-accepted, #selection-icon-rejected, #selection-icon-reserve { animation: none; }
     }
@@ -126,7 +139,7 @@
       <form id="login-form" class="mt-7 space-y-4 text-left">
         <div>
           <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-600" for="registration-number">Nomor Pendaftaran</label>
-          <input class="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100" id="registration-number" name="registrationNumber" placeholder="Contoh: SPMB-2027-000001" autocomplete="username" required>
+          <input class="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100" id="registration-number" name="registrationNumber" placeholder="Contoh: SPMB-2027-A1B2C3D4" autocomplete="username" required>
         </div>
         <div>
           <label class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-600" for="portal-pin">PIN Akses 6 Digit</label>
@@ -245,7 +258,6 @@
         </div>
         <div id="portal-files" class="portal-document-grid"></div>
         <p id="portal-documents-empty" class="portal-document-empty" hidden>Belum ada dokumen yang perlu ditampilkan.</p>
-        <div id="portal-review-notes" class="mt-4"></div>
         <p id="portal-update-status" class="portal-update-status mt-3" role="status" aria-live="polite">Status diperbarui otomatis.</p>
       </section>
 
@@ -269,8 +281,8 @@
           </section>
         </div>
         <section class="mt-4 rounded-xl border border-slate-200 p-4 sm:p-5">
-          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Alamat Lengkap</h3>
-          <dl class="detail-grid"><div class="detail-item"><dt>Alamat Lengkap</dt><dd id="portal-address"></dd></div></dl>
+          <h3 class="mb-4 border-b border-slate-100 pb-3 text-xs font-extrabold uppercase tracking-wide text-slate-600">Alamat &amp; Data Tambahan</h3>
+          <dl id="household-details" class="detail-grid"></dl>
         </section>
       </section>
 
@@ -335,21 +347,41 @@
     </section>
   </main>
 
+  <dialog id="logout-confirm-dialog" class="w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/50">
+    <div class="p-6">
+      <div class="flex items-start gap-3">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-orange-100 text-orange-700" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+        </span>
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-900">Keluar dari portal?</h2>
+          <p class="mt-1 text-sm leading-6 text-slate-600">Anda perlu memasukkan nomor pendaftaran dan PIN lagi untuk membuka portal.</p>
+        </div>
+      </div>
+      <p id="logout-error" class="mt-3 hidden text-sm text-red-600" role="alert"></p>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="cancel-logout" class="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50" type="button">Tetap di Portal</button>
+        <button id="confirm-logout" class="rounded-full bg-orange-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-700 disabled:opacity-60" type="button">Ya, Keluar</button>
+      </div>
+    </div>
+  </dialog>
+
   <section id="print-card" aria-hidden="true">
     <div style="display:flex;align-items:center;gap:14px;border:2px solid #334155;padding:12px">
       <img src="/assets/logo-pgri-cikoneng.png" width="56" height="56" alt="">
       <div><h1 style="margin:0;font-size:20px">KARTU PESERTA SPMB</h1><p style="margin:5px 0 0;font-size:13px">SMK PGRI CIKONENG · TAHUN AJARAN <span id="print-year">2027/2028</span></p></div>
     </div>
-    <div style="margin-top:14px;border:1px solid #64748b;padding:18px">
-      <p style="margin:0;color:#64748b;font-size:11px">NOMOR PENDAFTARAN</p><strong id="print-registration" style="font-size:20px"></strong>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px">
+    <div class="print-card-body">
+      <div class="print-card-details">
+        <div><p style="margin:0;color:#64748b;font-size:11px">NOMOR PENDAFTARAN</p><strong id="print-registration" style="font-size:20px"></strong></div>
         <div><p style="margin:0;color:#64748b;font-size:11px">NAMA SISWA</p><strong id="print-name"></strong></div>
         <div><p style="margin:0;color:#64748b;font-size:11px">NISN</p><strong id="print-nisn"></strong></div>
         <div><p style="margin:0;color:#64748b;font-size:11px">PROGRAM STUDI</p><strong id="print-major"></strong></div>
         <div><p style="margin:0;color:#64748b;font-size:11px">GELOMBANG</p><strong id="print-wave"></strong></div>
-        <div><p style="margin:0;color:#64748b;font-size:11px">PIN PORTAL</p><strong id="print-pin" style="font-size:20px;letter-spacing:3px"></strong></div>
+        <div id="print-pin-field"><p style="margin:0;color:#64748b;font-size:11px">PIN PORTAL</p><strong id="print-pin" style="font-size:20px;letter-spacing:3px"></strong></div>
         <div><p style="margin:0;color:#64748b;font-size:11px">ASAL SEKOLAH</p><strong id="print-school"></strong></div>
       </div>
+      <img id="print-student-photo" alt="Foto calon peserta didik" hidden>
     </div>
     <p style="margin-top:14px;font-size:11px">Simpan kartu ini. Gunakan nomor pendaftaran dan PIN untuk masuk ke Portal Calon Siswa.</p>
   </section>
@@ -413,10 +445,82 @@
       container.appendChild(wrapper);
     }
 
-    function renderDetails(id, entries) {
+    function makePortalFieldControl(field) {
+      let control;
+      if (field.type === 'select') {
+        control = document.createElement('select');
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = field.placeholder || 'Pilih pilihan...';
+        control.appendChild(placeholder);
+        (field.options || []).forEach(function (optionValue) {
+          const option = document.createElement('option');
+          option.value = optionValue;
+          option.textContent = optionValue;
+          control.appendChild(option);
+        });
+      } else if (field.type === 'textarea') {
+        control = document.createElement('textarea');
+        control.rows = 3;
+        control.placeholder = field.placeholder || '';
+      } else {
+        control = document.createElement('input');
+        control.type = field.type === 'number' ? 'text' : field.type;
+        if (field.type === 'number') control.inputMode = 'numeric';
+        control.placeholder = field.placeholder || '';
+      }
+      control.id = 'portal-field-' + field.key;
+      control.name = 'value';
+      control.required = Boolean(field.required);
+      if (field.type === 'select') {
+        if ((field.options || []).includes(String(field.value || ''))) control.value = String(field.value);
+      } else {
+        control.value = field.value == null ? '' : String(field.value);
+      }
+      return control;
+    }
+
+    function renderPortalField(container, field) {
+      const isRevision = field.review && field.review.status === 'revision';
+      if (!isRevision) {
+        addDetail(container, field.label, field.key === 'birthDate' ? formatDate(field.value) : field.value);
+        return;
+      }
+      const wrapper = document.createElement('div');
+      wrapper.className = 'detail-item portal-field-edit';
+      const term = document.createElement('dt');
+      term.textContent = field.label + ' · Perlu diperbaiki';
+      const instruction = document.createElement('p');
+      instruction.className = 'portal-field-instruction';
+      instruction.textContent = field.review.note || 'Silakan perbaiki data ini sesuai arahan panitia.';
+      const form = document.createElement('form');
+      form.className = 'portal-field-edit-form';
+      form.dataset.portalFieldForm = 'true';
+      form.dataset.fieldKey = field.key;
+      const label = document.createElement('label');
+      label.className = 'sr-only';
+      label.htmlFor = 'portal-field-' + field.key;
+      label.textContent = field.label;
+      const control = makePortalFieldControl(field);
+      const helper = document.createElement('span');
+      helper.className = 'text-[11px] text-slate-500';
+      helper.textContent = field.helpText || '';
+      helper.hidden = !field.helpText;
+      const button = document.createElement('button');
+      button.type = 'submit';
+      button.textContent = 'Kirim Perbaikan';
+      const message = document.createElement('p');
+      message.className = 'portal-field-edit-status';
+      message.setAttribute('role', 'status');
+      form.append(label, control, helper, button, message);
+      wrapper.append(term, instruction, form);
+      container.appendChild(wrapper);
+    }
+
+    function renderPortalFields(id, fields) {
       const container = document.getElementById(id);
       container.replaceChildren();
-      entries.forEach(function (entry) { addDetail(container, entry[0], entry[1]); });
+      fields.forEach(function (field) { renderPortalField(container, field); });
     }
 
     function renderPortalDocuments(application) {
@@ -524,7 +628,6 @@
       portalClass.textContent = application.classAssignment ? 'Kelas: ' + application.classAssignment : '';
       showText('portal-school', 'Asal: ' + application.student.school);
       showText('registered-at', application.registeredAt ? new Date(application.registeredAt).toLocaleString('id-ID') : 'Tanggal pendaftaran tersimpan');
-      showText('portal-address', application.address);
 
       const decision = application.selectionStatus || 'Menunggu Pengumuman';
       const isAccepted = ['Diterima', 'Diterima / Lulus'].includes(decision);
@@ -590,47 +693,14 @@
       paymentPanel.classList.toggle('hidden', !application.canPay);
       if (application.canPay) renderPaymentOptions(application);
 
-      const studentEntries = [
-        ['Nama Lengkap', application.student.name], ['Jenis Kelamin', application.student.gender],
-        ['NISN', application.student.nisn], ['NIK', application.student.nik],
-        ['Nomor KK', application.student.familyCardNumber], ['Agama', application.student.religion],
-        ['Tempat Lahir', application.student.birthPlace], ['Tanggal Lahir', formatDate(application.student.birthDate)],
-        ['Asal Sekolah', application.student.school], ['No. HP / WA Siswa', application.student.phone],
-        ['Email', application.student.email]
-      ];
-      Object.keys(application.customData || {}).forEach(function (key) {
-        const field = (application.fields || []).find(function (item) { return item.key === key; });
-        if (field) studentEntries.push([field.label, application.customData[key]]);
-      });
-      renderDetails('student-details', studentEntries);
-      renderDetails('father-details', [
-        ['Nama Ayah', application.father.name], ['NIK Ayah', application.father.nik],
-        ['Pendidikan', application.father.education], ['Pekerjaan', application.father.occupation],
-        ['Penghasilan / bulan', application.father.income], ['No. WhatsApp', application.father.phone]
-      ]);
-      renderDetails('mother-details', [
-        ['Nama Ibu', application.mother.name], ['NIK Ibu', application.mother.nik],
-        ['Pendidikan', application.mother.education], ['Pekerjaan', application.mother.occupation],
-        ['Penghasilan / bulan', application.mother.income], ['No. WhatsApp', application.mother.phone]
-      ]);
+      const fields = application.fields || [];
+      renderPortalFields('student-details', fields.filter(function (field) { return field.step < 3; }));
+      renderPortalFields('father-details', fields.filter(function (field) { return field.key.indexOf('father') === 0; }));
+      renderPortalFields('mother-details', fields.filter(function (field) { return field.key.indexOf('mother') === 0; }));
+      renderPortalFields('household-details', fields.filter(function (field) {
+        return field.step >= 3 && field.key.indexOf('father') !== 0 && field.key.indexOf('mother') !== 0;
+      }));
       renderPortalDocuments(application);
-      const reviewNotes = document.getElementById('portal-review-notes');
-      reviewNotes.replaceChildren();
-      const revisions = (application.fields || []).filter(function (field) {
-        return field.review && field.review.status === 'revision' && field.review.note;
-      });
-      if (revisions.length) {
-        const title = document.createElement('h4');
-        title.className = 'mb-2 text-xs font-extrabold uppercase tracking-wide text-amber-700';
-        title.textContent = 'Catatan perbaikan dari panitia';
-        reviewNotes.appendChild(title);
-        revisions.forEach(function (item) {
-          const note = document.createElement('p');
-          note.className = 'mb-1 text-sm text-amber-800';
-          note.textContent = item.label + ': ' + item.review.note;
-          reviewNotes.appendChild(note);
-        });
-      }
 
       showText('print-year', application.academicYear);
       showText('print-registration', application.registrationNumber);
@@ -640,6 +710,16 @@
       showText('print-wave', application.wave);
       showText('print-pin', pin);
       showText('print-school', application.student.school);
+      const printPinField = document.getElementById('print-pin-field');
+      printPinField.hidden = !pin;
+      const printPhoto = document.getElementById('print-student-photo');
+      printPhoto.hidden = !application.studentPhotoUrl;
+      if (application.studentPhotoUrl) {
+        printPhoto.src = application.studentPhotoUrl;
+        printPhoto.onerror = function () { printPhoto.hidden = true; };
+      } else {
+        printPhoto.removeAttribute('src');
+      }
     }
 
     function renderPaymentOptions(application) {
@@ -713,6 +793,29 @@
       stopPortalRefresh();
       refreshPortalApplication();
       portalRefreshTimer = window.setInterval(refreshPortalApplication, portalRefreshIntervalMs);
+    }
+
+    async function restorePortalSession() {
+      const requestGeneration = portalSessionGeneration;
+      try {
+        const response = await fetch('/api/portal/application', {
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+        if (requestGeneration !== portalSessionGeneration || response.status === 401) return;
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Sesi portal belum dapat dipulihkan.');
+        if (!result.application) throw new Error('Data sesi portal tidak tersedia.');
+        if (requestGeneration !== portalSessionGeneration || activeApplication) return;
+        displayPortal(result.application, '');
+        startPortalRefresh();
+      } catch (error) {
+        if (requestGeneration !== portalSessionGeneration) return;
+        const message = document.getElementById('login-error');
+        message.textContent = 'Sesi portal belum dapat diperiksa. Silakan coba masuk kembali.';
+        message.classList.remove('hidden');
+        console.error('Portal session restore failed:', error);
+      }
     }
 
     function refreshPortalApplication(successMessage) {
@@ -799,16 +902,84 @@
       }
     });
 
-    document.getElementById('logout-button').addEventListener('click', async function () {
-      stopPortalRefresh();
-      portalSessionGeneration += 1;
-      try { await fetch('/api/portal/logout', { method: 'POST', credentials: 'same-origin' }); } catch (error) { console.error(error); }
-      activeApplication = null;
-      activePin = '';
-      document.getElementById('portal-content').classList.add('hidden');
-      document.getElementById('login-panel').classList.remove('hidden');
-      document.getElementById('portal-pin').value = '';
-      document.getElementById('registration-number').focus();
+    const logoutDialog = document.getElementById('logout-confirm-dialog');
+    document.getElementById('logout-button').addEventListener('click', function () {
+      document.getElementById('logout-error').classList.add('hidden');
+      logoutDialog.showModal();
+    });
+    document.getElementById('cancel-logout').addEventListener('click', function () {
+      logoutDialog.close();
+    });
+    document.getElementById('confirm-logout').addEventListener('click', async function () {
+      const button = document.getElementById('confirm-logout');
+      const error = document.getElementById('logout-error');
+      button.disabled = true;
+      error.classList.add('hidden');
+      try {
+        const response = await fetch('/api/portal/logout', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+        const result = await response.json();
+        if (!response.ok && response.status !== 401) {
+          throw new Error(result.message || 'Sesi portal gagal diakhiri.');
+        }
+        stopPortalRefresh();
+        portalSessionGeneration += 1;
+        activeApplication = null;
+        activePin = '';
+        logoutDialog.close();
+        document.getElementById('portal-content').classList.add('hidden');
+        document.getElementById('login-panel').classList.remove('hidden');
+        document.getElementById('portal-pin').value = '';
+        document.getElementById('registration-number').focus();
+      } catch (requestError) {
+        error.textContent = requestError.message || 'Portal belum dapat mengakhiri sesi.';
+        error.classList.remove('hidden');
+        console.error('Portal logout failed:', requestError);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('portal-content').addEventListener('submit', async function (event) {
+      const form = event.target.closest('[data-portal-field-form]');
+      if (!form) return;
+      event.preventDefault();
+      const key = form.dataset.fieldKey;
+      const control = form.querySelector('[name="value"]');
+      const button = form.querySelector('button[type="submit"]');
+      const message = form.querySelector('[role="status"]');
+      button.disabled = true;
+      message.textContent = 'Mengirim perbaikan data...';
+      message.classList.remove('error');
+      try {
+        const response = await fetch('/api/portal/fields/' + encodeURIComponent(key), {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: control.value })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Perbaikan data gagal dikirim.');
+        const revisedField = (activeApplication.fields || []).find(function (field) {
+          return field.key === key;
+        });
+        const successMessage = 'Perbaikan data ' + (revisedField ? revisedField.label : 'berhasil') +
+          ' berhasil dikirim dan menunggu verifikasi';
+        await refreshPortalApplication(successMessage);
+        const refreshedField = activeApplication && (activeApplication.fields || []).find(function (field) {
+          return field.key === key;
+        });
+        if (refreshedField && refreshedField.review && refreshedField.review.status === 'revision') {
+          await refreshPortalApplication(successMessage);
+        }
+      } catch (requestError) {
+        message.textContent = requestError.message || 'Perbaikan data gagal dikirim.';
+        message.classList.add('error');
+      } finally {
+        button.disabled = false;
+      }
     });
 
     document.getElementById('portal-files').addEventListener('submit', async function (event) {
@@ -904,6 +1075,8 @@
     document.getElementById('download-card-button').addEventListener('click', function () {
       if (activeApplication) window.print();
     });
+
+    restorePortalSession();
   </script>
 </body>
 </html>

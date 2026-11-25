@@ -573,8 +573,44 @@ footer.no-print {
 #selection-result-panel {
   border-color: #fed7aa !important;
   border-radius: 22px !important;
-  background: linear-gradient(115deg, #fff7ed, #fff1f2 55%, #f5f3ff) !important;
-  box-shadow: 0 14px 34px rgb(244 63 94 / 7%);
+  color: #172033 !important;
+  background: linear-gradient(115deg, #eff6ff, #eef2ff 55%, #ecfeff) !important;
+  box-shadow: 0 14px 34px rgb(37 99 235 / 10%);
+}
+
+#selection-result-panel.accepted {
+  border-color: #a7f3d0 !important;
+  background: linear-gradient(115deg, #ecfdf5, #d1fae5 55%, #ccfbf1) !important;
+  box-shadow: 0 14px 34px rgb(5 150 105 / 10%);
+}
+
+#selection-result-panel.rejected {
+  border-color: #fecaca !important;
+  background: linear-gradient(115deg, #fff1f2, #ffe4e6 55%, #fee2e2) !important;
+  box-shadow: 0 14px 34px rgb(220 38 38 / 9%);
+}
+
+#selection-result-panel.reserve {
+  border-color: #fde68a !important;
+  background: linear-gradient(115deg, #fffbeb, #fef3c7 55%, #fef9c3) !important;
+  box-shadow: 0 14px 34px rgb(202 138 4 / 10%);
+}
+
+#selection-result-panel .selection-result-content h2 {
+  color: #172033 !important;
+}
+
+#selection-result-panel .selection-result-content p {
+  color: #475569 !important;
+}
+
+#selection-result-panel #selection-icon-pending { color: #2563eb !important; }
+#selection-result-panel #selection-icon-accepted { color: #047857 !important; }
+#selection-result-panel #selection-icon-rejected { color: #be123c !important; }
+#selection-result-panel #selection-icon-reserve { color: #b45309 !important; }
+
+#logout-confirm-dialog::backdrop {
+  background: rgb(15 23 42 / 52%);
 }
 
 #payment-panel { border-top: 4px solid #0f9f9a; }

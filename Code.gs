@@ -35,7 +35,7 @@ function doPost(event) {
       throw new Error('Token sinkronisasi tidak valid.');
     }
     const registration = request.registration;
-    if (!/^SPMB-\d{4}-\d{6}$/.test(String(registration.registrationNumber || ''))) {
+    if (!/^SPMB-\d{4}-(?:\d{6}|(?=[A-Z0-9]{8}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8})$/.test(String(registration.registrationNumber || ''))) {
       throw new Error('Nomor pendaftaran tidak valid.');
     }
 

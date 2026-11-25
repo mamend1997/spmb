@@ -2810,7 +2810,7 @@
     }
 
     function showRouteFromLocation() {
-      const match = window.location.pathname.match(/^\/admin\/pendaftar\/(SPMB-\d{4}-\d{6})\/?$/i);
+      const match = window.location.pathname.match(/^\/admin\/pendaftar\/(SPMB-\d{4}-(?:\d{6}|[A-Z0-9]{8}))\/?$/i);
       if (match) {
         const applicant = applicants.find(function (item) {
           return item.registration_number.toUpperCase() === match[1].toUpperCase();

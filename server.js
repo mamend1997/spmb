@@ -38,6 +38,7 @@ const uploadTypes = {
 const documentStatuses = ['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'];
 const selectionStatuses = ['Menunggu Pengumuman', 'Diterima / Lulus', 'Cadangan', 'Tidak Diterima', 'Diterima'];
 const reenrollmentStatuses = ['Belum Daftar Ulang', 'Daftar Ulang Selesai'];
+const registrationNumberPattern = /^SPMB-\d{4}-(?:\d{6}|(?=[A-Z0-9]{8}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8})$/;
 const initialConfig = {
   pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
   academicYear: '2027/2028',
@@ -387,7 +388,7 @@ app.use(express.json({ limit: '20mb' }));
 
 function getConfig() {
   const saved = database.prepare('SELECT value FROM settings WHERE key = ?').get('siteConfig');
-  if (!saved) return structuredClone(initialConfig);
+  if (!saved) return sanitizeConfig(structuredClone(initialConfig));
   return sanitizeConfig(JSON.parse(saved.value));
 }
 
@@ -764,6 +765,28 @@ function isAllowedPublicUrl(value) {
 
 function getApplicantByRegistration(registrationNumber) {
   return database.prepare('SELECT * FROM applicants WHERE registration_number = ?').get(registrationNumber);
+}
+
+function generateRegistrationNumber(year) {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const characters = [];
+    for (let index = 0; index < 4; index += 1) {
+      characters.push(letters[crypto.randomInt(letters.length)]);
+      characters.push(String(crypto.randomInt(10)));
+    }
+    for (let index = characters.length - 1; index > 0; index -= 1) {
+      const swapIndex = crypto.randomInt(index + 1);
+      const character = characters[index];
+      characters[index] = characters[swapIndex];
+      characters[swapIndex] = character;
+    }
+    const registrationNumber = 'SPMB-' + year + '-' + characters.join('');
+    if (!database.prepare('SELECT 1 FROM applicants WHERE registration_number = ?').get(registrationNumber)) {
+      return registrationNumber;
+    }
+  }
+  throw new Error('Nomor pendaftaran gagal dibuat. Silakan coba kembali.');
 }
 
 function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
@@ -1730,7 +1753,7 @@ app.post('/api/registrations', function (request, response) {
         )
       `).run(insertValues);
       const applicantId = Number(insert.lastInsertRowid);
-      const registrationNumber = 'SPMB-' + year + '-' + String(applicantId).padStart(6, '0');
+      const registrationNumber = generateRegistrationNumber(year);
       applicantDirectory = path.join(uploadDirectory, registrationNumber);
       database.prepare('UPDATE applicants SET registration_number = ? WHERE id = ?').run(registrationNumber, applicantId);
       const currentConfig = getConfig();
@@ -1826,7 +1849,7 @@ app.post('/api/public/application-result', function (request, response) {
   const searchColumns = {
     nisn: { column: 'nisn', pattern: /^\d{10}$/ },
     nik: { column: 'student_nik', pattern: /^\d{16}$/ },
-    registrationNumber: { column: 'registration_number', pattern: /^SPMB-\d{4}-\d{6}$/ }
+    registrationNumber: { column: 'registration_number', pattern: registrationNumberPattern }
   };
   const search = searchColumns[type];
   if (!search || !search.pattern.test(identifier)) {
@@ -1925,7 +1948,25 @@ function buildPortalApplication(applicant, config) {
     fields: config.formFields.filter(function (field) { return field.active; }).map(function (field) {
       const fixed = applicant[field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); })];
       const value = field.custom ? customData[field.key] : fixed;
-      return { key: field.key, label: field.label, value: value || '', review: fieldReviews[field.key] || null };
+      const options = field.key === 'wave'
+        ? config.registrationWaves.map(function (item) { return item.name; })
+        : field.key === 'registrationPath'
+          ? config.registrationPaths.filter(function (item) {
+            return item.active && (!item.wave || item.wave === applicant.wave);
+          }).map(function (item) { return item.name; })
+          : field.key === 'major' ? config.programs : field.options;
+      return {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        step: field.step,
+        required: field.required,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        options: options,
+        value: value || '',
+        review: fieldReviews[field.key] || null
+      };
     }),
     files: visibleDocuments.map(portalFile).concat(uploadedFiles.has('paymentProof') ? [portalFile({
       key: 'paymentProof',
@@ -1951,7 +1992,7 @@ function buildPortalApplication(applicant, config) {
 app.post('/api/portal/login', function (request, response) {
   const registrationNumber = String(request.body && request.body.registrationNumber || '').trim().toUpperCase();
   const pin = String(request.body && request.body.pin || '').trim();
-  if (!/^SPMB-\d{4}-\d{6}$/.test(registrationNumber) || !/^\d{6}$/.test(pin)) {
+  if (!registrationNumberPattern.test(registrationNumber) || !/^\d{6}$/.test(pin)) {
     return response.status(401).json({ message: 'Nomor pendaftaran atau PIN tidak sesuai.' });
   }
   const now = Date.now();
@@ -1989,6 +2030,91 @@ app.post('/api/portal/login', function (request, response) {
 app.get('/api/portal/application', requirePortal, function (request, response) {
   response.setHeader('Cache-Control', 'private, no-store');
   response.json({ application: buildPortalApplication(request.portalApplicant, getConfig()) });
+});
+
+app.patch('/api/portal/fields/:key', requirePortal, function (request, response) {
+  const key = String(request.params.key || '');
+  if (!/^[a-z][a-zA-Z0-9_]{1,39}$/.test(key)) {
+    return response.status(400).json({ message: 'Field data tidak valid.' });
+  }
+  const applicant = request.portalApplicant;
+  const config = getConfig();
+  const field = config.formFields.find(function (item) { return item.key === key && item.active; });
+  if (!field) return response.status(404).json({ message: 'Field data tidak ditemukan.' });
+  const reviews = JSON.parse(applicant.field_reviews_json || '{}');
+  if (!reviews[key] || reviews[key].status !== 'revision') {
+    return response.status(409).json({ message: 'Field ini tidak sedang diminta untuk diperbaiki.' });
+  }
+  const rawValue = request.body && request.body.value;
+  if (typeof rawValue !== 'string') {
+    return response.status(400).json({ message: 'Isi perbaikan data harus berupa teks.' });
+  }
+  const value = rawValue.trim();
+  let customData = JSON.parse(applicant.custom_data_json || '{}');
+  let updated = null;
+  if (field.custom) {
+    if (!value && field.required) return response.status(400).json({ message: 'Data ' + field.label + ' wajib diisi.' });
+    if (value.length > 2000) return response.status(400).json({ message: 'Data ' + field.label + ' terlalu panjang.' });
+    if (value && field.options.length && !field.options.includes(value)) {
+      return response.status(400).json({ message: 'Pilihan ' + field.label + ' tidak valid.' });
+    }
+    customData[key] = value;
+  } else {
+    const knownField = initialConfig.formFields.some(function (item) { return item.key === key; });
+    if (!knownField) return response.status(400).json({ message: 'Field tidak dapat diperbaiki melalui portal.' });
+    const input = {
+      wave: applicant.wave,
+      registrationPath: applicant.registration_path,
+      major: applicant.major
+    };
+    config.formFields.filter(function (item) { return !item.custom; }).forEach(function (item) {
+      const column = item.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+      input[item.key] = applicant[column] == null ? '' : String(applicant[column]);
+    });
+    input[key] = value;
+    try {
+      updated = validateApplicantUpdate(input, applicant);
+    } catch (error) {
+      return response.status(400).json({ message: error.message || 'Perbaikan data tidak valid.' });
+    }
+    if (['nisn', 'studentNik'].includes(key) && value !== String(applicant[key.replace(/[A-Z]/g, function (letter) {
+      return '_' + letter.toLowerCase();
+    })] || '')) {
+      const duplicate = database.prepare(`
+        SELECT id FROM applicants
+        WHERE ((? <> '' AND nisn = ?) OR (? <> '' AND student_nik = ?)) AND id <> ?
+      `).get(updated.nisn, updated.nisn, updated.studentNik, updated.studentNik, applicant.id);
+      if (duplicate) return response.status(409).json({ message: 'NISN atau NIK tersebut sudah dipakai pendaftar lain.' });
+    }
+  }
+  const now = new Date().toISOString();
+  reviews[key] = { status: 'pending', note: '', updatedAt: now };
+  const updatedApplicant = Object.assign({}, applicant);
+  if (field.custom) {
+    updatedApplicant.custom_data_json = JSON.stringify(customData);
+  } else {
+    const column = key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    updatedApplicant[column] = updated[key];
+    if (key === 'wave') updatedApplicant.wave_fee = updated.waveFee;
+  }
+  const uploaded = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
+    .all(applicant.id).map(function (file) { return file.field_key; }));
+  const documentStatus = calculateDocumentStatus(updatedApplicant, config, reviews, uploaded);
+  const updateColumns = field.custom
+    ? 'custom_data_json = ?'
+    : key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); }) + ' = ?' +
+      (key === 'wave' ? ', wave_fee = ?' : '');
+  const updateValues = field.custom
+    ? [JSON.stringify(customData)]
+    : key === 'wave' ? [updated.wave, updated.waveFee] : [updated[key]];
+  withTransaction(function () {
+    const update = database.prepare('UPDATE applicants SET ' + updateColumns +
+      ', field_reviews_json = ?, document_status = ?, status_updated_at = ? WHERE id = ?');
+    update.run.apply(update, updateValues.concat([JSON.stringify(reviews), documentStatus, now, applicant.id]));
+  });
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', documentStatus: documentStatus });
 });
 
 app.get('/api/portal/documents/:key', requirePortal, function (request, response) {
@@ -2709,7 +2835,7 @@ function getActiveBulkApplicants(body) {
     return { error: 'Pilih 1–500 pendaftar yang valid.' };
   }
   const registrationNumbers = Array.from(new Set(supplied.map(function (value) { return value.trim().toUpperCase(); })));
-  if (registrationNumbers.some(function (value) { return !/^SPMB-\d{4}-\d{6}$/.test(value); })) {
+  if (registrationNumbers.some(function (value) { return !registrationNumberPattern.test(value); })) {
     return { error: 'Nomor pendaftaran tidak valid.' };
   }
   const applicants = registrationNumbers.map(getApplicantByRegistration);
