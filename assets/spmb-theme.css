@@ -293,6 +293,73 @@ header.site-header {
   max-height: 560px;
   height: auto;
   object-fit: contain;
+  transition: opacity .35s ease;
+}
+
+.brochure-carousel-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 4px 1px;
+}
+
+#brochure-carousel-controls[hidden] { display: none !important; }
+
+.brochure-carousel-arrow,
+.brochure-carousel-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+}
+
+.brochure-carousel-arrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 90%);
+  color: #9a3412;
+}
+
+.brochure-carousel-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.brochure-carousel-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.brochure-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 55%);
+  transition: width .2s ease, background-color .2s ease;
+}
+
+.brochure-carousel-dot.active {
+  width: 20px;
+  background: #fff;
+}
+
+.brochure-carousel-arrow:focus-visible,
+.brochure-carousel-dot:focus-visible {
+  outline: 2px solid #7c2d12;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #brochure-image,
+  .brochure-carousel-dot {
+    transition: none;
+  }
 }
 
 .form-area {

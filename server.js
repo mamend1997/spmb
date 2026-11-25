@@ -81,6 +81,7 @@ const initialConfig = {
     driveFolderId: ''
   },
   brochureImageUrl: '',
+  brochureImageUrls: [],
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
   schoolDocuments: [
@@ -745,6 +746,11 @@ function sanitizeConfig(input) {
   if (majorField) majorField.options = configuredPrograms.slice();
   const registrationWaves = sanitizeWaves(input.registrationWaves);
   const registrationPaths = sanitizePaths(input.registrationPaths, registrationWaves);
+  const brochureImageUrls = sanitizeBrochureImageUrls(
+    Object.prototype.hasOwnProperty.call(input, 'brochureImageUrls')
+      ? input.brochureImageUrls
+      : (input.brochureImageUrl ? [input.brochureImageUrl] : [])
+  );
   const config = {
     pageTitle: String(input.pageTitle || '').trim(),
     academicYear: String(input.academicYear || '').trim(),
@@ -752,7 +758,8 @@ function sanitizeConfig(input) {
     classes: sanitizeClasses(input.classes),
     whatsappGateway: sanitizeWhatsAppGatewayConfig(input.whatsappGateway),
     googleIntegration: sanitizeGoogleIntegrationConfig(input.googleIntegration),
-    brochureImageUrl: String(input.brochureImageUrl || '').trim(),
+    brochureImageUrl: brochureImageUrls[0] || '',
+    brochureImageUrls: brochureImageUrls,
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
     schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
@@ -777,17 +784,30 @@ function sanitizeConfig(input) {
   if (!isAllowedPublicUrl(config.contactUrl)) {
     throw new Error('Link Contact Person harus menggunakan URL HTTPS.');
   }
-  if (config.brochureImageUrl &&
-      (!isAllowedPublicUrl(config.brochureImageUrl) ||
-       (!config.brochureImageUrl.startsWith('/assets/') && !config.brochureImageUrl.startsWith('/public-files/')))) {
-    throw new Error('Foto brosur harus berasal dari file publik situs.');
-  }
   ['formPdfUrl', 'scholarshipPdfUrl'].forEach(function (key) {
     if (!isAllowedPublicUrl(config[key]) || (!config[key].startsWith('/assets/') && !config[key].startsWith('/public-files/'))) {
       throw new Error('Link PDF harus menggunakan HTTPS atau file publik situs.');
     }
   });
   return config;
+}
+
+function sanitizeBrochureImageUrls(input) {
+  if (!Array.isArray(input) || input.length > 6) {
+    throw new Error('Beranda dapat menampilkan maksimal 6 foto.');
+  }
+  const seen = new Set();
+  return input.map(function (value) {
+    if (typeof value !== 'string') throw new Error('Daftar foto beranda tidak valid.');
+    const url = value.trim();
+    if (!url || !isAllowedPublicUrl(url) ||
+        (!url.startsWith('/assets/') && !url.startsWith('/public-files/'))) {
+      throw new Error('Foto beranda harus berasal dari file publik situs.');
+    }
+    if (seen.has(url)) throw new Error('Foto yang sama tidak boleh ditambahkan lebih dari sekali.');
+    seen.add(url);
+    return url;
+  });
 }
 
 function sanitizePrograms(input) {
@@ -1518,7 +1538,7 @@ const adminConfigPermissionGroups = {
   whatsapp: ['whatsappGateway'],
   waves: ['registrationWaves'],
   paths: ['registrationPaths'],
-  timeline: ['brochureImageUrl', 'timelineEvents'],
+  timeline: ['brochureImageUrl', 'brochureImageUrls', 'timelineEvents'],
   googleIntegration: ['googleIntegration'],
   payment: ['paymentSettings'],
   documents: ['schoolDocuments']
@@ -3954,6 +3974,11 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
         delete merged.whatsappGateway.tokenConfigured;
       });
     });
+    if (permissions.timeline.edit &&
+        Object.prototype.hasOwnProperty.call(body, 'brochureImageUrl') &&
+        !Object.prototype.hasOwnProperty.call(body, 'brochureImageUrls')) {
+      merged.brochureImageUrls = body.brochureImageUrl ? [body.brochureImageUrl] : [];
+    }
     if (!canEdit) return response.status(403).json({ message: 'Akun Anda tidak memiliki izin mengubah Master Data.' });
     const config = sanitizeConfig(merged);
     if (config.academicYear !== previous.academicYear) {
@@ -3978,6 +4003,12 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
         throw new Error('Akun Anda tidak memiliki izin menghapus data pada menu ini.');
       }
     });
+    const removedBrochureImage = (previous.brochureImageUrls || []).some(function (url) {
+      return !config.brochureImageUrls.includes(url);
+    });
+    if (removedBrochureImage && !permissions.timeline.delete) {
+      throw new Error('Akun Anda tidak memiliki izin menghapus foto beranda.');
+    }
     const removedClass = (previous.classes || []).some(function (className) {
       return !config.classes.includes(className);
     });
@@ -4112,7 +4143,8 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
     formPdf: { key: 'formPdfUrl', fileName: 'formulir-offline.pdf', permission: 'form' },
     scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf', permission: 'form' },
     paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024, permission: 'payment' },
-    brochureImage: { key: 'brochureImageUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb', permission: 'timeline' }
+    brochureImage: { key: 'brochureImageUrl', replaceArrayKey: 'brochureImageUrls', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb', permission: 'timeline' },
+    brochureSlide: { arrayKey: 'brochureImageUrls', maxItems: 6, image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'spmb-slide', permission: 'timeline' }
   };
   const asset = assetTypes[request.params.type];
   if (!asset) return response.status(400).json({ message: 'Jenis file tidak dikenali.' });
@@ -4120,6 +4152,10 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
     return response.status(403).json({ message: 'Akun Anda tidak memiliki izin mengubah file pada menu ini.' });
   }
   try {
+    const config = getConfig();
+    if (asset.arrayKey && config[asset.arrayKey].length >= asset.maxItems) {
+      throw new Error('Beranda sudah memiliki maksimal 6 foto.');
+    }
     const base64 = String(request.body && request.body.base64 || '');
     const contentType = String(request.body && request.body.contentType || '').toLowerCase();
     const maxBytes = asset.maxBytes || 5 * 1024 * 1024;
@@ -4142,9 +4178,11 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
     const extension = validPng ? '.png' : validJpeg ? '.jpg' : '.pdf';
     const fileName = (asset.filePrefix || request.params.type) + '-' + crypto.randomBytes(10).toString('hex') + extension;
     fs.writeFileSync(path.join(publicFileDirectory, fileName), bytes, { mode: 0o644, flag: 'wx' });
-    const config = getConfig();
-    if (asset.section) config[asset.section][asset.key] = '/public-files/' + fileName;
-    else config[asset.key] = '/public-files/' + fileName;
+    const publicUrl = '/public-files/' + fileName;
+    if (asset.arrayKey) config[asset.arrayKey].push(publicUrl);
+    else if (asset.replaceArrayKey) config[asset.replaceArrayKey] = [publicUrl];
+    else if (asset.section) config[asset.section][asset.key] = publicUrl;
+    else config[asset.key] = publicUrl;
     const schoolDocumentKey = request.params.type === 'formPdf' ? 'offlineForm'
       : request.params.type === 'scholarshipPdf' ? 'scholarshipInfo' : '';
     if (schoolDocumentKey) {

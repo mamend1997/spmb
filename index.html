@@ -76,7 +76,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-7">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-8">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -132,7 +132,16 @@
       </div>
       <div id="brochure-frame" class="brochure-frame" hidden>
         <div class="brochure-image-wrap">
-          <img id="brochure-image" class="hidden" alt="Brosur SPMB SMK PGRI Cikoneng">
+          <img id="brochure-image" class="hidden" alt="Foto SPMB SMK PGRI Cikoneng">
+        </div>
+        <div id="brochure-carousel-controls" class="brochure-carousel-controls" hidden>
+          <button id="brochure-previous" class="brochure-carousel-arrow" type="button" aria-label="Foto sebelumnya">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div id="brochure-carousel-dots" class="brochure-carousel-dots" role="group" aria-label="Pilih foto"></div>
+          <button id="brochure-next" class="brochure-carousel-arrow" type="button" aria-label="Foto berikutnya">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
         </div>
       </div>
     </section>
@@ -498,6 +507,7 @@
         'BISNIS DIGITAL'
       ],
       brochureImageUrl: '',
+      brochureImageUrls: [],
       formPdfUrl: '/assets/spmb-formulir-offline.pdf',
       scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
       contactLabel: 'Contact Person SPMB',
@@ -526,6 +536,11 @@
     let siteConfig = DEFAULT_SITE_CONFIG;
     let activeStepNumber = 1;
     let revealObserver = null;
+    let brochureSlideUrls = [];
+    let brochureSlideIndex = 0;
+    let brochureSlideTimer = null;
+    let brochureSlideLoadId = 0;
+    let brochureSlidePaused = false;
 
     function renderRegistrationWaves(waves) {
       const select = document.getElementById('wave');
@@ -668,31 +683,10 @@
       document.getElementById('academic-year-footer').textContent = 'SPMB Online · Tahun Ajaran ' + siteConfig.academicYear;
       document.getElementById('form-pdf-link').href = siteConfig.formPdfUrl;
       document.getElementById('scholarship-pdf-link').href = siteConfig.scholarshipPdfUrl;
-      const brochureImage = document.getElementById('brochure-image');
-      const brochureFrame = document.getElementById('brochure-frame');
-      const homeHero = document.getElementById('beranda');
-      const brochureUrl = siteConfig.brochureImageUrl || '';
-      const hideBrochure = function () {
-        brochureImage.classList.add('hidden');
-        brochureFrame.hidden = true;
-        homeHero.classList.add('no-brochure');
-      };
-      brochureImage.onload = function () {
-        brochureImage.classList.remove('hidden');
-        brochureFrame.hidden = false;
-        homeHero.classList.remove('no-brochure');
-      };
-      brochureImage.onerror = hideBrochure;
-      hideBrochure();
-      if (brochureUrl) {
-        brochureImage.src = brochureUrl;
-        if (brochureImage.complete) {
-          if (brochureImage.naturalWidth) brochureImage.onload();
-          else hideBrochure();
-        }
-      } else {
-        brochureImage.removeAttribute('src');
-      }
+      const brochureUrls = Array.isArray(siteConfig.brochureImageUrls)
+        ? siteConfig.brochureImageUrls
+        : (siteConfig.brochureImageUrl ? [siteConfig.brochureImageUrl] : []);
+      initializeBrochureSlideshow(brochureUrls);
       renderTimelineEvents(siteConfig.timelineEvents);
       document.getElementById('contact-link').href = siteConfig.contactUrl;
       document.getElementById('contact-label').textContent = siteConfig.contactLabel;
@@ -708,6 +702,123 @@
       setActiveStep(activeStepNumber, false);
       observePublicSections();
     }
+
+    function initializeBrochureSlideshow(urls) {
+      brochureSlideUrls = urls.filter(function (url) { return typeof url === 'string' && url.trim(); });
+      brochureSlideIndex = 0;
+      brochureSlidePaused = false;
+      clearInterval(brochureSlideTimer);
+      renderBrochureDots();
+      if (!brochureSlideUrls.length) {
+        hideBrochure();
+        return;
+      }
+      showBrochureSlide(0);
+      startBrochureSlideshow();
+    }
+
+    function hideBrochure() {
+      clearInterval(brochureSlideTimer);
+      document.getElementById('brochure-image').classList.add('hidden');
+      document.getElementById('brochure-frame').hidden = true;
+      document.getElementById('brochure-carousel-controls').hidden = true;
+      document.getElementById('beranda').classList.add('no-brochure');
+    }
+
+    function showBrochureSlide(index) {
+      if (!brochureSlideUrls.length) {
+        hideBrochure();
+        return;
+      }
+      brochureSlideIndex = (index + brochureSlideUrls.length) % brochureSlideUrls.length;
+      const url = brochureSlideUrls[brochureSlideIndex];
+      const loadId = ++brochureSlideLoadId;
+      const preload = new Image();
+      preload.onload = function () {
+        if (loadId !== brochureSlideLoadId) return;
+        const image = document.getElementById('brochure-image');
+        image.style.opacity = '0';
+        image.src = url;
+        image.alt = 'Foto SPMB SMK PGRI Cikoneng ' + (brochureSlideIndex + 1) + ' dari ' + brochureSlideUrls.length;
+        image.classList.remove('hidden');
+        document.getElementById('brochure-frame').hidden = false;
+        document.getElementById('brochure-carousel-controls').hidden = brochureSlideUrls.length < 2;
+        document.getElementById('beranda').classList.remove('no-brochure');
+        updateBrochureDots();
+        window.requestAnimationFrame(function () { image.style.opacity = '1'; });
+      };
+      preload.onerror = function () {
+        if (loadId !== brochureSlideLoadId) return;
+        brochureSlideUrls.splice(brochureSlideIndex, 1);
+        renderBrochureDots();
+        showBrochureSlide(Math.min(brochureSlideIndex, brochureSlideUrls.length - 1));
+        startBrochureSlideshow();
+      };
+      preload.src = url;
+    }
+
+    function renderBrochureDots() {
+      const dots = document.getElementById('brochure-carousel-dots');
+      dots.replaceChildren();
+      brochureSlideUrls.forEach(function (_url, index) {
+        const dot = document.createElement('button');
+        dot.className = 'brochure-carousel-dot';
+        dot.type = 'button';
+        dot.setAttribute('aria-label', 'Tampilkan foto ' + (index + 1));
+        dot.addEventListener('click', function () {
+          showBrochureSlide(index);
+          startBrochureSlideshow();
+        });
+        dots.appendChild(dot);
+      });
+      updateBrochureDots();
+    }
+
+    function updateBrochureDots() {
+      document.querySelectorAll('.brochure-carousel-dot').forEach(function (dot, index) {
+        const active = index === brochureSlideIndex;
+        dot.classList.toggle('active', active);
+        dot.setAttribute('aria-current', active ? 'true' : 'false');
+      });
+    }
+
+    function startBrochureSlideshow() {
+      clearInterval(brochureSlideTimer);
+      if (brochureSlideUrls.length < 2 || brochureSlidePaused ||
+          document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      brochureSlideTimer = window.setInterval(function () {
+        showBrochureSlide(brochureSlideIndex + 1);
+      }, 5000);
+    }
+
+    function pauseBrochureSlideshow() {
+      brochureSlidePaused = true;
+      clearInterval(brochureSlideTimer);
+    }
+
+    function resumeBrochureSlideshow() {
+      brochureSlidePaused = false;
+      startBrochureSlideshow();
+    }
+
+    document.getElementById('brochure-previous').addEventListener('click', function () {
+      showBrochureSlide(brochureSlideIndex - 1);
+      startBrochureSlideshow();
+    });
+    document.getElementById('brochure-next').addEventListener('click', function () {
+      showBrochureSlide(brochureSlideIndex + 1);
+      startBrochureSlideshow();
+    });
+    document.getElementById('brochure-frame').addEventListener('mouseenter', pauseBrochureSlideshow);
+    document.getElementById('brochure-frame').addEventListener('mouseleave', resumeBrochureSlideshow);
+    document.getElementById('brochure-frame').addEventListener('focusin', pauseBrochureSlideshow);
+    document.getElementById('brochure-frame').addEventListener('focusout', function (event) {
+      if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget)) resumeBrochureSlideshow();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) clearInterval(brochureSlideTimer);
+      else startBrochureSlideshow();
+    });
 
     function fieldOptions(field) {
       if (field.key === 'wave') return [];
