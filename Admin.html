@@ -4076,6 +4076,16 @@
         const id = document.createElement('td');
         id.textContent = backup.id;
         const actions = document.createElement('td');
+        actions.className = 'actions';
+        const downloadButton = document.createElement('button');
+        downloadButton.type = 'button';
+        downloadButton.className = 'secondary';
+        downloadButton.textContent = 'Unduh ZIP';
+        downloadButton.disabled = !configured;
+        downloadButton.addEventListener('click', function () {
+          window.location.assign('/api/admin/backups/' +
+            encodeURIComponent(backup.id) + '/download');
+        });
         const restoreButton = document.createElement('button');
         restoreButton.type = 'button';
         restoreButton.className = 'secondary';
@@ -4088,7 +4098,7 @@
           setStatus('restore-backup-confirm-status', '', '');
           document.getElementById('restore-backup-dialog').showModal();
         });
-        actions.appendChild(restoreButton);
+        actions.append(downloadButton, restoreButton);
         row.append(date, count, size, id, actions);
         body.appendChild(row);
       });

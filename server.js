@@ -5,6 +5,7 @@ const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
 const fs = require('node:fs');
 const path = require('node:path');
+const yazl = require('yazl');
 
 const app = express();
 const publicLookupRequests = new Map();
@@ -4673,6 +4674,60 @@ app.get('/api/admin/backups', requireAdmin, requireOwner, function (request, res
   } catch (error) {
     response.status(500).json({ message: error.message || 'Daftar backup gagal dimuat.' });
   }
+});
+
+app.get('/api/admin/backups/:backupId/download', requireAdmin, requireOwner, function (request, response) {
+  let backupDirectory;
+  try {
+    backupDirectory = validateBackupForRestore(String(request.params.backupId || ''));
+  } catch (error) {
+    return response.status(error.status || 500).json({ message: error.message || 'Backup tidak dapat diunduh.' });
+  }
+
+  const zipFile = new yazl.ZipFile();
+  let downloadFailed = false;
+  function failDownload(error) {
+    if (downloadFailed) return;
+    downloadFailed = true;
+    console.error('Download backup gagal:', error.message);
+    if (response.headersSent) {
+      response.destroy(error);
+    } else {
+      response.status(500).json({ message: 'Backup gagal dikemas untuk diunduh.' });
+    }
+  }
+  function addBackupDirectory(directory) {
+    fs.readdirSync(directory, { withFileTypes: true }).forEach(function (entry) {
+      const filePath = path.join(directory, entry.name);
+      const stats = fs.lstatSync(filePath);
+      const archivePath = path.relative(backupDirectory, filePath).split(path.sep).join('/');
+      if (stats.isSymbolicLink()) throw new Error('Backup berisi symbolic link yang tidak didukung.');
+      if (stats.isDirectory()) {
+        zipFile.addEmptyDirectory(archivePath + '/');
+        addBackupDirectory(filePath);
+      } else if (stats.isFile()) {
+        zipFile.addFile(filePath, archivePath, { mode: 0o600 });
+      } else {
+        throw new Error('Backup berisi jenis file yang tidak didukung.');
+      }
+    });
+  }
+  try {
+    addBackupDirectory(backupDirectory);
+  } catch (error) {
+    console.error('Download backup gagal menyiapkan file:', error.message);
+    return response.status(500).json({ message: 'Isi backup tidak dapat dikemas untuk diunduh.' });
+  }
+  zipFile.on('error', failDownload);
+  zipFile.outputStream.on('error', failDownload);
+  response.setHeader('Content-Type', 'application/zip');
+  response.setHeader('Content-Disposition', 'attachment; filename="' + request.params.backupId + '.zip"');
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.once('close', function () {
+    if (!response.writableFinished) zipFile.outputStream.destroy();
+  });
+  zipFile.outputStream.pipe(response);
+  zipFile.end();
 });
 
 let lastManualBackupAt = 0;
