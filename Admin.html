@@ -444,6 +444,10 @@
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>
             <span>Backup Data</span>
           </button>
+          <button type="button" data-page-target="file-manager-page" data-owner-only>
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M3 10h18"/></svg>
+            <span>Manajer File</span>
+          </button>
           <div class="sidebar-master" data-master-nav>
             <button id="master-nav-toggle" type="button" aria-expanded="false" aria-controls="master-submenu">
               <span class="sidebar-nav-label">
@@ -612,6 +616,32 @@
             <thead><tr><th>Waktu</th><th>Jumlah File</th><th>Ukuran</th><th>Folder Backup</th><th>Aksi</th></tr></thead>
             <tbody id="backups-body"></tbody>
           </table>
+        </div>
+      </section>
+
+      <section id="file-manager-page" class="card section admin-page" hidden>
+        <div class="section-heading">
+          <div><h2>Manajer File</h2><p>Kelola dokumen unggahan pendaftar yang tersimpan di Railway.</p></div>
+          <button id="reload-file-manager-button" class="secondary" type="button">Muat Ulang</button>
+        </div>
+        <p id="file-manager-summary" class="helper"></p>
+        <p class="helper">Penghapusan hanya menghapus file lokal Railway dan catatan berkas. Salinan Google Drive dan backup lama tetap ada.</p>
+        <div class="filters">
+          <input id="file-manager-search" type="search" placeholder="Cari nama, nomor pendaftaran, atau nama file" aria-label="Cari file pendaftar">
+        </div>
+        <p id="file-manager-status" class="status-line" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-simple-table">
+            <thead><tr><th>Pendaftar</th><th>Nama File</th><th>Ukuran</th><th>Diunggah</th><th>Status Pendaftar</th><th>Google Drive</th><th>Aksi</th></tr></thead>
+            <tbody id="file-manager-body"></tbody>
+          </table>
+        </div>
+        <div class="section-heading">
+          <span id="file-manager-pagination" class="helper"></span>
+          <div class="actions">
+            <button id="file-manager-previous" class="secondary" type="button">Sebelumnya</button>
+            <button id="file-manager-next" class="secondary" type="button">Berikutnya</button>
+          </div>
         </div>
       </section>
 
@@ -1285,6 +1315,8 @@
     let issuedPortalPin = '';
     let issuedPinRegistrationNumber = '';
     let adminToastTimer = null;
+    let fileManagerPage = 1;
+    let fileManagerSearchTimer = null;
 
     async function api(url, options) {
       const requestOptions = Object.assign({ credentials: 'same-origin' }, options || {});
@@ -1401,7 +1433,7 @@
       if (pageId === 'applications-page') return 'applications';
       if (pageId === 'trash-page') return 'trash';
       if (pageId === 'activity-page') return 'activityLog';
-      if (pageId === 'backups-page') return 'backups';
+      if (pageId === 'backups-page' || pageId === 'file-manager-page') return 'ownerOnly';
       if (pageId === 'accounts-page') return 'accounts';
       if (pageId === 'master-page') return anchorId || 'form';
       return '';
@@ -1413,6 +1445,7 @@
       'trash-page': 'kotak-sampah',
       'activity-page': 'log-aktivitas',
       'backups-page': 'backups',
+      'file-manager-page': 'manajer-file',
       'accounts-page': 'manajemen-akun'
     };
     const adminMasterSlugs = {
@@ -1481,7 +1514,10 @@
       const activeMasterButton = document.querySelector('[data-page-target="master-page"].active');
       const currentMenu = currentPage && pagePermissionMenu(currentPage.id,
         currentPage.id === 'master-page' && activeMasterButton ? activeMasterButton.dataset.masterAnchor : '');
-      if (!currentMenu || (currentMenu === 'backups' ? currentUser.role !== 'owner' : !canAdmin(currentMenu, 'view'))) {
+      const hasCurrentPagePermission = currentMenu === 'ownerOnly'
+        ? currentUser.role === 'owner'
+        : currentMenu && canAdmin(currentMenu, 'view');
+      if (!hasCurrentPagePermission) {
         const available = ['dashboard-page', 'applications-page', 'trash-page', 'activity-page'].find(function (pageId) {
           return canAdmin(pagePermissionMenu(pageId), 'view');
         });
@@ -1496,7 +1532,7 @@
 
     function setAdminPage(pageId, anchorId, updateHistory) {
       const permissionMenu = pagePermissionMenu(pageId, anchorId);
-      if (!permissionMenu || (permissionMenu === 'backups'
+      if (!permissionMenu || (permissionMenu === 'ownerOnly'
         ? !currentUser || currentUser.role !== 'owner'
         : !canAdmin(permissionMenu, 'view'))) return;
       const path = adminPagePath(pageId, anchorId);
@@ -1544,6 +1580,7 @@
       animateAdminElement(document.getElementById(pageId));
       if (pageId === 'trash-page') loadTrash();
       if (pageId === 'activity-page') loadActivityLog();
+      if (pageId === 'file-manager-page') loadFileManager();
     }
 
     function makeOption(value, label) {
@@ -4010,6 +4047,121 @@
       }
     }
 
+    function formatManagedFileSize(bytes) {
+      const size = Number(bytes || 0);
+      if (size < 1024) return size + ' B';
+      if (size < 1024 * 1024) return (size / 1024).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' KB';
+      return (size / (1024 * 1024)).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' MB';
+    }
+
+    function renderManagedFiles(result) {
+      const body = document.getElementById('file-manager-body');
+      body.replaceChildren();
+      if (!result.files.length) {
+        const row = document.createElement('tr');
+        const empty = document.createElement('td');
+        empty.colSpan = 7;
+        empty.textContent = 'Tidak ada file yang cocok.';
+        row.appendChild(empty);
+        body.appendChild(row);
+      }
+      result.files.forEach(function (file) {
+        const row = document.createElement('tr');
+        const applicant = document.createElement('td');
+        const name = document.createElement('strong');
+        name.textContent = file.student_name;
+        const registration = document.createElement('span');
+        registration.className = 'muted';
+        registration.textContent = file.registration_number;
+        applicant.append(name, registration);
+
+        const filename = document.createElement('td');
+        filename.textContent = file.original_name;
+        const size = document.createElement('td');
+        size.textContent = formatManagedFileSize(file.file_size);
+        const createdAt = document.createElement('td');
+        createdAt.textContent = new Date(file.created_at).toLocaleString('id-ID');
+        const applicantState = document.createElement('td');
+        applicantState.textContent = file.applicantState;
+        const drive = document.createElement('td');
+        drive.title = file.drive_sync_error || '';
+        drive.textContent = file.drive_sync_status === 'synced'
+          ? 'Tersalin'
+          : file.drive_sync_status === 'pending'
+            ? file.drive_sync_error ? 'Gagal; akan dicoba ulang' : 'Menunggu'
+            : 'Belum dikonfigurasi';
+
+        const actions = document.createElement('td');
+        actions.className = 'actions';
+        const download = document.createElement('button');
+        download.type = 'button';
+        download.className = 'secondary';
+        download.textContent = 'Unduh';
+        download.addEventListener('click', function () {
+          window.location.assign('/api/admin/file-manager/' + file.id + '/download');
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'secondary';
+        remove.textContent = 'Hapus';
+        remove.addEventListener('click', async function () {
+          const confirmed = window.confirm(
+            'Hapus "' + file.original_name + '" milik ' + file.student_name +
+            ' dari Railway? Catatan berkas akan dihapus dan status kelengkapan diperbarui. ' +
+            'Salinan Google Drive dan backup lama tidak ikut dihapus.'
+          );
+          if (!confirmed) return;
+          remove.disabled = true;
+          try {
+            const result = await api('/api/admin/file-manager/' + file.id, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ confirmation: 'HAPUS' })
+            });
+            if (await loadFileManager(fileManagerPage)) {
+              setStatus('file-manager-status', result.message, 'success');
+            }
+          } catch (error) {
+            setStatus('file-manager-status', error.message || 'File gagal dihapus.', 'error');
+            remove.disabled = false;
+          }
+        });
+        actions.append(download, remove);
+        row.append(applicant, filename, size, createdAt, applicantState, drive, actions);
+        body.appendChild(row);
+      });
+
+      document.getElementById('file-manager-summary').textContent =
+        Number(result.totalFiles || 0).toLocaleString('id-ID') + ' berkas pendaftar tercatat · ' +
+        formatManagedFileSize(result.totalBytes) +
+        ' total ukuran file (perkiraan; tidak termasuk database, file situs, atau backup).';
+      document.getElementById('file-manager-pagination').textContent =
+        'Halaman ' + result.page + ' dari ' + result.totalPages + ' · ' +
+        Number(result.matchingFiles || 0).toLocaleString('id-ID') + ' hasil';
+      document.getElementById('file-manager-previous').disabled = result.page <= 1;
+      document.getElementById('file-manager-next').disabled = result.page >= result.totalPages;
+    }
+
+    async function loadFileManager(page) {
+      if (page !== undefined) fileManagerPage = page;
+      setStatus('file-manager-status', 'Memuat file pendaftar...', '');
+      try {
+        const query = new URLSearchParams({
+          page: String(fileManagerPage),
+          q: document.getElementById('file-manager-search').value.trim()
+        });
+        const result = await api('/api/admin/file-manager?' + query.toString());
+        if (fileManagerPage > result.totalPages) return loadFileManager(result.totalPages);
+        renderManagedFiles(result);
+        setStatus('file-manager-status', result.matchingFiles + ' file ditemukan.', '');
+        return true;
+      } catch (error) {
+        setStatus('file-manager-status', error.message || 'File gagal dimuat.', 'error');
+        if (error.status === 401) showLogin();
+        return false;
+      }
+    }
+
     function renderActivityLog(entries) {
       const body = document.getElementById('activity-body');
       body.replaceChildren();
@@ -4794,6 +4946,19 @@
     document.getElementById('reload-button').addEventListener('click', loadAll);
     document.getElementById('reload-trash-button').addEventListener('click', loadTrash);
     document.getElementById('reload-activity-button').addEventListener('click', loadActivityLog);
+    document.getElementById('reload-file-manager-button').addEventListener('click', function () {
+      loadFileManager();
+    });
+    document.getElementById('file-manager-search').addEventListener('input', function () {
+      clearTimeout(fileManagerSearchTimer);
+      fileManagerSearchTimer = setTimeout(function () { loadFileManager(1); }, 250);
+    });
+    document.getElementById('file-manager-previous').addEventListener('click', function () {
+      if (fileManagerPage > 1) loadFileManager(fileManagerPage - 1);
+    });
+    document.getElementById('file-manager-next').addEventListener('click', function () {
+      loadFileManager(fileManagerPage + 1);
+    });
     document.getElementById('create-backup-button').addEventListener('click', async function () {
       const button = this;
       button.disabled = true;

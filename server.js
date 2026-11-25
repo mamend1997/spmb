@@ -3985,6 +3985,235 @@ app.get('/api/admin/activity-log', requireAdmin, requirePermission('activityLog'
   response.json({ entries: entries });
 });
 
+app.get('/api/admin/file-manager', requireAdmin, requireOwner, function (request, response) {
+  const search = String(request.query.q || '').trim();
+  const page = Number(request.query.page || 1);
+  const pageSize = 100;
+  if (search.length > 100) return response.status(400).json({ message: 'Pencarian maksimal 100 karakter.' });
+  if (!Number.isSafeInteger(page) || page < 1 || page > 1000000) {
+    return response.status(400).json({ message: 'Nomor halaman file tidak valid.' });
+  }
+  const clauses = [];
+  const values = [];
+  if (search) {
+    const escapedSearch = search.replace(/[!%_]/g, function (character) { return '!' + character; });
+    const pattern = '%' + escapedSearch + '%';
+    clauses.push(`(
+      applicants.registration_number LIKE ? ESCAPE '!' OR
+      applicants.student_name LIKE ? ESCAPE '!' OR
+      uploaded_files.original_name LIKE ? ESCAPE '!' OR
+      uploaded_files.field_key LIKE ? ESCAPE '!'
+    )`);
+    values.push(pattern, pattern, pattern, pattern);
+  }
+  const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
+  const totals = database.prepare(`
+    SELECT COUNT(*) AS count, COALESCE(SUM(file_size), 0) AS bytes
+    FROM uploaded_files
+  `).get();
+  const matchingCount = database.prepare(`
+    SELECT COUNT(*) AS count
+    FROM uploaded_files
+    INNER JOIN applicants ON applicants.id = uploaded_files.applicant_id
+    ${where}
+  `).get(...values).count;
+  const files = database.prepare(`
+    SELECT uploaded_files.id, uploaded_files.field_key, uploaded_files.original_name,
+      uploaded_files.file_size, uploaded_files.created_at, uploaded_files.drive_sync_status,
+      uploaded_files.drive_sync_error, uploaded_files.drive_file_id,
+      applicants.registration_number, applicants.student_name, applicants.archived_at,
+      applicants.deleted_at
+    FROM uploaded_files
+    INNER JOIN applicants ON applicants.id = uploaded_files.applicant_id
+    ${where}
+    ORDER BY uploaded_files.id DESC
+    LIMIT ? OFFSET ?
+  `).all(...values, pageSize, (page - 1) * pageSize);
+  response.json({
+    totalFiles: Number(totals.count),
+    totalBytes: Number(totals.bytes),
+    matchingFiles: Number(matchingCount),
+    page: page,
+    pageSize: pageSize,
+    totalPages: Math.max(1, Math.ceil(matchingCount / pageSize)),
+    files: files.map(function (file) {
+      return Object.assign({}, file, {
+        applicantState: file.deleted_at
+          ? 'Kotak Sampah'
+          : file.archived_at
+            ? 'Arsip'
+            : 'Aktif'
+      });
+    })
+  });
+});
+
+app.get('/api/admin/file-manager/:fileId/download', requireAdmin, requireOwner, function (request, response) {
+  const fileId = Number(request.params.fileId);
+  if (!Number.isSafeInteger(fileId) || fileId < 1) {
+    return response.status(400).json({ message: 'ID berkas tidak valid.' });
+  }
+  const file = database.prepare(`
+    SELECT uploaded_files.stored_name, uploaded_files.original_name, applicants.registration_number
+    FROM uploaded_files
+    INNER JOIN applicants ON applicants.id = uploaded_files.applicant_id
+    WHERE uploaded_files.id = ?
+  `).get(fileId);
+  if (!file) return response.status(404).json({ message: 'Berkas tidak ditemukan.' });
+  const applicantDirectory = path.resolve(uploadDirectory, file.registration_number);
+  const filePath = path.resolve(applicantDirectory, path.basename(file.stored_name));
+  if (!applicantDirectory.startsWith(uploadDirectory + path.sep) ||
+      !filePath.startsWith(applicantDirectory + path.sep)) {
+    return response.status(400).json({ message: 'Lokasi berkas tidak valid.' });
+  }
+  try {
+    const directoryStats = fs.lstatSync(applicantDirectory);
+    if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
+      return response.status(400).json({ message: 'Folder berkas lokal tidak valid.' });
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') return response.status(404).json({ message: 'File lokal tidak ditemukan.' });
+    return response.status(500).json({ message: 'Folder berkas lokal tidak dapat dibaca.' });
+  }
+  let stats;
+  try {
+    stats = fs.lstatSync(filePath);
+  } catch (error) {
+    if (error.code === 'ENOENT') return response.status(404).json({ message: 'File lokal tidak ditemukan.' });
+    return response.status(500).json({ message: 'File lokal tidak dapat dibaca.' });
+  }
+  if (!stats.isFile() || stats.isSymbolicLink()) {
+    return response.status(400).json({ message: 'Jenis file lokal tidak didukung.' });
+  }
+  const downloadName = String(file.original_name || 'dokumen')
+    .replace(/[\\/"\r\n]/g, '_').slice(0, 180);
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.download(filePath, downloadName, function (error) {
+    if (!error) return;
+    console.error('File manager download failed:', error.message);
+    if (!response.headersSent) response.status(500).json({ message: 'Berkas gagal diunduh.' });
+  });
+});
+
+app.delete('/api/admin/file-manager/:fileId', requireAdmin, requireOwner, function (request, response) {
+  const fileId = Number(request.params.fileId);
+  if (!Number.isSafeInteger(fileId) || fileId < 1) {
+    return response.status(400).json({ message: 'ID berkas tidak valid.' });
+  }
+  if (!request.body || request.body.confirmation !== 'HAPUS') {
+    return response.status(400).json({ message: 'Konfirmasi HAPUS diperlukan.' });
+  }
+  const file = database.prepare(`
+    SELECT uploaded_files.id AS uploaded_file_id,
+      uploaded_files.applicant_id AS uploaded_applicant_id,
+      uploaded_files.field_key AS uploaded_field_key,
+      uploaded_files.stored_name, uploaded_files.original_name, uploaded_files.mime_type,
+      uploaded_files.file_size, uploaded_files.created_at AS uploaded_created_at,
+      uploaded_files.drive_file_id, uploaded_files.drive_sync_status,
+      uploaded_files.drive_sync_attempts, uploaded_files.drive_sync_next_attempt_at,
+      uploaded_files.drive_sync_error,
+      applicants.*
+    FROM uploaded_files
+    INNER JOIN applicants ON applicants.id = uploaded_files.applicant_id
+    WHERE uploaded_files.id = ?
+  `).get(fileId);
+  if (!file) return response.status(404).json({ message: 'Berkas tidak ditemukan.' });
+  const applicantDirectory = path.resolve(uploadDirectory, file.registration_number);
+  const filePath = path.resolve(applicantDirectory, path.basename(file.stored_name));
+  if (!applicantDirectory.startsWith(uploadDirectory + path.sep) ||
+      !filePath.startsWith(applicantDirectory + path.sep)) {
+    return response.status(400).json({ message: 'Lokasi berkas tidak valid.' });
+  }
+  let localFileExists = false;
+  let fileSize = 0;
+  try {
+    const directoryStats = fs.lstatSync(applicantDirectory);
+    if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
+      return response.status(400).json({ message: 'Folder berkas lokal tidak valid.' });
+    }
+    try {
+      const stats = fs.lstatSync(filePath);
+      if (!stats.isFile() || stats.isSymbolicLink()) {
+        return response.status(400).json({ message: 'Jenis file lokal tidak didukung.' });
+      }
+      localFileExists = true;
+      fileSize = stats.size;
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        return response.status(500).json({ message: 'File lokal tidak dapat diperiksa.' });
+      }
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT') return response.status(500).json({ message: 'Folder berkas lokal tidak dapat diperiksa.' });
+  }
+  const reviews = JSON.parse(file.field_reviews_json || '{}');
+  delete reviews[file.uploaded_field_key];
+  const uploadedFiles = new Set(database.prepare(`
+    SELECT field_key FROM uploaded_files WHERE applicant_id = ? AND id != ?
+  `).all(file.uploaded_applicant_id, fileId).map(function (item) { return item.field_key; }));
+  const documentStatus = calculateDocumentStatus(file, getConfig(), reviews, uploadedFiles);
+  const now = new Date().toISOString();
+  let recoveryCopyPath = '';
+  if (localFileExists) {
+    recoveryCopyPath = path.join(storageDirectory,
+      '.file-delete-' + fileId + '-' + crypto.randomBytes(8).toString('hex'));
+    try {
+      fs.copyFileSync(filePath, recoveryCopyPath, fs.constants.COPYFILE_EXCL);
+      fs.chmodSync(recoveryCopyPath, 0o600);
+    } catch (error) {
+      if (fs.existsSync(recoveryCopyPath)) {
+        try {
+          fs.unlinkSync(recoveryCopyPath);
+        } catch (cleanupError) {
+          console.error('File manager failed to clean incomplete recovery copy:', cleanupError.message);
+        }
+      }
+      return response.status(500).json({ message: 'File tidak dapat disiapkan untuk dihapus dengan aman.' });
+    }
+  }
+  try {
+    withTransaction(function () {
+      const deleted = database.prepare('DELETE FROM uploaded_files WHERE id = ?').run(fileId);
+      if (deleted.changes !== 1) throw new Error('Berkas sudah berubah atau tidak ditemukan.');
+      database.prepare(`
+        UPDATE applicants
+        SET field_reviews_json = ?, document_status = ?, status_updated_at = ?
+        WHERE id = ?
+      `).run(JSON.stringify(reviews), documentStatus, now, file.uploaded_applicant_id);
+      queueSheetSync(file.uploaded_applicant_id);
+      if (localFileExists) fs.unlinkSync(filePath);
+    });
+  } catch (error) {
+    if (recoveryCopyPath && fs.existsSync(recoveryCopyPath)) {
+      try {
+        if (!fs.existsSync(filePath)) fs.renameSync(recoveryCopyPath, filePath);
+        else fs.unlinkSync(recoveryCopyPath);
+      } catch (restoreError) {
+        console.error('File manager rollback restore failed:', restoreError.message);
+      }
+    }
+    return response.status(500).json({ message: 'Berkas gagal dihapus: ' + error.message });
+  }
+  let cleanupWarning = '';
+  if (recoveryCopyPath && fs.existsSync(recoveryCopyPath)) {
+    try {
+      fs.unlinkSync(recoveryCopyPath);
+    } catch (error) {
+      console.error('File manager recovery copy cleanup failed:', error.message);
+      cleanupWarning = ' Catatan: file sementara pemulihan belum berhasil dibersihkan.';
+    }
+  }
+  setImmediate(syncQueuedApplications);
+  response.json({
+    status: 'success',
+    message: localFileExists
+      ? 'Berkas dihapus dari Railway. Salinan Drive dan backup lama tidak dihapus.' + cleanupWarning
+      : 'Catatan berkas dihapus; file lokal sebelumnya memang tidak ditemukan.',
+    bytesFreed: localFileExists ? fileSize : 0,
+    driveCopyRemains: Boolean(file.drive_file_id)
+  });
+});
+
 app.get('/api/admin/trash', requireAdmin, requirePermission('trash', 'view'), function (request, response) {
   const applicants = database.prepare(`
     SELECT registration_number, student_name, deleted_at
@@ -4865,7 +5094,7 @@ app.get('/admin/pendaftar/:registrationNumber', function (request, response) {
   response.sendFile(path.join(__dirname, 'Admin.html'));
 });
 app.get('/admin/:section', function (request, response) {
-  if (!['dashboard', 'pendaftar', 'kotak-sampah', 'log-aktivitas', 'manajemen-akun'].includes(request.params.section)) {
+  if (!['dashboard', 'pendaftar', 'kotak-sampah', 'log-aktivitas', 'manajemen-akun', 'backups', 'manajer-file'].includes(request.params.section)) {
     return response.status(404).end();
   }
   response.sendFile(path.join(__dirname, 'Admin.html'));
