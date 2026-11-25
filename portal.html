@@ -348,6 +348,18 @@
           <p id="qiospay-payment-expiry" class="mt-2 text-xs text-slate-500"></p>
           <p id="qiospay-payment-status" class="mt-2 text-sm text-slate-600" role="status" aria-live="polite"></p>
         </div>
+        <div id="kasera-payment" class="mt-4 hidden rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <h3 class="text-sm font-bold text-slate-800">Pembayaran Otomatis Kasera</h3>
+          <p id="kasera-payment-description" class="mt-1 text-sm leading-6 text-slate-600">Buat tagihan untuk memulai pembayaran daftar ulang.</p>
+          <p id="kasera-payment-total" class="mt-2 text-lg font-extrabold text-slate-900"></p>
+          <p class="mt-1 text-xs text-slate-500">Biaya layanan Kasera mengikuti tarif akun; dana bersih yang diterima sekolah dapat berkurang karena biaya transaksi.</p>
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <a id="kasera-pay-link" class="hidden rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white" href="#" target="_blank" rel="noopener noreferrer">Buka halaman pembayaran Kasera</a>
+            <button id="kasera-create-button" class="rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" type="button">Buat Tagihan Kasera</button>
+          </div>
+          <p id="kasera-payment-expiry" class="mt-2 text-xs text-slate-500"></p>
+          <p id="kasera-payment-status" class="mt-2 text-sm text-slate-600" role="status" aria-live="polite"></p>
+        </div>
         <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Unggah Bukti Pembayaran</p>
           <p id="payment-fee" class="mt-1 text-lg font-extrabold text-slate-900"></p>
@@ -784,9 +796,22 @@
       document.getElementById('qris-empty').classList.toggle('hidden', qrisReady);
       if (qrisReady) qrisImage.src = settings.qrisImageUrl;
 
-      const gateway = document.getElementById('gateway-payment');
+      const selectedProvider = String(settings.gatewayProvider || '').toLowerCase();
+      const qiospaySelected = selectedProvider === 'qiospay';
+      const kaseraSelected = selectedProvider === 'kasera';
       const qiospayAvailable = application.qiospayAvailable === true && settings.gatewayEnabled !== false;
-      gateway.classList.toggle('hidden', settings.gatewayEnabled === false || qiospayAvailable);
+      const kaseraAvailable = application.kaseraAvailable === true && settings.gatewayEnabled !== false;
+      const invoice = application.qiospayTransaction;
+      const activeInvoice = invoice && invoice.status === 'pending' &&
+        Date.parse(invoice.expiresAt) > Date.now();
+      const kaseraTransaction = application.kaseraTransaction;
+      const activeKaseraTransaction = kaseraTransaction && kaseraTransaction.status === 'pending' &&
+        Date.parse(kaseraTransaction.expiresAt) > Date.now();
+      const pendingAutomaticPayment = Boolean(activeInvoice || activeKaseraTransaction);
+      const gateway = document.getElementById('gateway-payment');
+      const selectedApiAvailable = (qiospaySelected && qiospayAvailable) || (kaseraSelected && kaseraAvailable);
+      gateway.classList.toggle('hidden', settings.gatewayEnabled === false || selectedApiAvailable ||
+        pendingAutomaticPayment || paymentPending);
       showText('gateway-title', 'Payment Gateway ' + (settings.gatewayProvider || ''));
       const gatewayReady = Boolean(settings.gatewayUrl);
       const gatewayLink = document.getElementById('gateway-link');
@@ -795,10 +820,8 @@
       if (gatewayReady) gatewayLink.href = settings.gatewayUrl;
 
       const qiospayPanel = document.getElementById('qiospay-payment');
-      qiospayPanel.classList.toggle('hidden', !qiospayAvailable);
-      const invoice = application.qiospayTransaction;
-      const activeInvoice = invoice && invoice.status === 'pending' &&
-        Date.parse(invoice.expiresAt) > Date.now();
+      const showQiospayPanel = Boolean(activeInvoice || (qiospaySelected && qiospayAvailable));
+      qiospayPanel.classList.toggle('hidden', !showQiospayPanel);
       const qrImage = document.getElementById('qiospay-qr-image');
       qrImage.classList.toggle('hidden', !activeInvoice);
       if (activeInvoice) qrImage.src = invoice.qrImageUrl;
@@ -807,7 +830,8 @@
       payLink.classList.toggle('hidden', !activeInvoice);
       if (activeInvoice) payLink.href = invoice.payUrl;
       const createButton = document.getElementById('qiospay-create-button');
-      createButton.classList.toggle('hidden', Boolean(activeInvoice));
+      createButton.classList.toggle('hidden', Boolean(activeInvoice) || !qiospaySelected ||
+        !qiospayAvailable || Boolean(activeKaseraTransaction) || paymentPending);
       createButton.textContent = invoice && invoice.status === 'expired' ? 'Buat Tagihan Baru' : 'Buat Tagihan QRIS';
       showText('qiospay-payment-total', activeInvoice
         ? 'Total pembayaran: Rp ' + Number(invoice.totalAmount).toLocaleString('id-ID')
@@ -823,6 +847,34 @@
       showText('qiospay-payment-status', invoice && invoice.status === 'paid'
         ? 'Pembayaran telah diterima.'
         : '');
+
+      const kaseraPanel = document.getElementById('kasera-payment');
+      kaseraPanel.classList.toggle('hidden',
+        !(activeKaseraTransaction || (kaseraSelected && kaseraAvailable)));
+      const kaseraPayLink = document.getElementById('kasera-pay-link');
+      kaseraPayLink.classList.toggle('hidden', !activeKaseraTransaction);
+      if (activeKaseraTransaction) kaseraPayLink.href = kaseraTransaction.checkoutUrl;
+      const kaseraCreateButton = document.getElementById('kasera-create-button');
+      kaseraCreateButton.classList.toggle('hidden', Boolean(activeKaseraTransaction) || !kaseraSelected ||
+        !kaseraAvailable || Boolean(activeInvoice) || paymentPending);
+      showText('kasera-payment-total', activeKaseraTransaction
+        ? 'Nominal pembayaran: Rp ' + Number(kaseraTransaction.amount).toLocaleString('id-ID')
+        : '');
+      showText('kasera-payment-expiry', activeKaseraTransaction
+        ? 'Batas pembayaran: ' + new Date(kaseraTransaction.expiresAt).toLocaleString('id-ID')
+        : '');
+      showText('kasera-payment-description', activeKaseraTransaction
+        ? 'Selesaikan pembayaran pada halaman Kasera. Status akan diperbarui otomatis setelah pembayaran terkonfirmasi.'
+        : kaseraTransaction && kaseraTransaction.status === 'expired'
+          ? 'Tagihan Kasera sebelumnya sudah kedaluwarsa. Anda dapat membuat tagihan baru.'
+          : 'Buat tagihan Kasera untuk memulai pembayaran daftar ulang.');
+      showText('kasera-payment-status', kaseraTransaction && kaseraTransaction.status === 'paid'
+        ? 'Pembayaran telah diterima.'
+        : kaseraTransaction && kaseraTransaction.status === 'test_paid'
+          ? 'Pembayaran uji Sandbox berhasil. Tidak ada pembayaran nyata atau status daftar ulang yang diubah.'
+          : kaseraTransaction && kaseraTransaction.livemode === false && activeKaseraTransaction
+            ? 'Mode Sandbox: pembayaran ini tidak memindahkan uang sungguhan.'
+            : '');
     }
 
     function readFileAsBase64(file) {
@@ -1234,6 +1286,27 @@
         await refreshPortalApplication('Tagihan QRIS berhasil dibuat');
       } catch (error) {
         showText('qiospay-payment-status', error.message || 'Tagihan QiosPay gagal dibuat.');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('kasera-create-button').addEventListener('click', async function () {
+      const button = document.getElementById('kasera-create-button');
+      button.disabled = true;
+      showText('kasera-payment-status', 'Membuat tagihan Kasera...');
+      try {
+        const response = await fetch('/api/portal/payment/kasera', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Tagihan Kasera gagal dibuat.');
+        await refreshPortalApplication('Tagihan Kasera berhasil dibuat');
+      } catch (error) {
+        showText('kasera-payment-status', error.message || 'Tagihan Kasera gagal dibuat.');
       } finally {
         button.disabled = false;
       }

@@ -625,7 +625,7 @@
           <button id="reload-file-manager-button" class="secondary" type="button">Muat Ulang</button>
         </div>
         <p id="file-manager-summary" class="helper"></p>
-        <p class="helper">Penghapusan hanya menghapus file lokal Railway dan catatan berkas. Salinan Google Drive dan backup lama tetap ada.</p>
+        <p class="helper">Hapus dokumen di tabel ini hanya menghapus file lokal Railway dan catatan berkas. File Google Drive tetap ada; arsip backup lama dapat dihapus terpisah di bawah.</p>
         <div class="filters">
           <input id="file-manager-search" type="search" placeholder="Cari nama, nomor pendaftaran, atau nama file" aria-label="Cari file pendaftar">
         </div>
@@ -642,6 +642,18 @@
             <button id="file-manager-previous" class="secondary" type="button">Sebelumnya</button>
             <button id="file-manager-next" class="secondary" type="button">Berikutnya</button>
           </div>
+        </div>
+        <div class="section-heading" style="margin-top:30px">
+          <div><h3>Arsip Backup Lama</h3><p class="helper">Menghapus satu arsip berarti menghapus seluruh snapshot tersebut, bukan hanya file pendaftar. File Google Drive tidak terpengaruh.</p></div>
+          <button id="reload-file-manager-backups-button" class="secondary" type="button">Muat Ulang Backup</button>
+        </div>
+        <p class="helper">Backup terbaru dilindungi agar selalu tersisa satu snapshot untuk pemulihan.</p>
+        <p id="file-manager-backup-status" class="status-line" role="status"></p>
+        <div class="table-wrap">
+          <table class="admin-simple-table">
+            <thead><tr><th>Waktu</th><th>Jumlah File</th><th>Ukuran</th><th>Arsip Backup</th><th>Aksi</th></tr></thead>
+            <tbody id="file-manager-backups-body"></tbody>
+          </table>
         </div>
       </section>
 
@@ -800,9 +812,9 @@
                 <div><label for="bank-name">Nama Bank</label><input id="bank-name" maxlength="80"></div>
                 <div><label for="bank-account-number">Nomor Rekening</label><input id="bank-account-number" maxlength="40"></div>
                 <div><label for="bank-account-name">Atas Nama</label><input id="bank-account-name" maxlength="100"></div>
-                <div><label for="gateway-provider">Provider Gateway</label><input id="gateway-provider" value="Qiospay" maxlength="40"></div>
+                <div><label for="gateway-provider">Provider Gateway</label><select id="gateway-provider"><option value="Qiospay">QiosPay</option><option value="Kasera">Kasera</option><option value="Manual">Manual (tautan checkout)</option></select></div>
                 <div class="wide"><label for="gateway-url">Tautan checkout cadangan (HTTPS)</label><input id="gateway-url" type="url" placeholder="https://..."></div>
-                <p class="wide">Pembayaran otomatis QiosPay memakai API server. Atur <code>QIOSPAY_API_KEY</code> dan <code>QIOSPAY_PRIVATE_KEY</code> sebagai environment variables Railway, lalu set Callback URL toko ke <code>https://domain-sekolah/api/payments/qiospay/callback</code>. Jangan tempel key ke halaman ini.</p>
+                <p class="wide">Untuk QiosPay, atur <code>QIOSPAY_API_KEY</code> dan <code>QIOSPAY_PRIVATE_KEY</code> di environment Railway, lalu set callback ke <code>https://domain-sekolah/api/payments/qiospay/callback</code>. Untuk Kasera, atur <code>KASERA_API_KEY</code> dan <code>KASERA_WEBHOOK_SECRET</code>, lalu daftarkan webhook <code>https://domain-sekolah/api/payments/kasera/callback</code> di dashboard Kasera. Jangan masukkan API key atau signing secret ke halaman ini; uji lebih dulu dengan API key <code>kp_test_</code>.</p>
                 <div class="wide"><label>Gambar QRIS (PNG/JPG)</label><div class="file-setting"><input id="payment-qr-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg"><button type="button" class="secondary upload-button" data-asset="paymentQr">Unggah QRIS</button></div><a id="payment-qr-current" href="#" target="_blank" rel="noopener noreferrer">Lihat QRIS saat ini</a></div>
                 <div class="wide"><label for="payment-instructions">Petunjuk pembayaran</label><textarea id="payment-instructions" rows="3" maxlength="1000"></textarea></div>
               </div>
@@ -1580,7 +1592,10 @@
       animateAdminElement(document.getElementById(pageId));
       if (pageId === 'trash-page') loadTrash();
       if (pageId === 'activity-page') loadActivityLog();
-      if (pageId === 'file-manager-page') loadFileManager();
+      if (pageId === 'file-manager-page') {
+        loadFileManager();
+        loadFileManagerBackups();
+      }
     }
 
     function makeOption(value, label) {
@@ -2420,7 +2435,15 @@
       document.getElementById('bank-account-name').value = payment.bankAccountName || '';
       document.getElementById('qris-enabled').checked = payment.qrisEnabled !== false;
       document.getElementById('gateway-enabled').checked = payment.gatewayEnabled !== false;
-      document.getElementById('gateway-provider').value = payment.gatewayProvider || 'Qiospay';
+      const gatewayProvider = payment.gatewayProvider || 'Qiospay';
+      const gatewayProviderSelect = document.getElementById('gateway-provider');
+      if (!Array.from(gatewayProviderSelect.options).some(function (option) { return option.value === gatewayProvider; })) {
+        const legacyProvider = document.createElement('option');
+        legacyProvider.value = gatewayProvider;
+        legacyProvider.textContent = gatewayProvider + ' (pengaturan sebelumnya)';
+        gatewayProviderSelect.appendChild(legacyProvider);
+      }
+      gatewayProviderSelect.value = gatewayProvider;
       document.getElementById('gateway-url').value = payment.gatewayUrl || '';
       document.getElementById('payment-instructions').value = payment.instructions || '';
       setCurrentFile('payment-qr-current', payment.qrisImageUrl);
@@ -4162,6 +4185,79 @@
       }
     }
 
+    function renderManagedBackupArchives(backups, configured, latestBackupId) {
+      const body = document.getElementById('file-manager-backups-body');
+      body.replaceChildren();
+      if (!configured || !backups.length) {
+        const row = document.createElement('tr');
+        const empty = document.createElement('td');
+        empty.colSpan = 5;
+        empty.textContent = configured ? 'Belum ada arsip backup.' : 'Backup belum dikonfigurasi.';
+        row.appendChild(empty);
+        body.appendChild(row);
+        return;
+      }
+      backups.forEach(function (backup) {
+        const row = document.createElement('tr');
+        const createdAt = document.createElement('td');
+        createdAt.textContent = new Date(backup.createdAt).toLocaleString('id-ID');
+        const fileCount = document.createElement('td');
+        fileCount.textContent = Number(backup.fileCount || 0).toLocaleString('id-ID');
+        const size = document.createElement('td');
+        size.textContent = formatManagedFileSize(backup.bytes);
+        const id = document.createElement('td');
+        id.textContent = backup.id;
+        const actions = document.createElement('td');
+        actions.className = 'actions';
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'secondary';
+        remove.textContent = backup.id === latestBackupId ? 'Terbaru' : 'Hapus Arsip';
+        remove.disabled = backup.id === latestBackupId;
+        remove.title = backup.id === latestBackupId ? 'Backup terbaru dipertahankan untuk pemulihan.' : '';
+        remove.addEventListener('click', async function () {
+          const confirmed = window.confirm(
+            'Hapus seluruh arsip backup ' + backup.id + ' (' + formatManagedFileSize(backup.bytes) +
+            ')? Database, dokumen, dan file publik di dalam snapshot ini akan dihapus permanen. ' +
+            'File Google Drive tidak akan berubah.'
+          );
+          if (!confirmed) return;
+          remove.disabled = true;
+          try {
+            const result = await api('/api/admin/backups/' + encodeURIComponent(backup.id), {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ confirmation: 'HAPUS' })
+            });
+            if (await loadFileManagerBackups()) {
+              setStatus('file-manager-backup-status', result.message, 'success');
+            }
+          } catch (error) {
+            setStatus('file-manager-backup-status', error.message || 'Arsip backup gagal dihapus.', 'error');
+            remove.disabled = false;
+          }
+        });
+        actions.appendChild(remove);
+        row.append(createdAt, fileCount, size, id, actions);
+        body.appendChild(row);
+      });
+    }
+
+    async function loadFileManagerBackups() {
+      setStatus('file-manager-backup-status', 'Memuat arsip backup...', '');
+      try {
+        const result = await api('/api/admin/backups');
+        renderManagedBackupArchives(result.backups || [], result.configured, result.latestBackupId || '');
+        setStatus('file-manager-backup-status',
+          (result.backups || []).length + ' arsip backup tersedia.', '');
+        return true;
+      } catch (error) {
+        setStatus('file-manager-backup-status', error.message || 'Arsip backup gagal dimuat.', 'error');
+        if (error.status === 401) showLogin();
+        return false;
+      }
+    }
+
     function renderActivityLog(entries) {
       const body = document.getElementById('activity-body');
       body.replaceChildren();
@@ -4295,9 +4391,11 @@
         const result = await api('/api/admin/users');
         renderUsers(result.users || []);
         setStatus('accounts-status', '', '');
+        return true;
       } catch (error) {
         setStatus('accounts-status', error.message, 'error');
         if (error.status === 401) showLogin();
+        return false;
       }
     }
 
@@ -4376,7 +4474,31 @@
             setStatus('accounts-status', error.message, 'error');
           }
         });
-        actions.append(save, reset);
+        const remove = document.createElement('button');
+        remove.className = 'secondary';
+        remove.textContent = 'Hapus Akun';
+        remove.hidden = currentUser.role !== 'owner';
+        remove.disabled = isCurrentUser || currentUser.role !== 'owner';
+        remove.addEventListener('click', async function () {
+          const confirmation = prompt(
+            'Akun ' + user.username + ' akan dihapus permanen dan seluruh sesinya dicabut. ' +
+            'Ketik HAPUS untuk melanjutkan:'
+          );
+          if (confirmation !== 'HAPUS') return;
+          remove.disabled = true;
+          try {
+            const result = await api('/api/admin/users/' + user.id, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ confirmation: 'HAPUS' })
+            });
+            if (await loadUsers()) setStatus('accounts-status', result.message, 'success');
+          } catch (error) {
+            setStatus('accounts-status', error.message || 'Akun gagal dihapus.', 'error');
+            remove.disabled = false;
+          }
+        });
+        actions.append(save, reset, remove);
         [account, makeCell(displayName), makeCell(role), makeCell(active), actions].forEach(function (cell) {
           row.appendChild(cell);
         });
@@ -4948,6 +5070,9 @@
     document.getElementById('reload-activity-button').addEventListener('click', loadActivityLog);
     document.getElementById('reload-file-manager-button').addEventListener('click', function () {
       loadFileManager();
+    });
+    document.getElementById('reload-file-manager-backups-button').addEventListener('click', function () {
+      loadFileManagerBackups();
     });
     document.getElementById('file-manager-search').addEventListener('input', function () {
       clearTimeout(fileManagerSearchTimer);

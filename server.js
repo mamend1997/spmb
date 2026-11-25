@@ -11,6 +11,7 @@ const app = express();
 const publicLookupRequests = new Map();
 const pinRecoveryRequestsByIp = new Map();
 const qiospayInvoiceRequests = new Map();
+const kaseraTransactionRequests = new Map();
 let restoreInProgress = false;
 const publicLookupWindowMs = 60 * 1000;
 const publicLookupLimit = 12;
@@ -480,6 +481,20 @@ database.exec(`
     paid_at TEXT NOT NULL DEFAULT ''
   );
   CREATE INDEX IF NOT EXISTS idx_qiospay_invoices_applicant ON qiospay_invoices(applicant_id, id DESC);
+  CREATE TABLE IF NOT EXISTS kasera_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+    provider_transaction_id TEXT NOT NULL UNIQUE,
+    external_id TEXT NOT NULL UNIQUE,
+    amount INTEGER NOT NULL,
+    checkout_url TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    livemode INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL,
+    paid_at TEXT NOT NULL DEFAULT ''
+  );
+  CREATE INDEX IF NOT EXISTS idx_kasera_transactions_applicant ON kasera_transactions(applicant_id, id DESC);
 `);
 
 const adminSessionColumns = database.prepare('PRAGMA table_info(admin_sessions)').all();
@@ -496,23 +511,28 @@ function getBackupIdPattern() {
   return /^spmb-backup-\d{8}T\d{9}Z$/;
 }
 
-function listBackups() {
+function listBackupIds() {
   if (!configuredBackupDirectory || !fs.existsSync(configuredBackupDirectory)) return [];
   return fs.readdirSync(configuredBackupDirectory, { withFileTypes: true })
     .filter(function (entry) { return entry.isDirectory() && getBackupIdPattern().test(entry.name); })
-    .map(function (entry) {
-      const directory = path.join(configuredBackupDirectory, entry.name);
+    .map(function (entry) { return entry.name; })
+    .sort(function (first, second) { return second.localeCompare(first); });
+}
+
+function listBackups() {
+  return listBackupIds()
+    .map(function (backupId) {
+      const directory = path.join(configuredBackupDirectory, backupId);
       const manifestPath = path.join(directory, 'manifest.json');
-      if (!fs.existsSync(manifestPath)) throw new Error('Manifest backup tidak ditemukan pada ' + entry.name + '.');
+      if (!fs.existsSync(manifestPath)) throw new Error('Manifest backup tidak ditemukan pada ' + backupId + '.');
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
       return {
-        id: entry.name,
+        id: backupId,
         createdAt: manifest.createdAt,
         fileCount: Number(manifest.fileCount || 0),
         bytes: Number(manifest.bytes || 0)
       };
     })
-    .sort(function (first, second) { return second.id.localeCompare(first.id); });
 }
 
 function validateBackupForRestore(backupId) {
@@ -640,7 +660,8 @@ app.use(function setSecurityHeaders(request, response, next) {
 app.use(express.json({
   limit: '20mb',
   verify: function (request, response, buffer) {
-    if (request.path === '/api/payments/qiospay/callback') request.rawBody = Buffer.from(buffer);
+    if (request.path === '/api/payments/qiospay/callback' ||
+        request.path === '/api/payments/kasera/callback') request.rawBody = Buffer.from(buffer);
   }
 }));
 app.use(function blockRequestsDuringRestore(request, response, next) {
@@ -1078,11 +1099,15 @@ function sanitizePaymentSettings(settings) {
   const qrisImageUrl = String(settings.qrisImageUrl || '').trim();
   if (gatewayUrl) {
     let gateway;
-    try { gateway = new URL(gatewayUrl); } catch (error) { throw new Error('Tautan checkout Qiospay harus menggunakan URL HTTPS yang valid.'); }
-    if (gateway.protocol !== 'https:') throw new Error('Tautan checkout Qiospay harus menggunakan HTTPS.');
+    try { gateway = new URL(gatewayUrl); } catch (error) { throw new Error('Tautan checkout cadangan harus menggunakan URL HTTPS yang valid.'); }
+    if (gateway.protocol !== 'https:') throw new Error('Tautan checkout cadangan harus menggunakan HTTPS.');
   }
   if (qrisImageUrl && !isAllowedPublicUrl(qrisImageUrl)) throw new Error('Tautan QRIS harus menggunakan HTTPS atau file publik situs.');
-  const provider = String(settings.gatewayProvider || 'Qiospay').trim();
+  const providerLabel = String(settings.gatewayProvider || 'Qiospay').trim();
+  const providerName = providerLabel.toLowerCase();
+  const provider = providerName === 'kasera' ? 'Kasera'
+    : providerName === 'qiospay' ? 'Qiospay'
+      : providerLabel;
   if (provider.length < 2 || provider.length > 40) throw new Error('Nama payment gateway tidak valid.');
   return {
     bankEnabled: settings.bankEnabled !== false,
@@ -2483,6 +2508,16 @@ function getQiospayCredentials() {
   return apiKey && privateKey ? { apiKey: apiKey, privateKey: privateKey } : null;
 }
 
+const kaseraApiBaseUrl = 'https://pay.kasera.id/v1';
+
+function getKaseraCredentials() {
+  const apiKey = String(process.env.KASERA_API_KEY || '').trim();
+  const webhookSecret = String(process.env.KASERA_WEBHOOK_SECRET || '').trim();
+  return /^kp_(?:test|live)_/.test(apiKey) && webhookSecret
+    ? { apiKey: apiKey, webhookSecret: webhookSecret, livemode: apiKey.startsWith('kp_live_') }
+    : null;
+}
+
 function publicQiospayInvoice(invoice) {
   return {
     invoiceId: invoice.provider_invoice_id,
@@ -2632,6 +2667,157 @@ function getQiospayTransactionForApplicant(applicant) {
   return invoice ? publicQiospayInvoice(invoice) : null;
 }
 
+function publicKaseraTransaction(transaction) {
+  return {
+    transactionId: transaction.provider_transaction_id,
+    orderId: transaction.external_id,
+    amount: transaction.amount,
+    checkoutUrl: transaction.checkout_url,
+    expiresAt: transaction.expires_at,
+    status: transaction.status,
+    livemode: Boolean(transaction.livemode)
+  };
+}
+
+function getKaseraErrorDetail(result, credentials) {
+  const candidate = result && result.error && result.error.message;
+  if (typeof candidate !== 'string' || !candidate.trim()) return '';
+  let detail = candidate.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
+  [credentials.apiKey, credentials.webhookSecret].forEach(function (secret) {
+    if (secret) detail = detail.split(secret).join('[disamarkan]');
+  });
+  return detail.slice(0, 240);
+}
+
+async function createKaseraTransaction(applicant, amount) {
+  const credentials = getKaseraCredentials();
+  if (!credentials) {
+    throw new Error('Kasera belum dikonfigurasi. Atur KASERA_API_KEY dan KASERA_WEBHOOK_SECRET di environment Railway.');
+  }
+  const activeTransaction = database.prepare(`
+    SELECT * FROM kasera_transactions
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at > ?
+    ORDER BY id DESC LIMIT 1
+  `).get(applicant.id, new Date().toISOString());
+  if (activeTransaction) return publicKaseraTransaction(activeTransaction);
+  const activeQiospayInvoice = database.prepare(`
+    SELECT 1 FROM qiospay_invoices
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
+  `).get(applicant.id, new Date().toISOString());
+  if (activeQiospayInvoice) {
+    throw new Error('Selesaikan tagihan QiosPay yang masih aktif atau tunggu sampai kedaluwarsa sebelum membuat tagihan Kasera.');
+  }
+  database.prepare(`
+    UPDATE kasera_transactions SET status = 'expired'
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at <= ?
+  `).run(applicant.id, new Date().toISOString());
+
+  const attempt = Number(database.prepare(
+    'SELECT COUNT(*) AS count FROM kasera_transactions WHERE applicant_id = ?'
+  ).get(applicant.id).count) + 1;
+  const externalId = 'SPMB-' + applicant.id + '-' + attempt + '-' + amount;
+  const body = {
+    amount: amount,
+    description: 'Daftar ulang SPMB SMK PGRI Cikoneng',
+    external_id: externalId,
+    expires_in_minutes: 60
+  };
+  const controller = new AbortController();
+  const timeout = setTimeout(function () { controller.abort(); }, 15000);
+  let response;
+  try {
+    response = await fetch(kaseraApiBaseUrl + '/transactions', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + credentials.apiKey,
+        'Idempotency-Key': externalId,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body),
+      redirect: 'error',
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  let result;
+  try {
+    result = await response.json();
+  } catch (error) {
+    throw new Error('Respons Kasera tidak dapat dibaca.');
+  }
+  if (!response.ok) {
+    const detail = getKaseraErrorDetail(result, credentials);
+    throw new Error('Kasera gagal membuat tagihan (HTTP ' + response.status + ')' +
+      (detail ? ': ' + detail : '.'));
+  }
+  const transactionId = String(result && result.id || '');
+  const checkoutUrl = String(result && result.checkout_url || '');
+  const returnedExternalId = String(result && result.external_id || '');
+  const expiresAt = String(result && result.expires_at || '');
+  const parsedExpiry = Date.parse(expiresAt);
+  let safeCheckoutUrl;
+  try { safeCheckoutUrl = new URL(checkoutUrl); } catch (error) { safeCheckoutUrl = null; }
+  if (!/^payreq_[A-Za-z0-9_-]{8,80}$/.test(transactionId) ||
+      returnedExternalId !== externalId || result.status !== 'pending' ||
+      Number(result.amount) !== amount || result.currency !== 'IDR' ||
+      result.livemode !== credentials.livemode || !Number.isFinite(parsedExpiry) ||
+      parsedExpiry <= Date.now() || !safeCheckoutUrl ||
+      safeCheckoutUrl.origin !== 'https://pay.kasera.id' ||
+      !safeCheckoutUrl.pathname.startsWith('/p/')) {
+    throw new Error('Data tagihan yang dikembalikan Kasera tidak valid.');
+  }
+  const createdAt = new Date().toISOString();
+  database.prepare(`
+    INSERT INTO kasera_transactions (
+      applicant_id, provider_transaction_id, external_id, amount, checkout_url,
+      expires_at, livemode, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+  `).run(
+    applicant.id, transactionId, externalId, amount, checkoutUrl,
+    new Date(parsedExpiry).toISOString(), credentials.livemode ? 1 : 0, createdAt
+  );
+  database.prepare(`
+    UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
+      status_updated_at = ? WHERE id = ?
+  `).run('Menunggu Pembayaran Kasera', createdAt, applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  return publicKaseraTransaction(database.prepare(
+    'SELECT * FROM kasera_transactions WHERE provider_transaction_id = ?'
+  ).get(transactionId));
+}
+
+function createKaseraTransactionForApplicant(applicant, amount) {
+  const existingRequest = kaseraTransactionRequests.get(applicant.id);
+  if (existingRequest) return existingRequest;
+  const currentRequest = createKaseraTransaction(applicant, amount);
+  kaseraTransactionRequests.set(applicant.id, currentRequest);
+  currentRequest.finally(function () {
+    if (kaseraTransactionRequests.get(applicant.id) === currentRequest) kaseraTransactionRequests.delete(applicant.id);
+  }).catch(function () {});
+  return currentRequest;
+}
+
+function getKaseraTransactionForApplicant(applicant) {
+  let transaction = database.prepare(
+    'SELECT * FROM kasera_transactions WHERE applicant_id = ? ORDER BY id DESC LIMIT 1'
+  ).get(applicant.id);
+  if (transaction && transaction.status === 'pending' && Date.parse(transaction.expires_at) <= Date.now()) {
+    const now = new Date().toISOString();
+    database.prepare("UPDATE kasera_transactions SET status = 'expired' WHERE id = ? AND status = 'pending'")
+      .run(transaction.id);
+    database.prepare(`
+      UPDATE applicants SET payment_status = ?, status_updated_at = ?
+      WHERE id = ? AND payment_status = 'Menunggu Pembayaran Kasera'
+    `).run('Belum Daftar Ulang', now, applicant.id);
+    queueSheetSync(applicant.id);
+    setImmediate(syncQueuedApplications);
+    transaction = database.prepare('SELECT * FROM kasera_transactions WHERE id = ?').get(transaction.id);
+  }
+  return transaction ? publicKaseraTransaction(transaction) : null;
+}
+
 function buildPortalApplication(applicant, config) {
   const uploadedFiles = new Map(database.prepare('SELECT field_key, original_name FROM uploaded_files WHERE applicant_id = ?')
     .all(applicant.id).map(function (file) { return [file.field_key, file]; }));
@@ -2654,6 +2840,12 @@ function buildPortalApplication(applicant, config) {
       });
     }
   });
+  const qiospayTransaction = getQiospayTransactionForApplicant(applicant);
+  const kaseraTransaction = getKaseraTransactionForApplicant(applicant);
+  const paymentDetails = database.prepare(`
+    SELECT payment_status, payment_note, reenrollment_status
+    FROM applicants WHERE id = ?
+  `).get(applicant.id) || applicant;
   function portalFile(document) {
     const upload = uploadedFiles.get(document.key);
     return {
@@ -2744,14 +2936,16 @@ function buildPortalApplication(applicant, config) {
     selectionStatus: applicant.selection_status,
     selectionScore: applicant.selection_score,
     selectionNote: applicant.selection_note,
-    reenrollmentStatus: applicant.reenrollment_status,
-    paymentStatus: applicant.payment_status,
-    paymentNote: applicant.payment_note,
+    reenrollmentStatus: paymentDetails.reenrollment_status,
+    paymentStatus: paymentDetails.payment_status,
+    paymentNote: paymentDetails.payment_note,
     paymentFee: wave ? wave.reenrollmentFee : '',
     paymentSettings: config.paymentSettings,
     paymentProofUrl: uploadedFiles.has('paymentProof') ? '/api/portal/documents/paymentProof' : '',
     qiospayAvailable: Boolean(getQiospayCredentials()) && config.paymentSettings.gatewayEnabled !== false,
-    qiospayTransaction: getQiospayTransactionForApplicant(applicant),
+    qiospayTransaction: qiospayTransaction,
+    kaseraAvailable: Boolean(getKaseraCredentials()) && config.paymentSettings.gatewayEnabled !== false,
+    kaseraTransaction: kaseraTransaction,
     canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
   };
 }
@@ -3090,6 +3284,49 @@ app.post('/api/portal/documents/:key', requirePortal, function (request, respons
 app.post('/api/portal/payment/qiospay', requirePortal, async function (request, response) {
   const applicant = request.portalApplicant;
   const config = getConfig();
+  if (config.paymentSettings.gatewayProvider.toLowerCase() !== 'qiospay') {
+    return response.status(403).json({ message: 'Provider pembayaran otomatis saat ini bukan QiosPay.' });
+  }
+  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  const amount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : 0;
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(403).json({ message: 'Pembayaran daftar ulang hanya tersedia bagi siswa yang diterima.' });
+  }
+  if (applicant.payment_status === 'Pembayaran Terverifikasi' ||
+      applicant.reenrollment_status === 'Daftar Ulang Selesai') {
+    return response.status(409).json({ message: 'Pembayaran daftar ulang sudah terverifikasi.' });
+  }
+  if (applicant.payment_status === 'Menunggu Verifikasi Pembayaran') {
+    return response.status(409).json({ message: 'Bukti pembayaran manual sedang menunggu verifikasi panitia.' });
+  }
+  const activeKaseraTransaction = database.prepare(`
+    SELECT 1 FROM kasera_transactions
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
+  `).get(applicant.id, new Date().toISOString());
+  if (activeKaseraTransaction) {
+    return response.status(409).json({ message: 'Selesaikan tagihan Kasera yang masih aktif atau tunggu sampai kedaluwarsa sebelum membuat tagihan QiosPay.' });
+  }
+  if (!config.paymentSettings.gatewayEnabled) {
+    return response.status(403).json({ message: 'Pembayaran otomatis saat ini dinonaktifkan oleh panitia.' });
+  }
+  if (!Number.isSafeInteger(amount) || amount < 1) {
+    return response.status(400).json({ message: 'Biaya daftar ulang untuk gelombang ini belum diatur.' });
+  }
+  try {
+    const invoice = await createQiospayInvoiceForApplicant(applicant, amount);
+    response.json({ status: 'success', invoice: invoice });
+  } catch (error) {
+    console.error('QiosPay invoice creation failed:', applicant.registration_number, error.message);
+    response.status(502).json({ message: error.message || 'Tagihan QiosPay gagal dibuat. Silakan coba kembali.' });
+  }
+});
+
+app.post('/api/portal/payment/kasera', requirePortal, async function (request, response) {
+  const applicant = request.portalApplicant;
+  const config = getConfig();
+  if (config.paymentSettings.gatewayProvider.toLowerCase() !== 'kasera') {
+    return response.status(403).json({ message: 'Provider pembayaran otomatis saat ini bukan Kasera.' });
+  }
   const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
   const amount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : 0;
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
@@ -3109,12 +3346,130 @@ app.post('/api/portal/payment/qiospay', requirePortal, async function (request, 
     return response.status(400).json({ message: 'Biaya daftar ulang untuk gelombang ini belum diatur.' });
   }
   try {
-    const invoice = await createQiospayInvoiceForApplicant(applicant, amount);
-    response.json({ status: 'success', invoice: invoice });
+    const transaction = await createKaseraTransactionForApplicant(applicant, amount);
+    response.json({ status: 'success', transaction: transaction });
   } catch (error) {
-    console.error('QiosPay invoice creation failed:', applicant.registration_number, error.message);
-    response.status(502).json({ message: error.message || 'Tagihan QiosPay gagal dibuat. Silakan coba kembali.' });
+    console.error('Kasera transaction creation failed:', applicant.registration_number, error.message);
+    response.status(502).json({ message: error.message || 'Tagihan Kasera gagal dibuat. Silakan coba kembali.' });
   }
+});
+
+function verifyKaseraWebhookSignature(rawBody, signatureHeader, secret) {
+  if (!Buffer.isBuffer(rawBody)) return false;
+  const parts = String(signatureHeader || '').split(',').map(function (part) { return part.trim(); });
+  const timestampPart = parts.find(function (part) { return /^t=\d{10}$/.test(part); });
+  if (!timestampPart) return false;
+  const timestamp = Number(timestampPart.slice(2));
+  if (Math.abs(Date.now() / 1000 - timestamp) > 300) return false;
+  const expected = crypto.createHmac('sha256', secret)
+    .update(String(timestamp))
+    .update('.')
+    .update(rawBody)
+    .digest();
+  return parts.filter(function (part) { return /^v1=[a-f0-9]{64}$/i.test(part); })
+    .some(function (part) {
+      const received = Buffer.from(part.slice(3), 'hex');
+      return received.length === expected.length && crypto.timingSafeEqual(expected, received);
+    });
+}
+
+app.post('/api/payments/kasera/callback', function (request, response) {
+  const credentials = getKaseraCredentials();
+  if (!credentials) return response.status(503).send('Kasera payment callback is not configured.');
+  const event = request.body;
+  if (!verifyKaseraWebhookSignature(request.rawBody, request.get('Kasera-Signature-V1'), credentials.webhookSecret) ||
+      !event || typeof event.id !== 'string' || typeof event.type !== 'string' ||
+      typeof event.livemode !== 'boolean' ||
+      (request.get('Kasera-Event-Id') && request.get('Kasera-Event-Id') !== event.id)) {
+    return response.status(400).send('Invalid Kasera payment callback.');
+  }
+  if (event.livemode !== credentials.livemode) {
+    return response.status(400).send('Kasera callback mode does not match the configured API key.');
+  }
+  if (event.type === 'test.ping' && event.test === true) return response.sendStatus(200);
+  if (!['payment.paid', 'payment.expired', 'payment.failed'].includes(event.type)) {
+    return response.sendStatus(200);
+  }
+  const data = event.data;
+  if (!data || typeof data.payment_request_id !== 'string' ||
+      !Number.isSafeInteger(Number(data.amount)) || data.currency !== 'IDR') {
+    return response.status(400).send('Invalid Kasera payment details.');
+  }
+  const transaction = database.prepare(`
+    SELECT * FROM kasera_transactions WHERE provider_transaction_id = ?
+  `).get(data.payment_request_id);
+  if (!transaction) {
+    console.warn('Kasera callback tidak cocok dengan transaksi lokal:', data.payment_request_id.slice(0, 100));
+    return response.sendStatus(200);
+  }
+  if ((data.external_id && String(data.external_id) !== transaction.external_id) ||
+      Boolean(transaction.livemode) !== event.livemode || Number(data.amount) !== transaction.amount) {
+    console.error('Kasera callback tidak sesuai dengan transaksi lokal:', transaction.external_id);
+    return response.status(400).send('Kasera payment details do not match the local transaction.');
+  }
+  const expectedStatus = event.type === 'payment.paid' ? 'succeeded'
+    : event.type === 'payment.expired' ? 'expired' : 'failed';
+  if (data.status !== expectedStatus) return response.status(400).send('Kasera payment status does not match the event.');
+  if (transaction.status === 'paid' || transaction.status === 'test_paid') return response.sendStatus(200);
+
+  const applicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(transaction.applicant_id);
+  if (!applicant) return response.sendStatus(200);
+  if (!event.livemode) {
+    const testStatus = event.type === 'payment.paid' ? 'test_paid' : expectedStatus;
+    database.prepare(`
+      UPDATE kasera_transactions SET status = ?, paid_at = ?
+      WHERE id = ? AND status != 'paid'
+    `).run(testStatus, event.type === 'payment.paid' ? String(data.paid_at || '') : '', transaction.id);
+    return response.sendStatus(200);
+  }
+  if (event.type === 'payment.paid') {
+    if (applicant.archived_at || applicant.deleted_at ||
+        !['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+      console.warn('Kasera paid transaction belongs to an ineligible or archived applicant:', transaction.external_id);
+      return response.sendStatus(200);
+    }
+    const paidAt = Number.isFinite(Date.parse(String(data.paid_at || '')))
+      ? new Date(data.paid_at).toISOString()
+      : new Date().toISOString();
+    withTransaction(function () {
+      database.prepare(`
+        UPDATE kasera_transactions SET status = 'paid', paid_at = ?
+        WHERE id = ? AND status != 'paid'
+      `).run(paidAt, transaction.id);
+      database.prepare(`
+        UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = ?,
+          reenrollment_status = ?, status_updated_at = ? WHERE id = ?
+      `).run('Pembayaran Terverifikasi', paidAt, 'Daftar Ulang Selesai', paidAt, applicant.id);
+      queueSheetSync(applicant.id);
+    });
+    setImmediate(syncQueuedApplications);
+    const updatedApplicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicant.id);
+    dispatchWhatsAppEvent('payment.reviewed', updatedApplicant, [
+      'Pembayaran daftar ulang SPMB SMK PGRI Cikoneng berhasil diverifikasi otomatis.',
+      'Nama: ' + updatedApplicant.student_name,
+      'Nomor pendaftaran: ' + updatedApplicant.registration_number,
+      'Total pembayaran: Rp ' + transaction.amount.toLocaleString('id-ID')
+    ].join('\n'), {
+      registrationNumber: updatedApplicant.registration_number,
+      paymentStatus: 'Pembayaran Terverifikasi',
+      reenrollmentStatus: 'Daftar Ulang Selesai',
+      provider: 'Kasera'
+    });
+    return response.sendStatus(200);
+  }
+  withTransaction(function () {
+    database.prepare(`
+      UPDATE kasera_transactions SET status = ?
+      WHERE id = ? AND status NOT IN ('paid', 'test_paid')
+    `).run(expectedStatus, transaction.id);
+    database.prepare(`
+      UPDATE applicants SET payment_status = ?, status_updated_at = ?
+      WHERE id = ? AND payment_status = 'Menunggu Pembayaran Kasera'
+    `).run('Belum Daftar Ulang', new Date().toISOString(), applicant.id);
+    queueSheetSync(applicant.id);
+  });
+  setImmediate(syncQueuedApplications);
+  return response.sendStatus(200);
 });
 
 function verifyQiospayWebhookSignature(rawBody, signatureHeader, secret) {
@@ -3214,6 +3569,13 @@ app.post('/api/portal/payment-proof', requirePortal, function (request, response
   `).get(applicant.id, new Date().toISOString());
   if (activeQiospayInvoice) {
     return response.status(409).json({ message: 'Selesaikan tagihan QiosPay yang aktif atau tunggu sampai kedaluwarsa sebelum mengirim bukti manual.' });
+  }
+  const activeKaseraTransaction = database.prepare(`
+    SELECT 1 FROM kasera_transactions
+    WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
+  `).get(applicant.id, new Date().toISOString());
+  if (activeKaseraTransaction) {
+    return response.status(409).json({ message: 'Selesaikan tagihan Kasera yang aktif atau tunggu sampai kedaluwarsa sebelum mengirim bukti manual.' });
   }
   const upload = request.body && request.body.upload;
   const definition = { label: 'Bukti pembayaran daftar ulang', photo: false, extensions: ['pdf', 'jpg', 'jpeg', 'png'], maxKB: 2048 };
@@ -3477,6 +3839,42 @@ app.patch('/api/admin/users/:id', requireAdmin, requirePermission('accounts', 'e
     .run(displayName, body.role, body.isActive ? 1 : 0, new Date().toISOString(), id);
   if (!body.isActive) database.prepare('DELETE FROM admin_sessions WHERE user_id = ?').run(id);
   response.json({ status: 'success' });
+});
+
+app.delete('/api/admin/users/:id', requireAdmin, requireOwner, function (request, response) {
+  const id = Number(request.params.id);
+  if (!request.body || request.body.confirmation !== 'HAPUS') {
+    return response.status(400).json({ message: 'Konfirmasi HAPUS diperlukan.' });
+  }
+  const existing = Number.isSafeInteger(id) && id > 0
+    ? database.prepare('SELECT id, username, role, is_active FROM admin_users WHERE id = ?').get(id)
+    : null;
+  if (!existing) return response.status(404).json({ message: 'Akun tidak ditemukan.' });
+  if (existing.id === request.adminUser.id) {
+    return response.status(400).json({ message: 'Akun yang sedang digunakan tidak dapat dihapus.' });
+  }
+  if (request.adminUser.role !== 'owner' && existing.role === 'owner') {
+    return response.status(403).json({ message: 'Hanya Pemilik yang dapat menghapus akun Pemilik.' });
+  }
+  if (existing.role === 'owner' && existing.is_active) {
+    const activeOwners = database.prepare(
+      "SELECT COUNT(*) AS count FROM admin_users WHERE role = 'owner' AND is_active = 1"
+    ).get().count;
+    if (activeOwners <= 1) {
+      return response.status(409).json({ message: 'Akun Pemilik aktif terakhir tidak dapat dihapus.' });
+    }
+  }
+  try {
+    withTransaction(function () {
+      database.prepare('DELETE FROM admin_sessions WHERE user_id = ?').run(id);
+      const deleted = database.prepare('DELETE FROM admin_users WHERE id = ?').run(id);
+      if (deleted.changes !== 1) throw new Error('Akun sudah berubah atau tidak ditemukan.');
+    });
+  } catch (error) {
+    console.error('Admin account deletion failed:', error.message);
+    return response.status(500).json({ message: 'Akun gagal dihapus.' });
+  }
+  response.json({ status: 'success', message: 'Akun ' + existing.username + ' berhasil dihapus permanen.' });
 });
 
 app.post('/api/admin/users/:id/reset-password', requireAdmin, requirePermission('accounts', 'edit'), function (request, response) {
@@ -3933,7 +4331,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       SUM(CASE WHEN document_status = 'Perlu Perbaikan' THEN 1 ELSE 0 END) AS revisions,
       SUM(CASE WHEN selection_status IN ('Diterima', 'Diterima / Lulus') THEN 1 ELSE 0 END) AS accepted,
       SUM(CASE WHEN selection_status = 'Cadangan' THEN 1 ELSE 0 END) AS reserves,
-      SUM(CASE WHEN payment_status IN ('Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay') THEN 1 ELSE 0 END) AS paymentPending,
+      SUM(CASE WHEN payment_status IN ('Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay', 'Menunggu Pembayaran Kasera') THEN 1 ELSE 0 END) AS paymentPending,
       SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
     FROM applicants
@@ -4832,6 +5230,9 @@ app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, r
   if (database.prepare("SELECT 1 FROM qiospay_invoices WHERE applicant_id = ? AND status = 'paid' LIMIT 1").get(applicant.id)) {
     return response.status(409).json({ message: 'Pembayaran QiosPay sudah terverifikasi otomatis dan tidak dapat diubah melalui verifikasi manual.' });
   }
+  if (database.prepare("SELECT 1 FROM kasera_transactions WHERE applicant_id = ? AND status = 'paid' LIMIT 1").get(applicant.id)) {
+    return response.status(409).json({ message: 'Pembayaran Kasera sudah terverifikasi otomatis dan tidak dapat diubah melalui verifikasi manual.' });
+  }
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(400).json({ message: 'Daftar ulang hanya tersedia bagi siswa yang diterima.' });
   }
@@ -4921,14 +5322,56 @@ app.post('/api/admin/sync-retry', requireAdmin, requirePermission('applications'
 
 app.get('/api/admin/backups', requireAdmin, requireOwner, function (request, response) {
   try {
+    const backups = listBackups();
     response.json({
       configured: Boolean(configuredBackupDirectory),
       retentionCount: backupRetentionCount,
-      backups: listBackups()
+      latestBackupId: backups.length ? backups[0].id : '',
+      backups: backups
     });
   } catch (error) {
     response.status(500).json({ message: error.message || 'Daftar backup gagal dimuat.' });
   }
+});
+
+app.delete('/api/admin/backups/:backupId', requireAdmin, requireOwner, function (request, response) {
+  if (restoreInProgress) return response.status(409).json({ message: 'Backup tidak dapat dihapus saat pemulihan sedang berjalan.' });
+  if (!configuredBackupDirectory) {
+    return response.status(503).json({ message: 'BACKUP_DIR belum dikonfigurasi.' });
+  }
+  if (!request.body || request.body.confirmation !== 'HAPUS') {
+    return response.status(400).json({ message: 'Konfirmasi HAPUS diperlukan.' });
+  }
+  const backupId = String(request.params.backupId || '');
+  if (!getBackupIdPattern().test(backupId)) {
+    return response.status(400).json({ message: 'ID backup tidak valid.' });
+  }
+  const backupDirectory = path.join(configuredBackupDirectory, backupId);
+  if (path.dirname(backupDirectory) !== configuredBackupDirectory || !fs.existsSync(backupDirectory)) {
+    return response.status(404).json({ message: 'Backup tidak ditemukan.' });
+  }
+  let directoryStats;
+  try {
+    directoryStats = fs.lstatSync(backupDirectory);
+  } catch (error) {
+    return response.status(error.code === 'ENOENT' ? 404 : 500).json({
+      message: error.code === 'ENOENT' ? 'Backup tidak ditemukan.' : 'Folder backup tidak dapat diperiksa.'
+    });
+  }
+  if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
+    return response.status(400).json({ message: 'Folder backup tidak valid.' });
+  }
+  const backupIds = listBackupIds();
+  if (backupIds.length <= 1 || backupId === backupIds[0]) {
+    return response.status(409).json({ message: 'Backup terbaru dipertahankan. Buat backup baru sebelum menghapus arsip ini.' });
+  }
+  try {
+    fs.rmSync(backupDirectory, { recursive: true, force: false });
+  } catch (error) {
+    console.error('Backup deletion failed:', backupId, error.message);
+    return response.status(500).json({ message: 'Arsip backup gagal dihapus.' });
+  }
+  response.json({ status: 'success', message: 'Arsip backup ' + backupId + ' berhasil dihapus.' });
 });
 
 app.get('/api/admin/backups/:backupId/download', requireAdmin, requireOwner, function (request, response) {
