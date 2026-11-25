@@ -827,7 +827,7 @@
 
       <section id="accounts-page" class="card section admin-page" hidden>
         <div class="section-heading">
-          <div><h2>Manajemen Akun</h2><p>Kelola akun admin dan hak akses menu berdasarkan role.</p></div>
+          <div><h2>Manajemen Akun</h2><p>Kelola akun admin dan hak akses menu berdasarkan role. Hanya satu akun Pemilik diperbolehkan.</p></div>
           <button id="reload-users-button" class="secondary" type="button">Muat Ulang Akun</button>
         </div>
         <section class="role-permission-panel" data-admin-roles="owner">
@@ -849,7 +849,7 @@
             <div><label for="new-username">Username</label><input id="new-username" minlength="3" maxlength="40" pattern="[A-Za-z0-9._-]+" autocomplete="off" required></div>
             <div><label for="new-display-name">Nama pengguna</label><input id="new-display-name" maxlength="80" required></div>
             <div><label for="new-account-password">Password sementara (min. 12 karakter)</label><input id="new-account-password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></div>
-            <div><label for="new-account-role">Peran</label><select id="new-account-role" required><option value="operator">Operator</option><option value="viewer">Viewer</option><option value="owner">Pemilik</option></select></div>
+            <div><label for="new-account-role">Peran</label><select id="new-account-role" required><option value="operator">Operator</option><option value="viewer">Viewer</option></select></div>
           </div>
           <button id="create-account-button" type="submit" style="margin-top:14px">Tambah Akun</button>
         </form>
@@ -1374,7 +1374,12 @@
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
       applyRolePermissions();
-      animateAdminElement(document.getElementById('dashboard-page'));
+    }
+
+    function showAdminLoading() {
+      adminSessionLoading.classList.remove('hidden');
+      loginCard.classList.add('hidden');
+      dashboard.classList.add('hidden');
     }
 
     function showLogin() {
@@ -4418,7 +4423,10 @@
         displayName.setAttribute('aria-label', 'Nama pengguna ' + user.username);
 
         const role = document.createElement('select');
-        [['owner', 'Pemilik'], ['operator', 'Operator'], ['viewer', 'Viewer']].forEach(function (item) {
+        const availableRoles = user.role === 'owner'
+          ? [['owner', 'Pemilik'], ['operator', 'Operator'], ['viewer', 'Viewer']]
+          : [['operator', 'Operator'], ['viewer', 'Viewer']];
+        availableRoles.forEach(function (item) {
           role.appendChild(makeOption(item[0], item[1]));
         });
         role.value = user.role;
@@ -4539,9 +4547,11 @@
         });
         currentUser = result.user;
         document.getElementById('admin-password').value = '';
-        showDashboard();
+        showAdminLoading();
         await loadAll();
+        if (!currentUser) return;
         showRouteFromLocation();
+        showDashboard();
       } catch (error) {
         setStatus('login-status', error.message, 'error');
       } finally {
@@ -5320,9 +5330,10 @@
 
     api('/api/admin/me').then(async function (result) {
       currentUser = result.user;
-      showDashboard();
       await loadAll();
+      if (!currentUser) return;
       showRouteFromLocation();
+      showDashboard();
     }).catch(function () {
       showLogin();
     });

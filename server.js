@@ -3786,6 +3786,10 @@ app.post('/api/admin/users', requireAdmin, requirePermission('accounts', 'edit')
         (body.role === 'owner' || !permissionsAreSubset(body.role, request.adminUser.role))) {
       return response.status(403).json({ message: 'Akun ini tidak dapat membuat role dengan akses lebih tinggi.' });
     }
+    if (body.role === 'owner' &&
+        database.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'owner'").get().count > 0) {
+      return response.status(409).json({ message: 'Hanya satu akun Pemilik yang diperbolehkan.' });
+    }
     const passwordHash = hashPassword(password);
     const now = new Date().toISOString();
     const result = database.prepare(`
@@ -3816,6 +3820,10 @@ app.patch('/api/admin/users/:id', requireAdmin, requirePermission('accounts', 'e
       (existing.role === 'owner' ||
        (body.role !== existing.role && (body.role === 'owner' || !permissionsAreSubset(body.role, request.adminUser.role))))) {
     return response.status(403).json({ message: 'Akun ini tidak dapat memberikan role dengan akses lebih tinggi.' });
+  }
+  if (body.role === 'owner' && existing.role !== 'owner' &&
+      database.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'owner'").get().count > 0) {
+    return response.status(409).json({ message: 'Hanya satu akun Pemilik yang diperbolehkan.' });
   }
   if (existing.is_active && !body.isActive && !hasAdminPermission(request.adminUser, 'accounts', 'delete')) {
     return response.status(403).json({ message: 'Akun Anda tidak memiliki izin menonaktifkan akun.' });
