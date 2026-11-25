@@ -822,6 +822,13 @@ function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
         : 'Menunggu Verifikasi';
 }
 
+function isApplicantVerifiedForSelection(applicant, config) {
+  const reviews = JSON.parse(applicant.field_reviews_json || '{}');
+  const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
+    .all(applicant.id).map(function (file) { return file.field_key; }));
+  return calculateDocumentStatus(applicant, config, reviews, uploadedFiles) === 'Berkas Terverifikasi';
+}
+
 function makeSheetPayload(applicant) {
   return {
     registrationNumber: applicant.registration_number,
@@ -1848,12 +1855,11 @@ app.post('/api/public/application-result', function (request, response) {
   const identifier = String(body.identifier || '').trim().toUpperCase();
   const searchColumns = {
     nisn: { column: 'nisn', pattern: /^\d{10}$/ },
-    nik: { column: 'student_nik', pattern: /^\d{16}$/ },
-    registrationNumber: { column: 'registration_number', pattern: registrationNumberPattern }
+    nik: { column: 'student_nik', pattern: /^\d{16}$/ }
   };
   const search = searchColumns[type];
   if (!search || !search.pattern.test(identifier)) {
-    return response.status(400).json({ message: 'Format pencarian tidak valid. Periksa kembali nomor yang dimasukkan.' });
+    return response.status(400).json({ message: 'Pencarian hanya mendukung NISN atau NIK siswa dengan format yang valid.' });
   }
   const applicants = database.prepare(
     "SELECT document_status, selection_status FROM applicants WHERE " + search.column + " = ? AND archived_at = '' LIMIT 2"
@@ -2874,6 +2880,19 @@ app.post('/api/admin/applications/bulk/selection', requireAdmin, requirePermissi
     return response.status(400).json({ message: 'Nilai seleksi harus berupa angka antara 0 sampai 1000.' });
   }
   const isAccepted = ['Diterima / Lulus', 'Diterima'].includes(selectionStatus);
+  const config = getConfig();
+  if (isAccepted) {
+    const unverifiedApplicant = result.applicants.find(function (applicant) {
+      return !isApplicantVerifiedForSelection(applicant, config);
+    });
+    if (unverifiedApplicant) {
+      return response.status(400).json({
+        message: 'Kelulusan massal dibatalkan: ' + unverifiedApplicant.student_name + ' (' +
+          unverifiedApplicant.registration_number +
+          ') belum terverifikasi. Verifikasi seluruh data dan dokumen wajib terlebih dahulu.'
+      });
+    }
+  }
   const now = new Date().toISOString();
   withTransaction(function () {
     const update = database.prepare(`
@@ -2890,7 +2909,6 @@ app.post('/api/admin/applications/bulk/selection', requireAdmin, requirePermissi
         isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, now, applicant.id);
     });
   });
-  const config = getConfig();
   result.applicants.forEach(function (applicant) {
     if (selectionStatus !== applicant.selection_status) {
       dispatchSelectionNotifications(getApplicantByRegistration(applicant.registration_number), config);
@@ -3277,6 +3295,11 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requirePe
     return response.status(400).json({ message: 'Nilai seleksi harus berupa angka antara 0 sampai 1000.' });
   }
   const isAccepted = ['Diterima / Lulus', 'Diterima'].includes(selectionStatus);
+  if (isAccepted && !isApplicantVerifiedForSelection(applicant, getConfig())) {
+    return response.status(400).json({
+      message: 'Kelulusan tidak dapat ditetapkan. Verifikasi seluruh data dan dokumen wajib terlebih dahulu.'
+    });
+  }
   const now = new Date().toISOString();
   database.prepare(`
     UPDATE applicants
