@@ -146,6 +146,9 @@
     .metric { padding: 17px; }
     .metric span { display: block; color: #667085; font-size: 12px; }
     .metric strong { display: block; margin-top: 8px; font-size: 24px; }
+    .metric-task { width: 100%; color: #172033; background: white; text-align: left; transition: transform .18s ease, box-shadow .18s ease; }
+    .metric-task:hover { transform: translateY(-2px); box-shadow: 0 12px 28px #16243a12; }
+    .metric-task:focus-visible { outline: 3px solid #fdba74; outline-offset: 2px; }
     .section { margin-top: 16px; padding: 20px; }
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .section-heading p { margin: 5px 0 0; }
@@ -517,10 +520,11 @@
         <section id="dashboard-page" class="admin-page">
       <div class="metrics" aria-label="Ringkasan pendaftar">
         <div class="card metric"><span>Total pendaftar</span><strong id="metric-total">0</strong></div>
-        <div class="card metric"><span>Menunggu verifikasi</span><strong id="metric-pending">0</strong></div>
+        <button class="card metric metric-task" data-dashboard-filter="verification" type="button" aria-label="Buka pendaftar yang menunggu verifikasi, urutkan yang terlama"><span>Perlu diverifikasi</span><strong id="metric-pending">0</strong></button>
         <div class="card metric"><span>Berkas terverifikasi</span><strong id="metric-verified">0</strong></div>
-        <div class="card metric"><span>Perlu perbaikan</span><strong id="metric-revisions">0</strong></div>
+        <button class="card metric metric-task" data-dashboard-filter="revision" type="button" aria-label="Buka revisi yang menunggu siswa, urutkan yang terlama"><span>Revisi menunggu siswa</span><strong id="metric-revisions">0</strong></button>
         <div class="card metric"><span>Diterima</span><strong id="metric-accepted">0</strong></div>
+        <button class="card metric metric-task" data-dashboard-filter="payment-review" type="button" aria-label="Buka pembayaran yang menunggu pemeriksaan, urutkan yang terlama"><span>Pembayaran menunggu pemeriksaan</span><strong id="metric-payment-review">0</strong></button>
         <div class="card metric"><span>Menunggu pembayaran</span><strong id="metric-payment-pending">0</strong></div>
         <div class="card metric"><span>Daftar ulang selesai</span><strong id="metric-reenrolled">0</strong></div>
       </div>
@@ -540,7 +544,7 @@
         </div>
         <div id="sync-banner" class="sync-banner" role="status">Memeriksa status Google Sheets...</div>
         <div class="filters">
-          <input id="application-search" type="search" placeholder="Cari nama atau nomor pendaftaran">
+          <input id="application-search" type="search" placeholder="Cari nama, nomor pendaftaran, atau NISN">
           <select id="application-year-filter" aria-label="Filter tahun ajaran">
             <option value="active">Tahun ajaran aktif</option>
             <option value="all">Semua tahun ajaran</option>
@@ -553,6 +557,19 @@
             <option>Menunggu Verifikasi</option>
             <option>Berkas Terverifikasi</option>
             <option>Perlu Perbaikan</option>
+          </select>
+          <select id="payment-status-filter" aria-label="Filter status pembayaran">
+            <option value="">Semua status pembayaran</option>
+            <option>Menunggu Verifikasi Pembayaran</option>
+            <option>Menunggu Pembayaran QiosPay</option>
+            <option>Menunggu Pembayaran Kasera</option>
+            <option>Pembayaran Terverifikasi</option>
+            <option>Perlu Perbaikan</option>
+            <option>Belum Daftar Ulang</option>
+          </select>
+          <select id="application-sort-filter" aria-label="Urutan pendaftar">
+            <option value="newest">Pendaftar terbaru</option>
+            <option value="oldest">Paling lama menunggu</option>
           </select>
           <label class="filter-date">Dari <input id="application-date-from" type="date" aria-label="Dari tanggal pendaftaran"></label>
           <label class="filter-date">Sampai <input id="application-date-to" type="date" aria-label="Sampai tanggal pendaftaran"></label>
@@ -600,10 +617,17 @@
           <div><h2>Log Aktivitas</h2><p>Riwayat perubahan yang dilakukan melalui akun admin, tanpa menyimpan isi data formulir.</p></div>
           <button id="reload-activity-button" class="secondary" type="button">Muat Ulang</button>
         </div>
+        <div class="filters activity-filters">
+          <input id="activity-admin-filter" type="search" placeholder="Filter admin" aria-label="Filter nama atau username admin">
+          <input id="activity-action-filter" type="search" placeholder="Filter tindakan" aria-label="Filter tindakan">
+          <input id="activity-registration-filter" type="search" placeholder="Nomor pendaftaran" aria-label="Filter nomor pendaftaran">
+          <label class="filter-date">Dari <input id="activity-date-from" type="date" aria-label="Dari tanggal aktivitas"></label>
+          <label class="filter-date">Sampai <input id="activity-date-to" type="date" aria-label="Sampai tanggal aktivitas"></label>
+        </div>
         <p id="activity-status" class="status-line" role="status"></p>
         <div class="table-wrap">
           <table class="admin-simple-table">
-            <thead><tr><th>Waktu</th><th>Admin</th><th>Aktivitas</th><th>Hasil</th></tr></thead>
+            <thead><tr><th>Waktu</th><th>Admin</th><th>Aktivitas</th><th>No. Pendaftaran</th><th>Hasil</th></tr></thead>
             <tbody id="activity-body"></tbody>
           </table>
         </div>
@@ -896,6 +920,7 @@
             </div>
           </div>
           <div class="detail-access">
+            <button id="detail-sensitive-toggle" class="secondary" type="button" hidden>Tampilkan data sensitif</button>
             <button id="detail-whatsapp" type="button" hidden>WhatsApp</button>
           </div>
           <div class="detail-hero-actions" data-detail-edit-actions>
@@ -1321,6 +1346,9 @@
     let currentMonthly = [];
     let adminReviewConfig = null;
     let currentDetailRegistrationNumber = '';
+    let maskedApplicantForDetail = null;
+    let sensitiveDataRevealed = false;
+    let sensitiveDataLoading = false;
     let deletingApplicant = null;
     let pendingBulkAction = '';
     let classAssignmentTargets = [];
@@ -1387,6 +1415,9 @@
     }
 
     function showLogin() {
+      maskCurrentDetail();
+      if (whatsappContactsDialog.open) whatsappContactsDialog.close();
+      document.getElementById('whatsapp-contacts-list').replaceChildren();
       currentUser = null;
       selectedApplicantNumbers.clear();
       issuedPortalPin = '';
@@ -1521,16 +1552,17 @@
         element.hidden = !allowed;
         if (element.tagName === 'BUTTON') element.disabled = !allowed || element.dataset.permissionLocked === 'true';
       });
+      document.querySelectorAll('[data-dashboard-filter]').forEach(function (element) {
+        element.hidden = !canAdmin('applications', 'view');
+      });
+      document.getElementById('export-excel-button').hidden =
+        !canAdmin('applications', 'view') || !canAdmin('applications', 'edit');
       updateBulkActionPermissions();
       const masterMenus = ['form', 'academicYear', 'programs', 'classes', 'whatsapp', 'waves', 'paths', 'timeline', 'googleIntegration', 'payment', 'documents'];
       const masterNav = document.querySelector('[data-master-nav]');
       masterNav.hidden = !masterMenus.some(function (menu) { return canAdmin(menu, 'view'); });
       updateProfileUI();
-      if (!canAdmin('applications', 'edit')) {
-        document.getElementById('application-search').placeholder = 'Cari nama atau nomor pendaftaran';
-      } else {
-        document.getElementById('application-search').placeholder = 'Cari nama, nomor pendaftaran, NISN';
-      }
+      document.getElementById('application-search').placeholder = 'Cari nama, nomor pendaftaran, atau NISN';
       const currentPage = document.querySelector('.admin-page:not([hidden])');
       const activeMasterButton = document.querySelector('[data-page-target="master-page"].active');
       const currentMenu = currentPage && pagePermissionMenu(currentPage.id,
@@ -1561,6 +1593,7 @@
         window.history.pushState({ adminPage: pageId, masterAnchor: anchorId || '' }, '', path);
       }
       if (!applicantDetailPage.hidden) {
+        maskCurrentDetail();
         issuedPortalPin = '';
         issuedPinRegistrationNumber = '';
       }
@@ -1597,6 +1630,15 @@
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'false');
         document.getElementById('master-nav-toggle').classList.remove('active');
         document.getElementById('master-submenu').hidden = true;
+      }
+
+      function maskCurrentDetail() {
+        if (sensitiveDataRevealed && maskedApplicantForDetail) {
+          sensitiveDataRevealed = false;
+          renderApplicantDetail(maskedApplicantForDetail);
+        }
+        maskedApplicantForDetail = null;
+        sensitiveDataLoading = false;
       }
       animateAdminElement(document.getElementById(pageId));
       if (pageId === 'trash-page') loadTrash();
@@ -2563,6 +2605,8 @@
         registrationPath: 'application-path-filter',
         major: 'application-major-filter',
         status: 'status-filter',
+        paymentStatus: 'payment-status-filter',
+        sort: 'application-sort-filter',
         dateFrom: 'application-date-from',
         dateTo: 'application-date-to',
         q: 'application-search'
@@ -2582,7 +2626,7 @@
       });
       currentMonthly = data.monthly || [];
       adminReviewConfig = data.reviewConfig || null;
-      const readOnly = currentUser.role === 'viewer';
+      const readOnly = !canAdmin('applications', 'edit');
       const totals = data.totals || {};
       const filterOptions = data.filterOptions || {};
       const years = Array.from(new Set([data.academicYear].concat(filterOptions.academicYears || []).filter(Boolean)));
@@ -2606,6 +2650,7 @@
       document.getElementById('metric-revisions').textContent = Number(totals.revisions || 0).toLocaleString('id-ID');
       document.getElementById('metric-accepted').textContent = Number(totals.accepted || 0).toLocaleString('id-ID');
       document.getElementById('metric-payment-pending').textContent = Number(totals.paymentPending || 0).toLocaleString('id-ID');
+      document.getElementById('metric-payment-review').textContent = Number(totals.paymentReviewPending || 0).toLocaleString('id-ID');
       document.getElementById('metric-reenrolled').textContent = Number(totals.reEnrolled || 0).toLocaleString('id-ID');
       document.getElementById('chart-year').textContent = 'Tahun ajaran ' + (data.academicYear || (siteConfig && siteConfig.academicYear) || '');
       renderMonthlyChart(currentMonthly, data.academicYear);
@@ -2724,7 +2769,11 @@
         const detailApplicant = applicants.find(function (item) {
           return item.registration_number === currentDetailRegistrationNumber;
         });
-        if (detailApplicant) renderApplicantDetail(detailApplicant);
+        if (detailApplicant) {
+          maskedApplicantForDetail = detailApplicant;
+          sensitiveDataRevealed = false;
+          renderApplicantDetail(detailApplicant);
+        }
       }
       updateBulkControls();
     }
@@ -3166,7 +3215,12 @@
       const wa = document.getElementById('detail-whatsapp');
       const hasWhatsAppContact = [applicant.student_phone, applicant.father_phone, applicant.mother_phone]
         .some(function (phone) { return Boolean(normalizeWhatsAppLink(phone)); });
-      wa.hidden = readOnly || !hasWhatsAppContact;
+      wa.hidden = readOnly || !sensitiveDataRevealed || !hasWhatsAppContact;
+      const sensitiveToggle = document.getElementById('detail-sensitive-toggle');
+      sensitiveToggle.hidden = readOnly;
+      sensitiveToggle.disabled = sensitiveDataLoading;
+      sensitiveToggle.textContent = sensitiveDataRevealed
+        ? 'Sembunyikan data sensitif' : 'Tampilkan data sensitif';
 
       const studentEntries = studentFields.map(function (field) {
         return { key: field.key, label: field.label, value: applicantValue(applicant, field) };
@@ -3384,6 +3438,9 @@
         issuedPinRegistrationNumber = '';
       }
       currentDetailRegistrationNumber = applicant.registration_number;
+      maskedApplicantForDetail = applicant;
+      sensitiveDataRevealed = false;
+      sensitiveDataLoading = false;
       if (updateHistory !== false) {
         window.history.pushState({ adminPage: 'applicant-detail', registrationNumber: applicant.registration_number },
           '', '/admin/pendaftar/' + encodeURIComponent(applicant.registration_number));
@@ -3396,6 +3453,30 @@
       renderApplicantDetail(applicant);
       animateAdminElement(applicantDetailPage);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function toggleSensitiveApplicantData() {
+      if (!reviewingApplicant || !maskedApplicantForDetail || !canAdmin('applications', 'edit')) return;
+      if (sensitiveDataRevealed) {
+        sensitiveDataRevealed = false;
+        renderApplicantDetail(maskedApplicantForDetail);
+        return;
+      }
+      sensitiveDataLoading = true;
+      const toggle = document.getElementById('detail-sensitive-toggle');
+      toggle.disabled = true;
+      try {
+        const result = await api('/api/admin/applications/' +
+          encodeURIComponent(maskedApplicantForDetail.registration_number) + '/sensitive-data');
+        sensitiveDataRevealed = true;
+        renderApplicantDetail(Object.assign({}, maskedApplicantForDetail, result.sensitiveData || {}));
+      } catch (error) {
+        setStatus('detail-status', error.message || 'Data sensitif gagal ditampilkan.', 'error');
+        if (error.status === 401) showLogin();
+      } finally {
+        sensitiveDataLoading = false;
+        toggle.disabled = false;
+      }
     }
 
     function showRouteFromLocation() {
@@ -3969,13 +4050,38 @@
     }
 
     function filterApplications() {
-      const query = document.getElementById('application-search').value.trim().toLowerCase();
+      const query = canAdmin('applications', 'edit')
+        ? document.getElementById('application-search').value.trim().toLowerCase()
+        : '';
       const status = document.getElementById('status-filter').value;
       Array.from(applicationBody.rows).forEach(function (row) {
         row.hidden = (query && row.dataset.search.indexOf(query) === -1) ||
           (status && row.dataset.documentStatus !== status);
       });
       updateBulkControls();
+    }
+
+    function openDashboardQueue(task) {
+      if (!canAdmin('applications', 'view')) return;
+      const taskFilters = {
+        verification: { documentStatus: 'Menunggu Verifikasi', paymentStatus: '' },
+        revision: { documentStatus: 'Perlu Perbaikan', paymentStatus: '' },
+        'payment-review': { documentStatus: '', paymentStatus: 'Menunggu Verifikasi Pembayaran' }
+      };
+      const selected = taskFilters[task];
+      if (!selected) return;
+      document.getElementById('application-year-filter').value = 'active';
+      document.getElementById('application-wave-filter').value = '';
+      document.getElementById('application-path-filter').value = '';
+      document.getElementById('application-major-filter').value = '';
+      document.getElementById('status-filter').value = selected.documentStatus;
+      document.getElementById('payment-status-filter').value = selected.paymentStatus;
+      document.getElementById('application-sort-filter').value = 'oldest';
+      document.getElementById('application-date-from').value = '';
+      document.getElementById('application-date-to').value = '';
+      document.getElementById('application-search').value = '';
+      setAdminPage('applications-page');
+      loadApplications();
     }
 
     function buildEditForm() {
@@ -4019,7 +4125,15 @@
       });
     }
 
-    function openEditDialog(applicant) {
+    async function openEditDialog(applicant) {
+      try {
+        const result = await api('/api/admin/applications/' +
+          encodeURIComponent(applicant.registration_number) + '/sensitive-data');
+        applicant = Object.assign({}, applicant, result.sensitiveData || {});
+      } catch (error) {
+        setStatus('edit-status', error.message || 'Data pendaftar gagal dimuat untuk diedit.', 'error');
+        return;
+      }
       editingRegistrationNumber = applicant.registration_number;
       document.getElementById('edit-registration-number').textContent = applicant.registration_number;
       buildEditForm();
@@ -4314,8 +4428,8 @@
       if (!entries.length) {
         const row = document.createElement('tr');
         const empty = document.createElement('td');
-        empty.colSpan = 4;
-        empty.textContent = 'Belum ada aktivitas admin yang tercatat.';
+        empty.colSpan = 5;
+        empty.textContent = 'Tidak ada aktivitas admin yang cocok dengan filter.';
         row.appendChild(empty);
         body.appendChild(row);
         return;
@@ -4328,21 +4442,40 @@
         admin.textContent = (entry.admin_display_name || entry.admin_username) + ' (' + entry.admin_username + ')';
         const action = document.createElement('td');
         action.textContent = entry.action;
+        const registration = document.createElement('td');
+        registration.textContent = entry.registration_number || '—';
         const result = document.createElement('td');
         result.textContent = entry.status_code >= 200 && entry.status_code < 300
           ? 'Berhasil (' + entry.status_code + ')'
           : 'Gagal (' + entry.status_code + ')';
-        row.append(date, admin, action, result);
+        row.append(date, admin, action, registration, result);
         body.appendChild(row);
       });
+    }
+
+    function getActivityFilterParams() {
+      const params = new URLSearchParams();
+      const fields = {
+        admin: 'activity-admin-filter',
+        action: 'activity-action-filter',
+        registrationNumber: 'activity-registration-filter',
+        dateFrom: 'activity-date-from',
+        dateTo: 'activity-date-to'
+      };
+      Object.keys(fields).forEach(function (key) {
+        const value = document.getElementById(fields[key]).value.trim();
+        if (value) params.set(key, value);
+      });
+      return params;
     }
 
     async function loadActivityLog() {
       setStatus('activity-status', 'Memuat log aktivitas...', '');
       try {
-        const result = await api('/api/admin/activity-log');
+        const result = await api('/api/admin/activity-log?' + getActivityFilterParams().toString());
         renderActivityLog(result.entries || []);
-        setStatus('activity-status', (result.entries || []).length + ' aktivitas terakhir ditampilkan.', '');
+        setStatus('activity-status', Number(result.matchedCount || 0).toLocaleString('id-ID') +
+          ' aktivitas cocok ditampilkan (maksimal 500 baris).', '');
       } catch (error) {
         setStatus('activity-status', error.message, 'error');
         if (error.status === 401) showLogin();
@@ -4429,8 +4562,12 @@
             (status.driveErrors ? ', ' + status.driveErrors + ' bermasalah (akan dicoba ulang)' : '')
           : 'Drive belum aktif: cek URL/token Apps Script di Railway dan Folder ID di Master Data → Google Drive & Sheets';
         banner.textContent = sheetStatus + ' · ' + driveStatus;
+        banner.hidden = status.configured && Number(status.pending) === 0 &&
+          status.driveConfigured && Number(status.drivePending) === 0 && Number(status.driveErrors) === 0;
       } catch (error) {
-        document.getElementById('sync-banner').textContent = error.message;
+        const banner = document.getElementById('sync-banner');
+        banner.hidden = false;
+        banner.textContent = error.message;
         if (error.status === 401) showLogin();
       }
     }
@@ -4998,6 +5135,7 @@
       setAdminPage('applications-page');
     });
     document.getElementById('detail-whatsapp').addEventListener('click', openWhatsAppContacts);
+    document.getElementById('detail-sensitive-toggle').addEventListener('click', toggleSensitiveApplicantData);
     document.getElementById('close-whatsapp-contacts').addEventListener('click', function () {
       whatsappContactsDialog.close();
     });
@@ -5094,9 +5232,25 @@
       clearTimeout(applicationSearchTimer);
       applicationSearchTimer = setTimeout(loadApplications, 300);
     });
-    ['status-filter', 'application-year-filter', 'application-wave-filter', 'application-path-filter',
-      'application-major-filter', 'application-date-from', 'application-date-to'].forEach(function (id) {
+    ['status-filter', 'payment-status-filter', 'application-sort-filter', 'application-year-filter',
+      'application-wave-filter', 'application-path-filter', 'application-major-filter',
+      'application-date-from', 'application-date-to'].forEach(function (id) {
       document.getElementById(id).addEventListener('change', loadApplications);
+    });
+    document.querySelectorAll('[data-dashboard-filter]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        openDashboardQueue(button.dataset.dashboardFilter);
+      });
+    });
+    let activityFilterTimer = 0;
+    ['activity-admin-filter', 'activity-action-filter', 'activity-registration-filter'].forEach(function (id) {
+      document.getElementById(id).addEventListener('input', function () {
+        clearTimeout(activityFilterTimer);
+        activityFilterTimer = setTimeout(loadActivityLog, 300);
+      });
+    });
+    ['activity-date-from', 'activity-date-to'].forEach(function (id) {
+      document.getElementById(id).addEventListener('change', loadActivityLog);
     });
     document.getElementById('select-all-applications').addEventListener('change', function () {
       const checked = this.checked;

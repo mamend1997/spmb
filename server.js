@@ -273,6 +273,7 @@ database.exec(`
     action TEXT NOT NULL,
     http_method TEXT NOT NULL,
     route TEXT NOT NULL,
+    registration_number TEXT NOT NULL DEFAULT '',
     status_code INTEGER NOT NULL,
     created_at TEXT NOT NULL
   );
@@ -282,6 +283,13 @@ database.exec(`
     blocked_until INTEGER NOT NULL DEFAULT 0
   );
 `);
+
+const activityLogColumns = new Set(database.prepare('PRAGMA table_info(admin_activity_log)').all()
+  .map(function (column) { return column.name; }));
+if (!activityLogColumns.has('registration_number')) {
+  database.exec("ALTER TABLE admin_activity_log ADD COLUMN registration_number TEXT NOT NULL DEFAULT ''");
+}
+database.exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_registration ON admin_activity_log(registration_number, id DESC)');
 
 function migrateApplicantStorage() {
   const columns = database.prepare('PRAGMA table_info(applicants)').all();
@@ -675,7 +683,12 @@ app.use(function blockRequestsDuringRestore(request, response, next) {
   response.status(503).json({ message: 'Pemulihan backup sedang berjalan. Server akan dimulai ulang.' });
 });
 app.use('/api/admin', function trackAdminActivity(request, response, next) {
-  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next();
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
+  const requestPath = String(request.originalUrl || '').split('?')[0];
+  const isSensitiveRead = request.method === 'GET' &&
+    (requestPath === '/api/admin/export.csv' || requestPath === '/api/admin/export.xlsx' ||
+      /^\/api\/admin\/applications\/[^/]+\/sensitive-data$/.test(requestPath));
+  if (!isMutation && !isSensitiveRead) return next();
   response.once('finish', function () {
     if (!request.adminUser) return;
     const route = String(request.route && request.route.path || request.path || '').slice(0, 240);
@@ -683,8 +696,9 @@ app.use('/api/admin', function trackAdminActivity(request, response, next) {
     try {
       database.prepare(`
         INSERT INTO admin_activity_log (
-          admin_user_id, admin_username, admin_display_name, action, http_method, route, status_code, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          admin_user_id, admin_username, admin_display_name, action, http_method, route,
+          registration_number, status_code, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         request.adminUser.id,
         request.adminUser.username,
@@ -692,6 +706,7 @@ app.use('/api/admin', function trackAdminActivity(request, response, next) {
         action,
         request.method,
         route,
+        String(request.params.registrationNumber || '').slice(0, 40),
         response.statusCode,
         new Date().toISOString()
       );
@@ -4279,6 +4294,22 @@ function buildApplicantReportFilter(query, config) {
     clauses.push('document_status = ?');
     values.push(status);
   }
+  const paymentStatus = String(query.paymentStatus || '');
+  const validPaymentStatuses = [
+    'Belum Daftar Ulang',
+    'Menunggu Verifikasi Pembayaran',
+    'Menunggu Pembayaran QiosPay',
+    'Menunggu Pembayaran Kasera',
+    'Pembayaran Terverifikasi',
+    'Perlu Perbaikan'
+  ];
+  if (paymentStatus) {
+    if (!validPaymentStatuses.includes(paymentStatus)) throw new Error('Filter status pembayaran tidak valid.');
+    clauses.push('payment_status = ?');
+    values.push(paymentStatus);
+  }
+  const sort = String(query.sort || 'newest');
+  if (!['newest', 'oldest'].includes(sort)) throw new Error('Urutan pendaftar tidak valid.');
   const search = String(query.q || '').trim();
   if (search.length > 100) throw new Error('Kata pencarian maksimal 100 karakter.');
   if (search) {
@@ -4286,7 +4317,12 @@ function buildApplicantReportFilter(query, config) {
     clauses.push("(student_name LIKE ? ESCAPE '!' OR registration_number LIKE ? ESCAPE '!' OR nisn LIKE ? ESCAPE '!')");
     values.push('%' + escapedSearch + '%', '%' + escapedSearch + '%', '%' + escapedSearch + '%');
   }
-  return { where: clauses.join(' AND '), values: values, archiveScope: archiveScope };
+  return { where: clauses.join(' AND '), values: values, archiveScope: archiveScope, sort: sort };
+}
+
+function maskSensitiveValue(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits ? '••••••' + digits.slice(-4) : '';
 }
 
 app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboard', 'view'], ['applications', 'view']]), function (request, response) {
@@ -4303,8 +4339,9 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
     return response.status(403).json({ message: 'Akun Anda tidak memiliki izin melihat arsip pendaftar.' });
   }
   const isViewer = !permissions.applications.edit;
+  const orderBy = filter.sort === 'oldest' ? 'status_updated_at ASC, id ASC' : 'id DESC';
   const applicants = canViewApplications
-    ? database.prepare('SELECT * FROM applicants WHERE ' + filter.where + ' ORDER BY id DESC LIMIT 500').all(...filter.values)
+    ? database.prepare('SELECT * FROM applicants WHERE ' + filter.where + ' ORDER BY ' + orderBy + ' LIMIT 500').all(...filter.values)
     : [];
   const matchedCount = canViewApplications
     ? database.prepare('SELECT COUNT(*) AS count FROM applicants WHERE ' + filter.where).get(...filter.values).count
@@ -4337,26 +4374,26 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
         wave_fee: applicant.wave_fee,
         school_origin: applicant.school_origin,
         nisn: applicant.nisn,
-        family_card_number: applicant.family_card_number,
-        student_nik: applicant.student_nik,
+        family_card_number: maskSensitiveValue(applicant.family_card_number),
+        student_nik: maskSensitiveValue(applicant.student_nik),
         gender: applicant.gender,
         religion: applicant.religion,
         birth_place: applicant.birth_place,
         birth_date: applicant.birth_date,
         email: applicant.email,
-        student_phone: applicant.student_phone,
-        father_nik: applicant.father_nik,
+        student_phone: maskSensitiveValue(applicant.student_phone),
+        father_nik: maskSensitiveValue(applicant.father_nik),
         father_name: applicant.father_name,
         father_education: applicant.father_education,
         father_occupation: applicant.father_occupation,
         father_income: applicant.father_income,
-        father_phone: applicant.father_phone,
-        mother_nik: applicant.mother_nik,
+        father_phone: maskSensitiveValue(applicant.father_phone),
+        mother_nik: maskSensitiveValue(applicant.mother_nik),
         mother_name: applicant.mother_name,
         mother_education: applicant.mother_education,
         mother_occupation: applicant.mother_occupation,
         mother_income: applicant.mother_income,
-        mother_phone: applicant.mother_phone,
+        mother_phone: maskSensitiveValue(applicant.mother_phone),
         address: applicant.address,
         custom_data: JSON.parse(applicant.custom_data_json || '{}'),
         field_reviews: JSON.parse(applicant.field_reviews_json || '{}'),
@@ -4391,6 +4428,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       SUM(CASE WHEN selection_status IN ('Diterima', 'Diterima / Lulus') THEN 1 ELSE 0 END) AS accepted,
       SUM(CASE WHEN selection_status = 'Cadangan' THEN 1 ELSE 0 END) AS reserves,
       SUM(CASE WHEN payment_status IN ('Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay', 'Menunggu Pembayaran Kasera') THEN 1 ELSE 0 END) AS paymentPending,
+      SUM(CASE WHEN payment_status = 'Menunggu Verifikasi Pembayaran' THEN 1 ELSE 0 END) AS paymentReviewPending,
       SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
     FROM applicants
@@ -4432,14 +4470,88 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
   });
 });
 
+app.get('/api/admin/applications/:registrationNumber/sensitive-data', requireAdmin,
+  requirePermission('applications', 'view'), requirePermission('applications', 'edit'), function (request, response) {
+  const registrationNumber = String(request.params.registrationNumber || '').trim();
+  if (!registrationNumber || registrationNumber.length > 40) {
+    return response.status(400).json({ message: 'Nomor pendaftaran tidak valid.' });
+  }
+  const applicant = database.prepare(`
+    SELECT registration_number, family_card_number, student_nik, student_phone,
+      father_nik, father_phone, mother_nik, mother_phone
+    FROM applicants
+    WHERE registration_number = ? AND deleted_at = ''
+  `).get(registrationNumber);
+  if (!applicant) return response.status(404).json({ message: 'Data pendaftar tidak ditemukan.' });
+  response.setHeader('Cache-Control', 'private, no-store');
+  response.json({
+    sensitiveData: {
+      family_card_number: applicant.family_card_number,
+      student_nik: applicant.student_nik,
+      student_phone: applicant.student_phone,
+      father_nik: applicant.father_nik,
+      father_phone: applicant.father_phone,
+      mother_nik: applicant.mother_nik,
+      mother_phone: applicant.mother_phone
+    }
+  });
+});
+
 app.get('/api/admin/activity-log', requireAdmin, requirePermission('activityLog', 'view'), function (request, response) {
+  const clauses = [];
+  const values = [];
+  const admin = String(request.query.admin || '').trim();
+  const action = String(request.query.action || '').trim();
+  const registrationNumber = String(request.query.registrationNumber || '').trim().toUpperCase();
+  const dateFrom = String(request.query.dateFrom || '').trim();
+  const dateTo = String(request.query.dateTo || '').trim();
+  if (admin.length > 100 || action.length > 120 || registrationNumber.length > 40) {
+    return response.status(400).json({ message: 'Nilai filter log aktivitas terlalu panjang.' });
+  }
+  let validDates = true;
+  [dateFrom, dateTo].filter(Boolean).forEach(function (date) {
+    const parsed = new Date(date + 'T00:00:00.000Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsed.getTime()) ||
+        parsed.toISOString().slice(0, 10) !== date) {
+      validDates = false;
+    }
+  });
+  if (!validDates) return response.status(400).json({ message: 'Tanggal filter log harus valid dengan format YYYY-MM-DD.' });
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    return response.status(400).json({ message: 'Tanggal awal tidak boleh melewati tanggal akhir.' });
+  }
+  if (admin) {
+    const escaped = admin.replace(/[!%_]/g, function (character) { return '!' + character; });
+    clauses.push("(admin_username LIKE ? ESCAPE '!' OR admin_display_name LIKE ? ESCAPE '!')");
+    values.push('%' + escaped + '%', '%' + escaped + '%');
+  }
+  if (action) {
+    const escaped = action.replace(/[!%_]/g, function (character) { return '!' + character; });
+    clauses.push("action LIKE ? ESCAPE '!'");
+    values.push('%' + escaped + '%');
+  }
+  if (registrationNumber) {
+    clauses.push('registration_number = ?');
+    values.push(registrationNumber);
+  }
+  if (dateFrom) {
+    clauses.push('substr(created_at, 1, 10) >= ?');
+    values.push(dateFrom);
+  }
+  if (dateTo) {
+    clauses.push('substr(created_at, 1, 10) <= ?');
+    values.push(dateTo);
+  }
+  const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
   const entries = database.prepare(`
-    SELECT id, admin_username, admin_display_name, action, http_method, route, status_code, created_at
+    SELECT id, admin_username, admin_display_name, action, http_method, route,
+      registration_number, status_code, created_at
     FROM admin_activity_log
+    ${where}
     ORDER BY id DESC
     LIMIT 500
-  `).all();
-  response.json({ entries: entries });
+  `).all(...values);
+  response.json({ entries: entries, matchedCount: entries.length });
 });
 
 app.get('/api/admin/file-manager', requireAdmin, requireOwner, function (request, response) {
@@ -5125,7 +5237,8 @@ function createApplicantWorkbook(rows) {
   ]);
 }
 
-app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
+app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications', 'view'),
+  requirePermission('applications', 'edit'), function (request, response) {
   let filter;
   try { filter = buildApplicantReportFilter(request.query, getConfig()); } catch (error) {
     return response.status(400).json({ message: error.message || 'Filter ekspor tidak valid.' });
@@ -5145,7 +5258,8 @@ app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications',
   response.send(csv);
 });
 
-app.get('/api/admin/export.xlsx', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
+app.get('/api/admin/export.xlsx', requireAdmin, requirePermission('applications', 'view'),
+  requirePermission('applications', 'edit'), function (request, response) {
   let filter;
   try { filter = buildApplicantReportFilter(request.query, getConfig()); } catch (error) {
     return response.status(400).json({ message: error.message || 'Filter ekspor tidak valid.' });
