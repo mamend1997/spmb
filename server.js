@@ -7,11 +7,15 @@ const path = require('node:path');
 
 const app = express();
 const publicLookupRequests = new Map();
+const pinRecoveryRequestsByIp = new Map();
 const publicLookupWindowMs = 60 * 1000;
 const publicLookupLimit = 12;
 const port = Number(process.env.PORT) || 3000;
 const configuredDatabasePath = process.env.DATABASE_PATH
   ? path.resolve(process.env.DATABASE_PATH)
+  : '';
+const configuredBackupDirectory = process.env.BACKUP_DIR
+  ? path.resolve(process.env.BACKUP_DIR)
   : '';
 const storageDirectory = path.resolve(
   process.env.STORAGE_DIR ||
@@ -20,6 +24,7 @@ const storageDirectory = path.resolve(
 const databasePath = configuredDatabasePath || path.join(storageDirectory, 'spmb.sqlite');
 const uploadDirectory = path.join(storageDirectory, 'uploads');
 const publicFileDirectory = path.join(storageDirectory, 'public-files');
+const backupRetentionCount = 14;
 const maxUploadBytes = 2 * 1024 * 1024;
 const allowedDocumentExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
 const programs = [
@@ -35,6 +40,21 @@ const uploadTypes = {
   reportCard: { label: 'Rapor Terakhir' },
   sktm: { label: 'SKTM' }
 };
+
+function pathsOverlap(first, second) {
+  const resolvedFirst = path.resolve(first);
+  const resolvedSecond = path.resolve(second);
+  const firstRelative = path.relative(resolvedFirst, resolvedSecond);
+  const secondRelative = path.relative(resolvedSecond, resolvedFirst);
+  return firstRelative === '' || secondRelative === '' ||
+    (!firstRelative.startsWith('..' + path.sep) && firstRelative !== '..' && !path.isAbsolute(firstRelative)) ||
+    (!secondRelative.startsWith('..' + path.sep) && secondRelative !== '..' && !path.isAbsolute(secondRelative));
+}
+
+if (configuredBackupDirectory && pathsOverlap(configuredBackupDirectory, storageDirectory)) {
+  throw new Error('BACKUP_DIR harus terpisah dari STORAGE_DIR; gunakan volume atau mount berbeda.');
+}
+
 const documentStatuses = ['Menunggu Verifikasi', 'Berkas Terverifikasi', 'Perlu Perbaikan'];
 const selectionStatuses = ['Menunggu Pengumuman', 'Diterima / Lulus', 'Cadangan', 'Tidak Diterima', 'Diterima'];
 const reenrollmentStatuses = ['Belum Daftar Ulang', 'Daftar Ulang Selesai'];
@@ -46,6 +66,7 @@ const initialConfig = {
   classes: [],
   whatsappGateway: {
     enabled: false,
+    provider: 'webhook',
     webhookUrl: '',
     webhookToken: '',
     events: ['registration.created', 'selection.updated', 'reenrollment.instructions']
@@ -384,6 +405,17 @@ function migrateApplicantStorage() {
 }
 
 migrateApplicantStorage();
+const applicantColumns = database.prepare('PRAGMA table_info(applicants)').all();
+if (!applicantColumns.some(function (column) { return column.name === 'academic_year'; })) {
+  database.exec("ALTER TABLE applicants ADD COLUMN academic_year TEXT NOT NULL DEFAULT ''");
+}
+database.exec(`
+  UPDATE applicants
+  SET academic_year = substr(registration_number, 6, 4) || '/' ||
+    printf('%04d', CAST(substr(registration_number, 6, 4) AS INTEGER) + 1)
+  WHERE academic_year = '' AND registration_number GLOB 'SPMB-[0-9][0-9][0-9][0-9]-*'
+`);
+database.exec('CREATE INDEX IF NOT EXISTS idx_applicants_academic_year ON applicants(academic_year, created_at DESC)');
 const uploadedFileColumns = new Set(database.prepare('PRAGMA table_info(uploaded_files)').all()
   .map(function (column) { return column.name; }));
 const driveFileColumnAdditions = {
@@ -399,7 +431,6 @@ Object.keys(driveFileColumnAdditions).forEach(function (name) {
   }
 });
 database.exec('CREATE INDEX IF NOT EXISTS idx_uploaded_files_drive_sync ON uploaded_files(drive_sync_status, drive_sync_next_attempt_at)');
-const applicantColumns = database.prepare('PRAGMA table_info(applicants)').all();
 if (!applicantColumns.some(function (column) { return column.name === 'archived_at'; })) {
   database.exec("ALTER TABLE applicants ADD COLUMN archived_at TEXT NOT NULL DEFAULT ''");
 }
@@ -414,6 +445,22 @@ database.exec(`
     applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
     expires_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS portal_pin_recovery (
+    applicant_id INTEGER PRIMARY KEY REFERENCES applicants(id) ON DELETE CASCADE,
+    code_salt TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    requested_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS student_reminder_log (
+    applicant_id INTEGER NOT NULL REFERENCES applicants(id) ON DELETE CASCADE,
+    reminder_type TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    sent_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (applicant_id, reminder_type, reference)
+  );
 `);
 
 const adminSessionColumns = database.prepare('PRAGMA table_info(admin_sessions)').all();
@@ -425,6 +472,85 @@ if (!adminUserColumns.some(function (column) { return column.name === 'profile_i
   database.exec("ALTER TABLE admin_users ADD COLUMN profile_image TEXT NOT NULL DEFAULT ''");
 }
 database.prepare('DELETE FROM admin_sessions WHERE expires_at <= ?').run(Date.now());
+
+function getBackupIdPattern() {
+  return /^spmb-backup-\d{8}T\d{9}Z$/;
+}
+
+function listBackups() {
+  if (!configuredBackupDirectory || !fs.existsSync(configuredBackupDirectory)) return [];
+  return fs.readdirSync(configuredBackupDirectory, { withFileTypes: true })
+    .filter(function (entry) { return entry.isDirectory() && getBackupIdPattern().test(entry.name); })
+    .map(function (entry) {
+      const directory = path.join(configuredBackupDirectory, entry.name);
+      const manifestPath = path.join(directory, 'manifest.json');
+      if (!fs.existsSync(manifestPath)) throw new Error('Manifest backup tidak ditemukan pada ' + entry.name + '.');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      return {
+        id: entry.name,
+        createdAt: manifest.createdAt,
+        fileCount: Number(manifest.fileCount || 0),
+        bytes: Number(manifest.bytes || 0)
+      };
+    })
+    .sort(function (first, second) { return second.id.localeCompare(first.id); });
+}
+
+function createBackup() {
+  if (!configuredBackupDirectory) throw new Error('BACKUP_DIR belum dikonfigurasi.');
+  fs.mkdirSync(configuredBackupDirectory, { recursive: true, mode: 0o700 });
+  const createdAt = new Date();
+  const backupId = 'spmb-backup-' + createdAt.toISOString().replace(/[-:.]/g, '');
+  const backupPath = path.join(configuredBackupDirectory, backupId);
+  fs.mkdirSync(backupPath, { recursive: false, mode: 0o700 });
+  try {
+    const databaseSnapshot = database.serialize();
+    const snapshotPath = path.join(backupPath, 'spmb.sqlite');
+    fs.writeFileSync(snapshotPath, databaseSnapshot, { flag: 'wx', mode: 0o600 });
+    const uploadsSnapshot = path.join(backupPath, 'uploads');
+    const publicFilesSnapshot = path.join(backupPath, 'public-files');
+    fs.cpSync(uploadDirectory, uploadsSnapshot, { recursive: true, errorOnExist: true, force: false });
+    fs.cpSync(publicFileDirectory, publicFilesSnapshot, { recursive: true, errorOnExist: true, force: false });
+    let fileCount = 1;
+    let bytes = databaseSnapshot.length;
+    [uploadsSnapshot, publicFilesSnapshot].forEach(function (directory) {
+      const pending = [directory];
+      while (pending.length) {
+        const current = pending.pop();
+        fs.readdirSync(current, { withFileTypes: true }).forEach(function (entry) {
+          const entryPath = path.join(current, entry.name);
+          if (entry.isDirectory()) pending.push(entryPath);
+          else if (entry.isFile()) {
+            fileCount += 1;
+            bytes += fs.statSync(entryPath).size;
+          } else {
+            throw new Error('Jenis file backup tidak didukung: ' + entry.name);
+          }
+        });
+      }
+    });
+    const manifest = {
+      version: 1,
+      createdAt: createdAt.toISOString(),
+      databaseSha256: crypto.createHash('sha256').update(databaseSnapshot).digest('hex'),
+      fileCount: fileCount,
+      bytes: bytes
+    };
+    fs.writeFileSync(path.join(backupPath, 'manifest.json'), JSON.stringify(manifest, null, 2), {
+      flag: 'wx',
+      mode: 0o600
+    });
+    const backups = listBackups();
+    backups.slice(backupRetentionCount).forEach(function (backup) {
+      fs.rmSync(path.join(configuredBackupDirectory, backup.id), { recursive: true, force: true });
+    });
+    console.info('Backup SPMB selesai:', backupId, fileCount, 'file');
+    return { id: backupId, createdAt: manifest.createdAt, fileCount: fileCount, bytes: bytes };
+  } catch (error) {
+    fs.rmSync(backupPath, { recursive: true, force: true });
+    throw error;
+  }
+}
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
@@ -595,10 +721,12 @@ function sanitizeWhatsAppGatewayConfig(settings) {
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
     throw new Error('Pengaturan WhatsApp Gateway tidak valid.');
   }
+  const provider = String(settings.provider || 'webhook');
+  if (!['webhook', 'fonnte'].includes(provider)) throw new Error('Penyedia WhatsApp Gateway tidak valid.');
   const webhookUrl = String(settings.webhookUrl || '').trim();
   const webhookToken = String(settings.webhookToken || '').trim();
   if (webhookToken.length > 1000) throw new Error('Token webhook maksimal 1000 karakter.');
-  if (webhookUrl) {
+  if (provider === 'webhook' && webhookUrl) {
     let url;
     try { url = new URL(webhookUrl); } catch (error) {
       throw new Error('URL webhook WhatsApp tidak valid.');
@@ -611,18 +739,25 @@ function sanitizeWhatsAppGatewayConfig(settings) {
       throw new Error('Gunakan nama host publik, bukan alamat IP, untuk webhook WhatsApp.');
     }
   }
-  const allowedEvents = ['registration.created', 'selection.updated', 'reenrollment.instructions'];
+  const allowedEvents = [
+    'registration.created', 'selection.updated', 'reenrollment.instructions',
+    'review.updated', 'payment.reviewed', 'reminder'
+  ];
   const requestedEvents = settings.events === undefined ? initialConfig.whatsappGateway.events : settings.events;
   if (!Array.isArray(requestedEvents)) throw new Error('Jenis notifikasi WhatsApp tidak valid.');
   const events = Array.from(new Set(requestedEvents));
   if (events.some(function (eventName) { return !allowedEvents.includes(eventName); })) {
     throw new Error('Jenis notifikasi WhatsApp tidak valid.');
   }
-  if (settings.enabled === true && !webhookUrl) {
+  if (settings.enabled === true && provider === 'webhook' && !webhookUrl) {
     throw new Error('Isi URL webhook sebelum mengaktifkan WhatsApp Gateway.');
+  }
+  if (settings.enabled === true && provider === 'fonnte' && !webhookToken) {
+    throw new Error('Isi token API Fonnte sebelum mengaktifkan WhatsApp Gateway.');
   }
   return {
     enabled: settings.enabled === true,
+    provider: provider,
     webhookUrl: webhookUrl,
     webhookToken: webhookToken,
     events: events
@@ -1331,6 +1466,7 @@ function getScopedAdminConfig(config, role) {
         const gateway = config.whatsappGateway;
         scopedConfig.whatsappGateway = {
           enabled: gateway.enabled,
+          provider: gateway.provider || 'webhook',
           webhookUrl: gateway.webhookUrl,
           tokenConfigured: Boolean(gateway.webhookToken),
           events: gateway.events.slice()
@@ -1587,6 +1723,41 @@ function getWhatsAppRecipient(applicant) {
 }
 
 async function postWhatsAppWebhook(gateway, eventName, recipient, message, data) {
+  if (gateway.provider === 'fonnte') {
+    if (!gateway.webhookToken) throw new Error('Token API Fonnte belum diatur.');
+    const form = new URLSearchParams({
+      target: recipient.replace(/^\+/, ''),
+      message: message,
+      countryCode: '0',
+      preview: 'false'
+    });
+    const controller = new AbortController();
+    const timeout = setTimeout(function () { controller.abort(); }, 10000);
+    let response;
+    try {
+      response = await fetch('https://api.fonnte.com/send', {
+        method: 'POST',
+        headers: {
+          Authorization: gateway.webhookToken,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: form.toString(),
+        redirect: 'error',
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    let result;
+    try { result = await response.json(); } catch (error) {
+      throw new Error('Fonnte mengirim respons yang tidak dapat dibaca.');
+    }
+    if (!response.ok || !result || result.status !== true) {
+      throw new Error('Fonnte menolak pesan: ' +
+        String(result && (result.reason || result.detail) || 'respons tidak berhasil').slice(0, 240));
+    }
+    return response.status;
+  }
   await validateWebhookDestination(gateway.webhookUrl);
   const controller = new AbortController();
   const timeout = setTimeout(function () { controller.abort(); }, 10000);
@@ -1620,7 +1791,7 @@ function dispatchWhatsAppEvent(eventName, applicant, message, data) {
     console.warn('WhatsApp webhook dilewati karena gateway belum aktif:', eventName);
     return;
   }
-  if (!gateway.events.includes(eventName)) {
+  if (eventName !== 'pin.recovery.otp' && !gateway.events.includes(eventName)) {
     console.warn('WhatsApp webhook dilewati karena event tidak diaktifkan:', eventName);
     return;
   }
@@ -1670,6 +1841,91 @@ function dispatchSelectionNotifications(applicant, config) {
     academicYear: config.academicYear,
     reenrollmentFee: fee,
     instructions: instructions
+  });
+}
+
+function dispatchScheduledReminder(applicant, reminderType, reference, message) {
+  const gateway = getConfig().whatsappGateway;
+  if (!gateway.enabled || !gateway.events.includes('reminder')) return false;
+  const claim = database.prepare(`
+    INSERT OR IGNORE INTO student_reminder_log (applicant_id, reminder_type, reference, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(applicant.id, reminderType, reference, Date.now());
+  if (!claim.changes) return false;
+  setImmediate(async function () {
+    try {
+      const recipient = getWhatsAppRecipient(applicant);
+      if (!recipient) throw new Error('Nomor WhatsApp siswa dan wali tidak tersedia.');
+      const status = await postWhatsAppWebhook(gateway, 'reminder', recipient, message, {
+        registrationNumber: applicant.registration_number,
+        reminderType: reminderType
+      });
+      database.prepare(`
+        UPDATE student_reminder_log SET sent_at = ? WHERE applicant_id = ? AND reminder_type = ? AND reference = ?
+      `).run(Date.now(), applicant.id, reminderType, reference);
+      console.info('Pengingat WhatsApp diterima:', reminderType, applicant.registration_number, 'HTTP', status);
+    } catch (error) {
+      database.prepare(`
+        DELETE FROM student_reminder_log WHERE applicant_id = ? AND reminder_type = ? AND reference = ?
+      `).run(applicant.id, reminderType, reference);
+      console.error('Pengingat WhatsApp gagal dikirim:', reminderType, applicant.registration_number, error.message);
+    }
+  });
+  return true;
+}
+
+function runStudentReminders() {
+  const config = getConfig();
+  if (!config.whatsappGateway.enabled || !config.whatsappGateway.events.includes('reminder')) return;
+  const now = Date.now();
+  let scheduledCount = 0;
+  const maxRemindersPerRun = 25;
+  function schedule(applicant, type, reference, message) {
+    if (scheduledCount >= maxRemindersPerRun) return false;
+    if (dispatchScheduledReminder(applicant, type, reference, message)) scheduledCount += 1;
+    return scheduledCount < maxRemindersPerRun;
+  }
+  database.prepare('DELETE FROM student_reminder_log WHERE sent_at = 0 AND created_at < ?')
+    .run(now - 30 * 60 * 1000);
+  const applicantById = database.prepare(`
+    SELECT * FROM applicants
+    WHERE archived_at = '' AND deleted_at = '' AND created_at <= ?
+    ORDER BY id
+  `);
+  const applicants = applicantById.all(new Date(now).toISOString());
+  const pendingRevisions = applicants.filter(function (applicant) {
+    return applicant.document_status === 'Perlu Perbaikan' &&
+      applicant.status_updated_at <= new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString();
+  });
+  pendingRevisions.forEach(function (applicant) {
+    schedule(applicant, 'revision', applicant.status_updated_at,
+      'Pengingat SPMB SMK PGRI Cikoneng: terdapat data atau dokumen yang perlu diperbaiki. Silakan masuk ke portal siswa untuk melihat catatan panitia.');
+  });
+  const pendingReenrollment = applicants.filter(function (applicant) {
+    return ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status) &&
+      applicant.reenrollment_status !== 'Daftar Ulang Selesai' &&
+      applicant.payment_status === 'Belum Daftar Ulang' &&
+      applicant.status_updated_at <= new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString();
+  });
+  pendingReenrollment.forEach(function (applicant) {
+    schedule(applicant, 'reenrollment', applicant.status_updated_at,
+      'Pengingat daftar ulang SPMB SMK PGRI Cikoneng: silakan cek informasi dan biaya daftar ulang pada portal siswa, atau hubungi panitia jika sudah melakukan pembayaran.');
+  });
+  const today = new Date(now).toISOString().slice(0, 10);
+  const closingWaves = config.registrationWaves.filter(function (wave) {
+    if (wave.status !== 'open' || !/^\d{4}-\d{2}-\d{2}$/.test(wave.closeDate)) return false;
+    const daysUntilClose = (Date.parse(wave.closeDate + 'T00:00:00.000Z') -
+      Date.parse(today + 'T00:00:00.000Z')) / (24 * 60 * 60 * 1000);
+    return daysUntilClose >= 0 && daysUntilClose <= 3;
+  });
+  closingWaves.forEach(function (wave) {
+    applicants.filter(function (applicant) {
+      return applicant.wave === wave.name && applicant.document_status !== 'Berkas Terverifikasi';
+    }).forEach(function (applicant) {
+      schedule(applicant, 'deadline', wave.name + ':' + wave.closeDate,
+        'Pengingat SPMB SMK PGRI Cikoneng: pendaftaran ' + wave.name + ' akan ditutup pada ' +
+        wave.closeDate + '. Pastikan data dan dokumen sudah lengkap.');
+    });
   });
 }
 
@@ -1995,6 +2251,7 @@ app.post('/api/registrations', function (request, response) {
     const applicant = withTransaction(function () {
       const insertValues = Object.assign({}, payload, {
         customDataJson: JSON.stringify(payload.customData),
+        academicYear: getConfig().academicYear,
         salt: salt,
         pinHash: makePinHash(pin, salt),
         now: now
@@ -2005,13 +2262,13 @@ app.post('/api/registrations', function (request, response) {
           wave, wave_fee, registration_path, major, student_name, school_origin, nisn, family_card_number, student_nik,
           gender, religion, birth_place, birth_date, email, student_phone, father_nik, father_name,
           father_education, father_occupation, father_income, father_phone, mother_nik, mother_name,
-          mother_education, mother_occupation, mother_income, mother_phone, address, custom_data_json, portal_pin_salt,
+          mother_education, mother_occupation, mother_income, mother_phone, address, custom_data_json, academic_year, portal_pin_salt,
           portal_pin_hash, document_status, selection_status, reenrollment_status, status_updated_at, created_at
         ) VALUES (
           @wave, @waveFee, @registrationPath, @major, @studentName, @schoolOrigin, @nisn, @familyCardNumber, @studentNik,
           @gender, @religion, @birthPlace, @birthDate, @email, @studentPhone, @fatherNik, @fatherName,
           @fatherEducation, @fatherOccupation, @fatherIncome, @fatherPhone, @motherNik, @motherName,
-          @motherEducation, @motherOccupation, @motherIncome, @motherPhone, @address, @customDataJson, @salt, @pinHash,
+          @motherEducation, @motherOccupation, @motherIncome, @motherPhone, @address, @customDataJson, @academicYear, @salt, @pinHash,
           'Menunggu Verifikasi', 'Menunggu Pengumuman', 'Belum Daftar Ulang', @now, @now
         )
       `).run(insertValues);
@@ -2252,6 +2509,89 @@ function buildPortalApplication(applicant, config) {
     canPay: ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)
   };
 }
+
+const pinRecoveryGenericMessage = 'Jika nomor pendaftaran dan kontak cocok, kode pemulihan akan dikirim ke WhatsApp yang tercatat.';
+
+app.post('/api/portal/pin-recovery/start', function (request, response) {
+  const registrationNumber = String(request.body && request.body.registrationNumber || '').trim().toUpperCase();
+  const now = Date.now();
+  const clientIp = request.ip || request.socket.remoteAddress || 'unknown';
+  let ipAttempts = pinRecoveryRequestsByIp.get(clientIp);
+  if (!ipAttempts || ipAttempts.expiresAt <= now) ipAttempts = { count: 0, expiresAt: now + 15 * 60 * 1000 };
+  if (ipAttempts.count >= 5) {
+    response.setHeader('Retry-After', String(Math.ceil((ipAttempts.expiresAt - now) / 1000)));
+    return response.status(429).json({ message: pinRecoveryGenericMessage });
+  }
+  ipAttempts.count += 1;
+  pinRecoveryRequestsByIp.set(clientIp, ipAttempts);
+  if (pinRecoveryRequestsByIp.size > 5000) {
+    pinRecoveryRequestsByIp.forEach(function (entry, ip) {
+      if (entry.expiresAt <= now) pinRecoveryRequestsByIp.delete(ip);
+    });
+  }
+  if (!registrationNumberPattern.test(registrationNumber)) {
+    return response.status(202).json({ message: pinRecoveryGenericMessage });
+  }
+  const applicant = getApplicantByRegistration(registrationNumber);
+  const recipient = applicant && !applicant.archived_at ? getWhatsAppRecipient(applicant) : '';
+  const gateway = getConfig().whatsappGateway;
+  const gatewayReady = gateway.enabled &&
+    (gateway.provider === 'fonnte' ? Boolean(gateway.webhookToken) : Boolean(gateway.webhookUrl));
+  if (!applicant || !recipient || !gatewayReady) {
+    return response.status(202).json({ message: pinRecoveryGenericMessage });
+  }
+  const existing = database.prepare('SELECT requested_at FROM portal_pin_recovery WHERE applicant_id = ?')
+    .get(applicant.id);
+  if (existing && now - existing.requested_at < 60 * 1000) {
+    return response.status(202).json({ message: pinRecoveryGenericMessage });
+  }
+  const code = String(crypto.randomInt(100000, 1000000));
+  const salt = crypto.randomBytes(16).toString('hex');
+  database.prepare(`
+    INSERT INTO portal_pin_recovery (applicant_id, code_salt, code_hash, expires_at, attempts, requested_at)
+    VALUES (?, ?, ?, ?, 0, ?)
+    ON CONFLICT(applicant_id) DO UPDATE SET code_salt = excluded.code_salt,
+      code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0,
+      requested_at = excluded.requested_at
+  `).run(applicant.id, salt, makePinHash(code, salt), now + 5 * 60 * 1000, now);
+  dispatchWhatsAppEvent('pin.recovery.otp', applicant,
+    'Kode pemulihan PIN Portal SPMB SMK PGRI Cikoneng: ' + code + '. Kode berlaku 5 menit. Jangan bagikan kode ini kepada siapa pun.',
+    { registrationNumber: applicant.registration_number, expiresInMinutes: 5 });
+  response.status(202).json({ message: pinRecoveryGenericMessage });
+});
+
+app.post('/api/portal/pin-recovery/complete', function (request, response) {
+  const registrationNumber = String(request.body && request.body.registrationNumber || '').trim().toUpperCase();
+  const code = String(request.body && request.body.code || '').trim();
+  const newPin = String(request.body && request.body.newPin || '').trim();
+  const invalidMessage = 'Kode pemulihan tidak valid atau sudah kedaluwarsa. Minta kode baru dan coba kembali.';
+  if (!registrationNumberPattern.test(registrationNumber) || !/^\d{6}$/.test(code) || !/^\d{6}$/.test(newPin)) {
+    return response.status(400).json({ message: invalidMessage });
+  }
+  const applicant = getApplicantByRegistration(registrationNumber);
+  if (!applicant || applicant.archived_at) return response.status(400).json({ message: invalidMessage });
+  const recovery = database.prepare('SELECT * FROM portal_pin_recovery WHERE applicant_id = ?').get(applicant.id);
+  if (!recovery || recovery.expires_at <= Date.now() || recovery.attempts >= 5) {
+    return response.status(400).json({ message: invalidMessage });
+  }
+  const storedHash = Buffer.from(recovery.code_hash, 'hex');
+  const suppliedHash = Buffer.from(makePinHash(code, recovery.code_salt), 'hex');
+  const validCode = storedHash.length === suppliedHash.length && crypto.timingSafeEqual(storedHash, suppliedHash);
+  if (!validCode) {
+    database.prepare('UPDATE portal_pin_recovery SET attempts = attempts + 1 WHERE applicant_id = ?')
+      .run(applicant.id);
+    return response.status(400).json({ message: invalidMessage });
+  }
+  const salt = crypto.randomBytes(16).toString('hex');
+  withTransaction(function () {
+    database.prepare('UPDATE applicants SET portal_pin_salt = ?, portal_pin_hash = ? WHERE id = ?')
+      .run(salt, makePinHash(newPin, salt), applicant.id);
+    database.prepare('DELETE FROM portal_sessions WHERE applicant_id = ?').run(applicant.id);
+    database.prepare('DELETE FROM login_attempts WHERE registration_number = ?').run(applicant.registration_number);
+    database.prepare('DELETE FROM portal_pin_recovery WHERE applicant_id = ?').run(applicant.id);
+  });
+  response.json({ status: 'success', message: 'PIN berhasil diperbarui. Silakan masuk dengan PIN baru.' });
+});
 
 app.post('/api/portal/login', function (request, response) {
   const registrationNumber = String(request.body && request.body.registrationNumber || '').trim().toUpperCase();
@@ -2902,7 +3242,11 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
 app.post('/api/admin/whatsapp/test', requireAdmin, requirePermission('whatsapp', 'edit'), async function (request, response) {
   try {
     const gateway = getConfig().whatsappGateway;
-    if (!gateway.webhookUrl) throw new Error('Isi dan simpan URL webhook WhatsApp terlebih dahulu.');
+    if (gateway.provider === 'fonnte') {
+      if (!gateway.webhookToken) throw new Error('Isi dan simpan token API Fonnte terlebih dahulu.');
+    } else if (!gateway.webhookUrl) {
+      throw new Error('Isi dan simpan URL webhook WhatsApp terlebih dahulu.');
+    }
     const suppliedPhone = String(request.body && request.body.phone || '').trim();
     const digits = suppliedPhone.replace(/\D/g, '');
     const nationalDigits = digits.startsWith('62') ? digits.slice(2)
@@ -2920,7 +3264,8 @@ app.post('/api/admin/whatsapp/test', requireAdmin, requirePermission('whatsapp',
     });
     response.json({
       status: 'success',
-      message: 'Webhook menerima tes (HTTP ' + statusCode + '). Pastikan pesan terlihat di WhatsApp tujuan.'
+      message: (gateway.provider === 'fonnte' ? 'Fonnte menerima dan mengantrekan pesan' : 'Webhook menerima tes') +
+        ' (HTTP ' + statusCode + '). Pastikan pesan terlihat di WhatsApp tujuan.'
     });
   } catch (error) {
     response.status(400).json({ message: error.message || 'Tes WhatsApp Gateway gagal.' });
@@ -3063,19 +3408,81 @@ app.post('/api/admin/documents/upload', requireAdmin, requirePermission('documen
   }
 });
 
+function buildApplicantReportFilter(query, config) {
+  const clauses = ["deleted_at = ''"];
+  const values = [];
+  const archiveScope = String(query.archived || 'false');
+  if (!['false', 'true', 'all'].includes(archiveScope)) throw new Error('Filter arsip tidak valid.');
+  if (archiveScope === 'true') clauses.push("archived_at != ''");
+  if (archiveScope === 'false') clauses.push("archived_at = ''");
+  const academicYear = String(query.academicYear || '').trim();
+  if (academicYear && !/^\d{4}\/\d{4}$/.test(academicYear)) throw new Error('Filter tahun ajaran tidak valid.');
+  if (academicYear) {
+    clauses.push('academic_year = ?');
+    values.push(academicYear);
+  }
+  ['wave', 'registrationPath', 'major'].forEach(function (key) {
+    const value = String(query[key] || '').trim();
+    if (value.length > 120) throw new Error('Nilai filter terlalu panjang.');
+    if (value) {
+      clauses.push((key === 'wave' ? 'wave' : key === 'registrationPath' ? 'registration_path' : 'major') + ' = ?');
+      values.push(value);
+    }
+  });
+  const dateFrom = String(query.dateFrom || '').trim();
+  const dateTo = String(query.dateTo || '').trim();
+  [dateFrom, dateTo].filter(Boolean).forEach(function (date) {
+    const parsed = new Date(date + 'T00:00:00.000Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsed.getTime()) ||
+        parsed.toISOString().slice(0, 10) !== date) {
+      throw new Error('Tanggal filter harus valid dengan format YYYY-MM-DD.');
+    }
+  });
+  if (dateFrom && dateTo && dateFrom > dateTo) throw new Error('Tanggal awal tidak boleh melewati tanggal akhir.');
+  if (dateFrom) {
+    clauses.push('substr(created_at, 1, 10) >= ?');
+    values.push(dateFrom);
+  }
+  if (dateTo) {
+    clauses.push('substr(created_at, 1, 10) <= ?');
+    values.push(dateTo);
+  }
+  const status = String(query.status || '');
+  if (status) {
+    if (!documentStatuses.includes(status)) throw new Error('Filter status verifikasi tidak valid.');
+    clauses.push('document_status = ?');
+    values.push(status);
+  }
+  const search = String(query.q || '').trim();
+  if (search.length > 100) throw new Error('Kata pencarian maksimal 100 karakter.');
+  if (search) {
+    const escapedSearch = search.replace(/[!%_]/g, function (character) { return '!' + character; });
+    clauses.push("(student_name LIKE ? ESCAPE '!' OR registration_number LIKE ? ESCAPE '!' OR nisn LIKE ? ESCAPE '!')");
+    values.push('%' + escapedSearch + '%', '%' + escapedSearch + '%', '%' + escapedSearch + '%');
+  }
+  return { where: clauses.join(' AND '), values: values, archiveScope: archiveScope };
+}
+
 app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboard', 'view'], ['applications', 'view']]), function (request, response) {
   const permissions = getAdminPermissions(request.adminUser.role);
   const canViewApplications = permissions.applications.view;
-  const archived = request.query.archived === 'true';
-  if (archived && !canViewApplications) {
+  const config = getConfig();
+  let filter;
+  try {
+    filter = buildApplicantReportFilter(request.query, config);
+  } catch (error) {
+    return response.status(400).json({ message: error.message || 'Filter laporan tidak valid.' });
+  }
+  if (filter.archiveScope !== 'false' && !canViewApplications) {
     return response.status(403).json({ message: 'Akun Anda tidak memiliki izin melihat arsip pendaftar.' });
   }
   const isViewer = !permissions.applications.edit;
-  const config = getConfig();
   const applicants = canViewApplications
-    ? database.prepare("SELECT * FROM applicants WHERE archived_at " + (archived ? "!= ''" : "= ''") +
-      " AND deleted_at = '' ORDER BY id DESC LIMIT 500").all()
+    ? database.prepare('SELECT * FROM applicants WHERE ' + filter.where + ' ORDER BY id DESC LIMIT 500').all(...filter.values)
     : [];
+  const matchedCount = canViewApplications
+    ? database.prepare('SELECT COUNT(*) AS count FROM applicants WHERE ' + filter.where).get(...filter.values).count
+    : 0;
   const getFiles = database.prepare(`
     SELECT field_key, original_name, file_size, drive_sync_status, drive_sync_error
     FROM uploaded_files WHERE applicant_id = ?
@@ -3173,6 +3580,17 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
   `).all(academicStart + '-07-01T00:00:00.000Z', (academicStart + 1) + '-07-01T00:00:00.000Z');
   response.json({
     applicants: results,
+    matchedCount: matchedCount,
+    filterOptions: canViewApplications ? {
+      academicYears: database.prepare("SELECT DISTINCT academic_year AS value FROM applicants WHERE deleted_at = '' AND academic_year != '' ORDER BY academic_year DESC").all()
+        .map(function (row) { return row.value; }),
+      waves: database.prepare("SELECT DISTINCT wave AS value FROM applicants WHERE deleted_at = '' AND wave != '' ORDER BY wave").all()
+        .map(function (row) { return row.value; }),
+      registrationPaths: database.prepare("SELECT DISTINCT registration_path AS value FROM applicants WHERE deleted_at = '' AND registration_path != '' ORDER BY registration_path").all()
+        .map(function (row) { return row.value; }),
+      programs: database.prepare("SELECT DISTINCT major AS value FROM applicants WHERE deleted_at = '' AND major != '' ORDER BY major").all()
+        .map(function (row) { return row.value; })
+    } : {},
     totals: totals,
     monthly: monthly,
     academicYear: config.academicYear,
@@ -3493,7 +3911,8 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
 });
 
 const applicantExportColumns = [
-    ['registration_number', 'Nomor Pendaftaran'], ['wave', 'Gelombang'], ['major', 'Program Studi'], ['class_assignment', 'Kelas'],
+    ['registration_number', 'Nomor Pendaftaran'], ['academic_year', 'Tahun Pelajaran'], ['wave', 'Gelombang'],
+    ['registration_path', 'Jalur Pendaftaran'], ['major', 'Program Studi'], ['class_assignment', 'Kelas'],
     ['student_name', 'Nama Siswa'], ['school_origin', 'Asal Sekolah'], ['nisn', 'NISN'],
     ['family_card_number', 'Nomor KK'], ['student_nik', 'NIK Siswa'], ['gender', 'Jenis Kelamin'],
     ['religion', 'Agama'], ['birth_place', 'Tempat Lahir'], ['birth_date', 'Tanggal Lahir'],
@@ -3652,7 +4071,11 @@ function createApplicantWorkbook(rows) {
 }
 
 app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
-  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' AND deleted_at = '' ORDER BY id").all();
+  let filter;
+  try { filter = buildApplicantReportFilter(request.query, getConfig()); } catch (error) {
+    return response.status(400).json({ message: error.message || 'Filter ekspor tidak valid.' });
+  }
+  const rows = database.prepare('SELECT * FROM applicants WHERE ' + filter.where + ' ORDER BY id').all(...filter.values);
   function csvCell(value) {
     const text = String(value == null ? '' : value);
     const safeText = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? "'" + text : text;
@@ -3668,7 +4091,11 @@ app.get('/api/admin/export.csv', requireAdmin, requirePermission('applications',
 });
 
 app.get('/api/admin/export.xlsx', requireAdmin, requirePermission('applications', 'view'), function (request, response) {
-  const rows = database.prepare("SELECT * FROM applicants WHERE archived_at = '' AND deleted_at = '' ORDER BY id").all();
+  let filter;
+  try { filter = buildApplicantReportFilter(request.query, getConfig()); } catch (error) {
+    return response.status(400).json({ message: error.message || 'Filter ekspor tidak valid.' });
+  }
+  const rows = database.prepare('SELECT * FROM applicants WHERE ' + filter.where + ' ORDER BY id').all(...filter.values);
   const workbook = createApplicantWorkbook(rows);
   response.setHeader('Content-Disposition', 'attachment; filename="rekap-pendaftar-spmb.xlsx"');
   response.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -3779,6 +4206,25 @@ app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, r
     .run(JSON.stringify(reviews), documentStatus, new Date().toISOString(), applicant.id);
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
+  if (status === 'revision') {
+    const updatedApplicant = getApplicantByRegistration(registrationNumber);
+    const itemLabel = itemType === 'field' ? item.label : item.name;
+    const message = [
+      'Permintaan perbaikan SPMB SMK PGRI Cikoneng',
+      'Nama: ' + updatedApplicant.student_name,
+      'Nomor pendaftaran: ' + updatedApplicant.registration_number,
+      (itemType === 'field' ? 'Data' : 'Dokumen') + ' yang perlu diperbaiki: ' + itemLabel,
+      note ? 'Catatan: ' + note : '',
+      'Silakan masuk ke portal siswa untuk melakukan perbaikan.'
+    ].filter(Boolean).join('\n');
+    dispatchWhatsAppEvent('review.updated', updatedApplicant, message, {
+      registrationNumber: updatedApplicant.registration_number,
+      itemType: itemType,
+      itemKey: itemKey,
+      itemLabel: itemLabel,
+      note: note
+    });
+  }
   response.json({ status: 'success', documentStatus: documentStatus });
 });
 
@@ -3807,6 +4253,21 @@ app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, r
   `).run(paymentStatus, note, now, reenrollmentStatus, now, applicant.id);
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
+  const updatedApplicant = getApplicantByRegistration(applicant.registration_number);
+  const paymentMessage = [
+    'Pembaruan verifikasi pembayaran daftar ulang SPMB SMK PGRI Cikoneng',
+    'Nama: ' + updatedApplicant.student_name,
+    'Nomor pendaftaran: ' + updatedApplicant.registration_number,
+    'Status: ' + paymentStatus,
+    note ? 'Catatan: ' + note : '',
+    'Buka portal siswa untuk melihat rincian status.'
+  ].filter(Boolean).join('\n');
+  dispatchWhatsAppEvent('payment.reviewed', updatedApplicant, paymentMessage, {
+    registrationNumber: updatedApplicant.registration_number,
+    paymentStatus: paymentStatus,
+    reenrollmentStatus: reenrollmentStatus,
+    note: note
+  });
   response.json({ status: 'success', paymentStatus: paymentStatus, reenrollmentStatus: reenrollmentStatus });
 });
 
@@ -3855,6 +4316,31 @@ app.post('/api/admin/sync-retry', requireAdmin, requirePermission('applications'
     .run(new Date().toISOString());
   setImmediate(syncQueuedApplications);
   response.json({ status: 'success' });
+});
+
+app.get('/api/admin/backups', requireAdmin, requireOwner, function (request, response) {
+  try {
+    response.json({
+      configured: Boolean(configuredBackupDirectory),
+      retentionCount: backupRetentionCount,
+      backups: listBackups()
+    });
+  } catch (error) {
+    response.status(500).json({ message: error.message || 'Daftar backup gagal dimuat.' });
+  }
+});
+
+let lastManualBackupAt = 0;
+app.post('/api/admin/backups', requireAdmin, requireOwner, function (request, response) {
+  if (Date.now() - lastManualBackupAt < 60 * 1000) {
+    return response.status(429).json({ message: 'Tunggu satu menit sebelum membuat backup berikutnya.' });
+  }
+  lastManualBackupAt = Date.now();
+  try {
+    response.status(201).json({ status: 'success', backup: createBackup() });
+  } catch (error) {
+    response.status(500).json({ message: error.message || 'Backup gagal dibuat.' });
+  }
 });
 
 app.use('/assets', express.static(path.join(__dirname, 'assets'), {
@@ -3958,3 +4444,19 @@ const server = app.listen(port, '0.0.0.0', function () {
 server.keepAliveTimeout = 65000;
 setInterval(syncQueuedApplications, 15000).unref();
 setInterval(syncQueuedDriveFiles, 15000).unref();
+setTimeout(runStudentReminders, 60 * 1000).unref();
+setInterval(runStudentReminders, 24 * 60 * 60 * 1000).unref();
+if (configuredBackupDirectory) {
+  setTimeout(function () {
+    try { createBackup(); } catch (error) {
+      console.error('Backup terjadwal gagal dibuat:', error.message);
+    }
+  }, 60 * 1000).unref();
+  setInterval(function () {
+    try { createBackup(); } catch (error) {
+      console.error('Backup terjadwal gagal dibuat:', error.message);
+    }
+  }, 24 * 60 * 60 * 1000).unref();
+} else {
+  console.warn('Backup terjadwal nonaktif: konfigurasikan BACKUP_DIR pada volume terpisah.');
+}

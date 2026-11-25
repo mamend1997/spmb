@@ -149,7 +149,9 @@
     .section { margin-top: 16px; padding: 20px; }
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .section-heading p { margin: 5px 0 0; }
-    .filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(180px, 250px); gap: 10px; margin-top: 18px; }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; margin-top: 18px; }
+    .filters #application-search { grid-column: span 2; }
+    .filters .filter-date { display: grid; gap: 4px; color: #64748b; font-size: 11px; font-weight: 700; }
     .bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 14px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 11px; background: #f8fafc; }
     .bulk-actions[hidden] { display: none !important; }
     .bulk-actions select { width: min(100%, 300px); }
@@ -339,6 +341,7 @@
       .metric strong { font-size: 21px; }
       .section { padding: 15px; }
       .filters, .settings-grid, .edit-grid { grid-template-columns: 1fr; }
+      .filters #application-search { grid-column: auto; }
       .settings-grid .wide, .edit-grid .wide { grid-column: auto; }
       .wave-row { grid-template-columns: 1fr; }
       .master-row, .review-controls { grid-template-columns: 1fr; }
@@ -437,6 +440,10 @@
             <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5m0 14h16M8 15v-4m4 4V7m4 8v-6m4 6V4"/></svg>
             <span>Log Aktivitas</span>
           </button>
+          <button type="button" data-page-target="backups-page" data-owner-only>
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>
+            <span>Backup Data</span>
+          </button>
           <div class="sidebar-master" data-master-nav>
             <button id="master-nav-toggle" type="button" aria-expanded="false" aria-controls="master-submenu">
               <span class="sidebar-nav-label">
@@ -525,12 +532,21 @@
         <div id="sync-banner" class="sync-banner" role="status">Memeriksa status Google Sheets...</div>
         <div class="filters">
           <input id="application-search" type="search" placeholder="Cari nama atau nomor pendaftaran">
+          <select id="application-year-filter" aria-label="Filter tahun ajaran">
+            <option value="active">Tahun ajaran aktif</option>
+            <option value="all">Semua tahun ajaran</option>
+          </select>
+          <select id="application-wave-filter" aria-label="Filter gelombang"><option value="">Semua gelombang</option></select>
+          <select id="application-path-filter" aria-label="Filter jalur"><option value="">Semua jalur</option></select>
+          <select id="application-major-filter" aria-label="Filter program studi"><option value="">Semua program studi</option></select>
           <select id="status-filter" aria-label="Filter status verifikasi">
             <option value="">Semua status verifikasi</option>
             <option>Menunggu Verifikasi</option>
             <option>Berkas Terverifikasi</option>
             <option>Perlu Perbaikan</option>
           </select>
+          <label class="filter-date">Dari <input id="application-date-from" type="date" aria-label="Dari tanggal pendaftaran"></label>
+          <label class="filter-date">Sampai <input id="application-date-to" type="date" aria-label="Sampai tanggal pendaftaran"></label>
         </div>
         <div id="bulk-actions-toolbar" class="bulk-actions" hidden>
           <p><span id="bulk-selected-count">0</span> pendaftar dipilih</p>
@@ -580,6 +596,21 @@
           <table class="admin-simple-table">
             <thead><tr><th>Waktu</th><th>Admin</th><th>Aktivitas</th><th>Hasil</th></tr></thead>
             <tbody id="activity-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="backups-page" class="card section admin-page" hidden>
+        <div class="section-heading">
+          <div><h2>Backup Data</h2><p>Snapshot mencakup database, dokumen pendaftar, dan file publik sekolah.</p></div>
+          <button id="create-backup-button" type="button">Buat Backup Sekarang</button>
+        </div>
+        <p id="backup-status" class="status-line" role="status"></p>
+        <p id="backup-configuration-note" class="helper"></p>
+        <div class="table-wrap">
+          <table class="admin-simple-table">
+            <thead><tr><th>Waktu</th><th>Jumlah File</th><th>Ukuran</th><th>Folder Backup</th></tr></thead>
+            <tbody id="backups-body"></tbody>
           </table>
         </div>
       </section>
@@ -651,17 +682,21 @@
             </div>
             <h2 class="wide" id="master-whatsapp" data-master-section="whatsapp">WhatsApp Gateway</h2>
             <div class="wide master-group" data-master-section="whatsapp">
-              <p>Webhook menerima permintaan POST JSON. Jika token diisi, server mengirimkannya melalui header <code>Authorization: Bearer</code>. URL/token hanya dipakai server dan tidak dikirim ke halaman publik.</p>
+              <p>Pilih Fonnte untuk mengirim langsung lewat API, atau Webhook untuk memakai integrasi kustom. Token hanya disimpan server dan tidak dikirim ke halaman publik.</p>
               <div class="settings-grid">
                 <label class="payment-check-control"><input id="whatsapp-enabled" type="checkbox"> Aktifkan notifikasi WhatsApp</label>
-                <div class="wide"><label for="whatsapp-webhook-url">URL webhook (HTTPS)</label><input id="whatsapp-webhook-url" type="url" placeholder="https://domain-anda.example/webhook" autocomplete="url"></div>
-                <div class="wide"><label for="whatsapp-webhook-token">Token webhook (opsional)</label><input id="whatsapp-webhook-token" type="password" maxlength="1000" placeholder="Kosongkan untuk mempertahankan token tersimpan" autocomplete="new-password"><p id="whatsapp-token-status" class="helper">Belum ada token tersimpan.</p></div>
+                <div><label for="whatsapp-provider">Penyedia gateway</label><select id="whatsapp-provider"><option value="fonnte">Fonnte</option><option value="webhook">Webhook kustom</option></select></div>
+                <div class="wide" id="whatsapp-webhook-url-field"><label for="whatsapp-webhook-url">URL webhook (HTTPS)</label><input id="whatsapp-webhook-url" type="url" placeholder="https://domain-anda.example/webhook" autocomplete="url"></div>
+                <div class="wide"><label id="whatsapp-token-label" for="whatsapp-webhook-token">Token API Fonnte</label><input id="whatsapp-webhook-token" type="password" maxlength="1000" placeholder="Tempel token API Fonnte" autocomplete="new-password"><p id="whatsapp-token-status" class="helper">Token disimpan di server. Kosongkan untuk mempertahankan token tersimpan.</p></div>
                 <label class="payment-check-control"><input id="whatsapp-clear-token" type="checkbox"> Hapus token tersimpan</label>
                 <fieldset class="wide">
                   <legend>Notifikasi otomatis</legend>
                   <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="registration.created"> Pendaftaran berhasil dan data login portal (nomor pendaftaran + PIN)</label>
                   <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="selection.updated"> Hasil penetapan kelulusan</label>
                   <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reenrollment.instructions"> Informasi daftar ulang dan biaya untuk siswa yang diterima</label>
+                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="review.updated"> Data atau dokumen perlu diperbaiki</label>
+                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="payment.reviewed"> Status bukti pembayaran diperbarui</label>
+                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reminder"> Pengingat pendaftaran atau daftar ulang</label>
                 </fieldset>
                   <div class="wide">
                     <label for="whatsapp-test-phone">Nomor WhatsApp tujuan tes</label>
@@ -669,12 +704,12 @@
                       <input id="whatsapp-test-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="081234567890">
                       <button id="whatsapp-test-button" class="secondary" type="button" data-permission-menu="whatsapp" data-permission-action="edit">Kirim Pesan Tes</button>
                     </div>
-                    <p class="helper">Tes memakai URL/token yang sudah disimpan dan mengirim contoh pesan ke nomor ini.</p>
+                    <p class="helper">Tes memakai penyedia dan token yang sudah disimpan. Pada Fonnte, respons berhasil berarti pesan masuk antrean Fonnte.</p>
                     <p id="whatsapp-test-status" class="status-line" role="status"></p>
                   </div>
-                  <p class="wide">Agar pesan pendaftaran terkirim otomatis, gateway harus aktif, event pendaftaran harus dicentang, dan pengaturan disimpan. Tes hanya memastikan webhook menerima permintaan HTTP; pastikan pesan benar-benar diterima di WhatsApp tujuan.</p>
+                  <p class="wide">Fonnte mengirim melalui <code>https://api.fonnte.com/send</code>. Simpan token API dari dashboard Fonnte, aktifkan perangkat WhatsApp di akun, lalu gunakan tes. Pastikan pesan benar-benar diterima di WhatsApp tujuan.</p>
                 <p class="wide">Nomor tujuan dipilih berurutan: WhatsApp calon siswa, lalu ayah, lalu ibu bila nomor sebelumnya kosong. Webhook tidak menerima notifikasi bila tidak ada nomor tujuan.</p>
-                <p class="wide">Payload berisi <code>event</code>, <code>to</code>, <code>message</code>, dan <code>data</code>. Event: <code>registration.created</code>, <code>selection.updated</code>, atau <code>reenrollment.instructions</code>. Respons HTTP selain 2xx atau kegagalan koneksi dicatat pada log server.</p>
+                <p class="wide">Untuk webhook kustom, payload berisi <code>event</code>, <code>to</code>, <code>message</code>, dan <code>data</code>; token dikirim sebagai Bearer. Kegagalan pengiriman dicatat pada log server.</p>
               </div>
             </div>
             <h2 class="wide" id="master-documents" data-master-section="documents">Dokumen Sekolah</h2>
@@ -1348,6 +1383,7 @@
       if (pageId === 'applications-page') return 'applications';
       if (pageId === 'trash-page') return 'trash';
       if (pageId === 'activity-page') return 'activityLog';
+      if (pageId === 'backups-page') return 'backups';
       if (pageId === 'accounts-page') return 'accounts';
       if (pageId === 'master-page') return anchorId || 'form';
       return '';
@@ -1358,6 +1394,7 @@
       'applications-page': 'pendaftar',
       'trash-page': 'kotak-sampah',
       'activity-page': 'log-aktivitas',
+      'backups-page': 'backups',
       'accounts-page': 'manajemen-akun'
     };
     const adminMasterSlugs = {
@@ -1401,6 +1438,9 @@
         const roles = element.dataset.adminRoles.split(',').map(function (role) { return role.trim(); });
         element.hidden = !roles.includes(currentUser.role);
       });
+      document.querySelectorAll('[data-owner-only]').forEach(function (element) {
+        element.hidden = currentUser.role !== 'owner';
+      });
       document.querySelectorAll('[data-permission-menu]').forEach(function (element) {
         element.hidden = !canAdmin(element.dataset.permissionMenu, 'view');
       });
@@ -1423,7 +1463,7 @@
       const activeMasterButton = document.querySelector('[data-page-target="master-page"].active');
       const currentMenu = currentPage && pagePermissionMenu(currentPage.id,
         currentPage.id === 'master-page' && activeMasterButton ? activeMasterButton.dataset.masterAnchor : '');
-      if (!currentMenu || !canAdmin(currentMenu, 'view')) {
+      if (!currentMenu || (currentMenu === 'backups' ? currentUser.role !== 'owner' : !canAdmin(currentMenu, 'view'))) {
         const available = ['dashboard-page', 'applications-page', 'trash-page', 'activity-page'].find(function (pageId) {
           return canAdmin(pagePermissionMenu(pageId), 'view');
         });
@@ -1438,7 +1478,9 @@
 
     function setAdminPage(pageId, anchorId, updateHistory) {
       const permissionMenu = pagePermissionMenu(pageId, anchorId);
-      if (!permissionMenu || !canAdmin(permissionMenu, 'view')) return;
+      if (!permissionMenu || (permissionMenu === 'backups'
+        ? !currentUser || currentUser.role !== 'owner'
+        : !canAdmin(permissionMenu, 'view'))) return;
       const path = adminPagePath(pageId, anchorId);
       if (updateHistory !== false && window.location.pathname !== path) {
         window.history.pushState({ adminPage: pageId, masterAnchor: anchorId || '' }, '', path);
@@ -2305,12 +2347,14 @@
       renderClassRows(config.classes || []);
       const whatsapp = config.whatsappGateway || {};
       document.getElementById('whatsapp-enabled').checked = whatsapp.enabled === true;
+      document.getElementById('whatsapp-provider').value = whatsapp.provider === 'fonnte' ? 'fonnte' : 'webhook';
       document.getElementById('whatsapp-webhook-url').value = whatsapp.webhookUrl || '';
       document.getElementById('whatsapp-webhook-token').value = '';
       document.getElementById('whatsapp-token-status').textContent = whatsapp.tokenConfigured
         ? 'Token sudah tersimpan. Kosongkan kolom untuk mempertahankannya.'
         : 'Belum ada token tersimpan.';
       document.getElementById('whatsapp-clear-token').checked = false;
+      updateWhatsAppProviderUI();
       document.querySelectorAll('[data-whatsapp-event]').forEach(function (checkbox) {
         checkbox.checked = (whatsapp.events || []).includes(checkbox.dataset.whatsappEvent);
       });
@@ -2349,11 +2393,57 @@
       link.classList.toggle('hidden', !url);
     }
 
+    function updateWhatsAppProviderUI() {
+      const provider = document.getElementById('whatsapp-provider').value;
+      const fonnte = provider === 'fonnte';
+      document.getElementById('whatsapp-webhook-url-field').hidden = fonnte;
+      document.getElementById('whatsapp-token-label').textContent = fonnte ? 'Token API Fonnte' : 'Token webhook (opsional)';
+      document.getElementById('whatsapp-webhook-token').placeholder = fonnte
+        ? 'Tempel token API Fonnte'
+        : 'Kosongkan untuk mempertahankan token tersimpan';
+    }
+    document.getElementById('whatsapp-provider').addEventListener('change', updateWhatsAppProviderUI);
+
     function statusSelect(values, current) {
       const select = document.createElement('select');
       values.forEach(function (value) { select.appendChild(makeOption(value, value)); });
       select.value = values.includes(current) ? current : values[0];
       return select;
+    }
+
+    function updateReportFilter(id, label, values, activeValue) {
+      const select = document.getElementById(id);
+      const previous = select.value || activeValue || '';
+      select.replaceChildren(new Option(label, ''));
+      (values || []).forEach(function (value) {
+        if (value) select.appendChild(new Option(value, value));
+      });
+      if (Array.from(select.options).some(function (option) { return option.value === previous; })) {
+        select.value = previous;
+      } else {
+        select.value = activeValue || '';
+      }
+    }
+
+    function getApplicationFilterParams() {
+      const params = new URLSearchParams();
+      const year = document.getElementById('application-year-filter').value || 'active';
+      params.set('archived', year === 'active' ? 'false' : 'all');
+      if (year !== 'active' && year !== 'all') params.set('academicYear', year);
+      const fields = {
+        wave: 'application-wave-filter',
+        registrationPath: 'application-path-filter',
+        major: 'application-major-filter',
+        status: 'status-filter',
+        dateFrom: 'application-date-from',
+        dateTo: 'application-date-to',
+        q: 'application-search'
+      };
+      Object.keys(fields).forEach(function (key) {
+        const value = document.getElementById(fields[key]).value.trim();
+        if (value) params.set(key, value);
+      });
+      return params;
     }
 
     function renderApplications(data) {
@@ -2366,6 +2456,22 @@
       adminReviewConfig = data.reviewConfig || null;
       const readOnly = currentUser.role === 'viewer';
       const totals = data.totals || {};
+      const filterOptions = data.filterOptions || {};
+      const years = Array.from(new Set([data.academicYear].concat(filterOptions.academicYears || []).filter(Boolean)));
+      const yearSelect = document.getElementById('application-year-filter');
+      const selectedYear = yearSelect.value || 'active';
+      yearSelect.replaceChildren(new Option('Tahun ajaran aktif', 'active'));
+      if (currentUser.role !== 'viewer') {
+        yearSelect.appendChild(new Option('Semua tahun ajaran', 'all'));
+        years.forEach(function (year) { yearSelect.appendChild(new Option(year, year)); });
+      }
+      yearSelect.disabled = currentUser.role === 'viewer';
+      if (!Array.from(yearSelect.options).some(function (option) { return option.value === selectedYear; })) {
+        yearSelect.value = 'active';
+      } else yearSelect.value = selectedYear;
+      updateReportFilter('application-wave-filter', 'Semua gelombang', filterOptions.waves || []);
+      updateReportFilter('application-path-filter', 'Semua jalur', filterOptions.registrationPaths || []);
+      updateReportFilter('application-major-filter', 'Semua program studi', filterOptions.programs || []);
       document.getElementById('metric-total').textContent = Number(totals.total || 0).toLocaleString('id-ID');
       document.getElementById('metric-pending').textContent = Number(totals.pending || 0).toLocaleString('id-ID');
       document.getElementById('metric-verified').textContent = Number(totals.verified || 0).toLocaleString('id-ID');
@@ -2375,7 +2481,8 @@
       document.getElementById('metric-reenrolled').textContent = Number(totals.reEnrolled || 0).toLocaleString('id-ID');
       document.getElementById('chart-year').textContent = 'Tahun ajaran ' + (data.academicYear || (siteConfig && siteConfig.academicYear) || '');
       renderMonthlyChart(currentMonthly, data.academicYear);
-      document.getElementById('application-count').textContent = applicants.length + ' data terbaru ditampilkan. Total keseluruhan: ' + Number(totals.total || 0).toLocaleString('id-ID') + '.';
+      document.getElementById('application-count').textContent = applicants.length + ' data ditampilkan dari ' +
+        Number(data.matchedCount || 0).toLocaleString('id-ID') + ' hasil filter (maksimal 500 baris).';
       applicationBody.replaceChildren();
       if (!applicants.length) {
         setStatus('applications-status', 'Belum ada data pendaftar.', '');
@@ -3814,7 +3921,8 @@
     async function loadApplications() {
       setStatus('applications-status', 'Memuat data pendaftar...', '');
       try {
-        renderApplications(await api('/api/admin/applications'));
+        const query = getApplicationFilterParams();
+        renderApplications(await api('/api/admin/applications?' + query.toString()));
         await loadSyncStatus();
         return true;
       } catch (error) {
@@ -3922,6 +4030,49 @@
       } catch (error) {
         setStatus('activity-status', error.message, 'error');
         if (error.status === 401) showLogin();
+      }
+    }
+
+    function renderBackups(backups) {
+      const body = document.getElementById('backups-body');
+      body.replaceChildren();
+      if (!backups.length) {
+        const row = document.createElement('tr');
+        const empty = document.createElement('td');
+        empty.colSpan = 4;
+        empty.textContent = 'Belum ada backup.';
+        row.appendChild(empty);
+        body.appendChild(row);
+        return;
+      }
+      backups.forEach(function (backup) {
+        const row = document.createElement('tr');
+        const date = document.createElement('td');
+        date.textContent = new Date(backup.createdAt).toLocaleString('id-ID');
+        const count = document.createElement('td');
+        count.textContent = Number(backup.fileCount || 0).toLocaleString('id-ID');
+        const size = document.createElement('td');
+        size.textContent = (Number(backup.bytes || 0) / 1024 / 1024).toLocaleString('id-ID', {
+          maximumFractionDigits: 2
+        }) + ' MB';
+        const id = document.createElement('td');
+        id.textContent = backup.id;
+        row.append(date, count, size, id);
+        body.appendChild(row);
+      });
+    }
+
+    async function loadBackups() {
+      setStatus('backup-status', 'Memuat daftar backup...', '');
+      try {
+        const result = await api('/api/admin/backups');
+        renderBackups(result.backups || []);
+        document.getElementById('backup-configuration-note').textContent = result.configured
+          ? 'Backup otomatis berjalan setiap 24 jam dan menyimpan ' + result.retentionCount + ' versi terakhir.'
+          : 'Backup belum aktif. Pasang volume kedua dan set BACKUP_DIR pada environment server.';
+        setStatus('backup-status', (result.backups || []).length + ' backup tersedia.', '');
+      } catch (error) {
+        setStatus('backup-status', error.message || 'Daftar backup gagal dimuat.', 'error');
       }
     }
 
@@ -4044,7 +4195,7 @@
           showConfig(await api('/api/admin/config'));
         }
         if (currentUser.role === 'owner') {
-          await Promise.all([loadUsers(), loadRolePermissions()]);
+          await Promise.all([loadUsers(), loadRolePermissions(), loadBackups()]);
         }
         if (canAdmin('dashboard', 'view') || canAdmin('applications', 'view')) {
           await loadApplications();
@@ -4111,6 +4262,7 @@
             },
             whatsappGateway: {
               enabled: document.getElementById('whatsapp-enabled').checked,
+              provider: document.getElementById('whatsapp-provider').value,
               webhookUrl: document.getElementById('whatsapp-webhook-url').value.trim(),
               webhookToken: document.getElementById('whatsapp-webhook-token').value,
               clearWebhookToken: document.getElementById('whatsapp-clear-token').checked,
@@ -4552,8 +4704,16 @@
     revisionNoteDialog.addEventListener('close', function () {
       if (!document.getElementById('submit-revision-note').disabled) pendingRevisionReview = null;
     });
-    document.getElementById('application-search').addEventListener('input', filterApplications);
-    document.getElementById('status-filter').addEventListener('change', filterApplications);
+    let applicationSearchTimer = 0;
+    document.getElementById('application-search').addEventListener('input', function () {
+      filterApplications();
+      clearTimeout(applicationSearchTimer);
+      applicationSearchTimer = setTimeout(loadApplications, 300);
+    });
+    ['status-filter', 'application-year-filter', 'application-wave-filter', 'application-path-filter',
+      'application-major-filter', 'application-date-from', 'application-date-to'].forEach(function (id) {
+      document.getElementById(id).addEventListener('change', loadApplications);
+    });
     document.getElementById('select-all-applications').addEventListener('change', function () {
       const checked = this.checked;
       applicationBody.querySelectorAll('[data-select-applicant]').forEach(function (checkbox) {
@@ -4591,8 +4751,22 @@
     document.getElementById('reload-button').addEventListener('click', loadAll);
     document.getElementById('reload-trash-button').addEventListener('click', loadTrash);
     document.getElementById('reload-activity-button').addEventListener('click', loadActivityLog);
+    document.getElementById('create-backup-button').addEventListener('click', async function () {
+      const button = this;
+      button.disabled = true;
+      setStatus('backup-status', 'Membuat snapshot data...', '');
+      try {
+        const result = await api('/api/admin/backups', { method: 'POST' });
+        await loadBackups();
+        setStatus('backup-status', 'Backup ' + result.backup.id + ' berhasil dibuat.', 'success');
+      } catch (error) {
+        setStatus('backup-status', error.message || 'Backup gagal dibuat.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
     document.getElementById('export-excel-button').addEventListener('click', function () {
-      window.location.assign('/api/admin/export.xlsx');
+      window.location.assign('/api/admin/export.xlsx?' + getApplicationFilterParams().toString());
     });
     document.getElementById('logout-button').addEventListener('click', async function () {
       try { await api('/api/admin/logout', { method: 'POST' }); } catch (error) { console.error(error); }
