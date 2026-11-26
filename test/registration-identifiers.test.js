@@ -1,12 +1,16 @@
 const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
-const { findDuplicateRegistrationIdentifier } = require('../registration-identifiers');
+const {
+  findDuplicateRegistrationIdentifier,
+  generateSequentialRegistrationNumber
+} = require('../registration-identifiers');
 
 function createDatabase(applicant) {
   const database = new DatabaseSync(':memory:');
   database.exec(`
     CREATE TABLE applicants (
+      registration_number TEXT,
       nisn TEXT NOT NULL DEFAULT '',
       student_nik TEXT NOT NULL DEFAULT '',
       student_phone TEXT NOT NULL DEFAULT ''
@@ -69,6 +73,38 @@ test('allows an unused set of identifiers and an empty optional phone', function
       studentNik: '3201234567890002',
       studentPhone: ''
     }), null);
+  } finally {
+    database.close();
+  }
+});
+
+test('generates the next six-digit registration number within its year', function () {
+  const database = createDatabase();
+  database.exec(`
+    INSERT INTO applicants (registration_number) VALUES
+      ('SPMB-2027-000001'),
+      ('SPMB-2027-AB12CD34'),
+      ('SPMB-2026-000009')
+  `);
+  try {
+    assert.equal(generateSequentialRegistrationNumber(database, '2027'), 'SPMB-2027-000002');
+    assert.equal(generateSequentialRegistrationNumber(database, '2028'), 'SPMB-2028-000001');
+  } finally {
+    database.close();
+  }
+});
+
+test('rejects a sequence that exceeds the six-digit maximum', function () {
+  const database = createDatabase();
+  database.exec(`
+    INSERT INTO applicants (registration_number) VALUES
+      ('SPMB-2027-000001'),
+      ('SPMB-2027-999999')
+  `);
+  try {
+    assert.throws(function () {
+      generateSequentialRegistrationNumber(database, '2027');
+    }, /mencapai batas maksimum/);
   } finally {
     database.close();
   }

@@ -6,6 +6,19 @@ function normalizeWhatsAppPhone(value) {
   return '+62' + digits;
 }
 
+function generateSequentialRegistrationNumber(database, year) {
+  const prefix = 'SPMB-' + year + '-';
+  const latest = database.prepare(
+    'SELECT MAX(CAST(substr(registration_number, ?) AS INTEGER)) AS sequence ' +
+      'FROM applicants WHERE registration_number GLOB ?'
+  ).get(prefix.length + 1, prefix + '[0-9][0-9][0-9][0-9][0-9][0-9]').sequence;
+  const nextSequence = Number(latest || 0) + 1;
+  if (nextSequence > 999999) {
+    throw new Error('Nomor pendaftaran untuk tahun ini sudah mencapai batas maksimum.');
+  }
+  return prefix + String(nextSequence).padStart(6, '0');
+}
+
 function findDuplicateRegistrationIdentifier(database, payload) {
   const identifiers = [
     { column: 'nisn', field: 'nisn', label: 'NISN', value: payload.nisn },
@@ -48,5 +61,6 @@ function findDuplicateRegistrationIdentifier(database, payload) {
 
 module.exports = {
   findDuplicateRegistrationIdentifier: findDuplicateRegistrationIdentifier,
+  generateSequentialRegistrationNumber: generateSequentialRegistrationNumber,
   normalizeWhatsAppPhone: normalizeWhatsAppPhone
 };

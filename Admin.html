@@ -167,6 +167,13 @@
     th { position: sticky; top: 0; background: #f8fafc; color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
     tr:last-child td { border-bottom: 0; }
     td select { min-width: 150px; font-size: 12px; }
+    .registration-number-edit { min-height: 0; margin-top: 5px; padding: 0; color: #c2410c; background: transparent; font-size: 11px; text-align: left; }
+    .registration-number-editor { display: grid; min-width: 210px; gap: 6px; }
+    .registration-number-editor-fields { display: flex; align-items: center; gap: 4px; color: #475467; }
+    .registration-number-editor-fields input { min-width: 70px; min-height: 34px; padding: 6px; font-family: monospace; }
+    .registration-number-editor-actions { display: flex; gap: 5px; }
+    .registration-number-editor-actions button { min-height: 30px; padding: 5px 8px; font-size: 11px; }
+    .registration-number-editor-actions .secondary { color: #334155; background: #e8edf4; }
     .applicant-name { min-width: 170px; }
     .applicant-name strong, .applicant-name span, .applicant-name-link { display: block; margin-bottom: 4px; }
     .section .applicant-name-link { width: auto; min-height: 0; padding: 0; border: 0; border-radius: 0; color: #172554; background: transparent; box-shadow: none; appearance: none; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
@@ -601,7 +608,7 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th><input id="select-all-applications" class="bulk-select-checkbox" type="checkbox" aria-label="Pilih semua pendaftar yang tampil"></th><th>No. Pendaftaran</th><th>Foto</th><th>Nama Calon Siswa</th><th>Gelombang</th><th>Jalur</th><th>Kelas</th><th>Verifikasi Berkas</th><th>Hasil Seleksi</th><th>Daftar Ulang</th><th>Siswa Resmi</th><th>Aksi</th></tr>
+              <tr><th><input id="select-all-applications" class="bulk-select-checkbox" type="checkbox" aria-label="Pilih semua pendaftar yang tampil"></th><th>No. Pendaftaran</th><th>Tanggal Daftar</th><th>Foto</th><th>Nama Calon Siswa</th><th>Gelombang</th><th>Jalur</th><th>Kelas</th><th>Verifikasi Berkas</th><th>Hasil Seleksi</th><th>Daftar Ulang</th><th>Siswa Resmi</th><th>Aksi</th></tr>
             </thead>
             <tbody id="applications-body"></tbody>
           </table>
@@ -2873,6 +2880,90 @@
         const regNumber = document.createElement('strong');
         regNumber.textContent = applicant.registration_number;
         registrationNumber.appendChild(regNumber);
+        if (!readOnly) {
+          const editNumberButton = document.createElement('button');
+          editNumberButton.type = 'button';
+          editNumberButton.className = 'registration-number-edit';
+          editNumberButton.textContent = 'Ubah urutan';
+          editNumberButton.setAttribute('aria-label', 'Ubah nomor pendaftaran ' + applicant.registration_number);
+          editNumberButton.addEventListener('click', function () {
+            const yearPrefix = applicant.registration_number.match(/^(SPMB-\d{4}-)/);
+            if (!yearPrefix) {
+              setStatus('applications-status', 'Format nomor pendaftaran tidak dikenali.', 'error');
+              return;
+            }
+            const editor = document.createElement('form');
+            editor.className = 'registration-number-editor';
+            const fields = document.createElement('div');
+            fields.className = 'registration-number-editor-fields';
+            const prefix = document.createElement('span');
+            prefix.textContent = yearPrefix[1];
+            const sequence = document.createElement('input');
+            sequence.type = 'text';
+            sequence.name = 'sequence';
+            sequence.inputMode = 'numeric';
+            sequence.maxLength = 6;
+            sequence.pattern = '\\d{6}';
+            sequence.required = true;
+            sequence.value = (applicant.registration_number.match(/-(\d{6})$/) || [])[1] || '';
+            sequence.setAttribute('aria-label', 'Urutan nomor pendaftaran, 6 digit');
+            fields.append(prefix, sequence);
+            const actions = document.createElement('div');
+            actions.className = 'registration-number-editor-actions';
+            const save = document.createElement('button');
+            save.type = 'submit';
+            save.textContent = 'Simpan';
+            const cancel = document.createElement('button');
+            cancel.type = 'button';
+            cancel.className = 'secondary';
+            cancel.textContent = 'Batal';
+            actions.append(save, cancel);
+            editor.append(fields, actions);
+            cancel.addEventListener('click', function () {
+              editor.remove();
+              regNumber.hidden = false;
+              editNumberButton.hidden = false;
+            });
+            editor.addEventListener('submit', async function (event) {
+              event.preventDefault();
+              save.disabled = true;
+              try {
+                const result = await api('/api/admin/applications/' +
+                  encodeURIComponent(applicant.registration_number) + '/registration-number', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sequence: sequence.value })
+                  });
+                if (await loadApplications()) {
+                  setStatus('applications-status', result.changed
+                    ? 'Nomor pendaftaran diubah dari ' + result.oldRegistrationNumber + ' menjadi ' +
+                      result.registrationNumber + '. Notifikasi WhatsApp dijadwalkan jika Gateway aktif.'
+                    : 'Nomor pendaftaran tidak berubah.', 'success');
+                } else {
+                  setStatus('applications-status', 'Nomor pendaftaran tersimpan, tetapi daftar gagal dimuat ulang.', 'error');
+                }
+              } catch (error) {
+                setStatus('applications-status', error.message || 'Nomor pendaftaran gagal diubah.', 'error');
+                save.disabled = false;
+              }
+            });
+            regNumber.hidden = true;
+            editNumberButton.hidden = true;
+            registrationNumber.appendChild(editor);
+            sequence.focus();
+          });
+          registrationNumber.appendChild(editNumberButton);
+        }
+        const registrationDate = document.createElement('td');
+        const registeredAt = new Date(applicant.created_at);
+        registrationDate.textContent = Number.isNaN(registeredAt.getTime())
+          ? '—'
+          : new Intl.DateTimeFormat('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'Asia/Jakarta'
+          }).format(registeredAt);
         const photoCell = document.createElement('td');
         const photo = (applicant.files || []).find(function (file) { return file.key === 'studentPhoto'; });
         if (photo) {
@@ -2950,7 +3041,7 @@
             actions.lastElementChild.classList.add('action-danger');
           }
         }
-        [selectionCell, registrationNumber, photoCell, applicantCell, wave, path, classCell,
+        [selectionCell, registrationNumber, registrationDate, photoCell, applicantCell, wave, path, classCell,
           makeCell(documentStatus), makeCell(selectionStatus), makeCell(reenrollmentStatus), makeCell(officialStatus), actions]
           .forEach(function (cell) { row.appendChild(cell); });
         applicationBody.appendChild(row);

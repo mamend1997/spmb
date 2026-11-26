@@ -8,6 +8,7 @@ const path = require('node:path');
 const yazl = require('yazl');
 const {
   findDuplicateRegistrationIdentifier,
+  generateSequentialRegistrationNumber,
   normalizeWhatsAppPhone
 } = require('./registration-identifiers');
 const { sanitizeContactPersons } = require('./contact-persons');
@@ -1389,25 +1390,7 @@ function getApplicantByRegistration(registrationNumber) {
 }
 
 function generateRegistrationNumber(year) {
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const characters = [];
-    for (let index = 0; index < 4; index += 1) {
-      characters.push(letters[crypto.randomInt(letters.length)]);
-      characters.push(String(crypto.randomInt(10)));
-    }
-    for (let index = characters.length - 1; index > 0; index -= 1) {
-      const swapIndex = crypto.randomInt(index + 1);
-      const character = characters[index];
-      characters[index] = characters[swapIndex];
-      characters[swapIndex] = character;
-    }
-    const registrationNumber = 'SPMB-' + year + '-' + characters.join('');
-    if (!database.prepare('SELECT 1 FROM applicants WHERE registration_number = ?').get(registrationNumber)) {
-      return registrationNumber;
-    }
-  }
-  throw new Error('Nomor pendaftaran gagal dibuat. Silakan coba kembali.');
+  return generateSequentialRegistrationNumber(database, year);
 }
 
 function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
@@ -2151,7 +2134,8 @@ function dispatchWhatsAppEvent(eventName, applicant, message, data) {
     console.warn('WhatsApp webhook dilewati karena gateway belum aktif:', eventName);
     return;
   }
-  if (eventName !== 'pin.recovery.otp' && !gateway.events.includes(eventName)) {
+  if (eventName !== 'pin.recovery.otp' && eventName !== 'registration.number_changed' &&
+      !gateway.events.includes(eventName)) {
     console.warn('WhatsApp webhook dilewati karena event tidak diaktifkan:', eventName);
     return;
   }
@@ -5259,6 +5243,91 @@ app.patch('/api/admin/applications/:registrationNumber/class', requireAdmin, req
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
   response.json({ status: 'success', classAssignment: className });
+});
+
+app.patch('/api/admin/applications/:registrationNumber/registration-number', requireAdmin,
+  requirePermission('applications', 'edit'), function (request, response) {
+  const oldRegistrationNumber = String(request.params.registrationNumber || '').toUpperCase();
+  const applicant = getApplicantByRegistration(oldRegistrationNumber);
+  if (!applicant || applicant.archived_at || applicant.deleted_at) {
+    return response.status(404).json({ message: 'Pendaftar aktif tidak ditemukan.' });
+  }
+  const sequence = String(request.body && request.body.sequence || '').trim();
+  if (!/^\d{6}$/.test(sequence)) {
+    return response.status(400).json({ message: 'Urutan nomor pendaftaran harus tepat 6 digit angka.' });
+  }
+  const yearMatch = oldRegistrationNumber.match(/^SPMB-(\d{4})-/);
+  if (!yearMatch) return response.status(400).json({ message: 'Format nomor pendaftaran lama tidak valid.' });
+  const newRegistrationNumber = 'SPMB-' + yearMatch[1] + '-' + sequence;
+  if (newRegistrationNumber === oldRegistrationNumber) {
+    return response.json({ status: 'success', changed: false, registrationNumber: newRegistrationNumber });
+  }
+
+  const oldDirectory = path.resolve(uploadDirectory, oldRegistrationNumber);
+  const newDirectory = path.resolve(uploadDirectory, newRegistrationNumber);
+  let directoryMoved = false;
+  try {
+    withTransaction(function () {
+      const duplicate = database.prepare('SELECT id FROM applicants WHERE registration_number = ?')
+        .get(newRegistrationNumber);
+      if (duplicate) {
+        const error = new Error('Nomor pendaftaran tersebut sudah digunakan pendaftar lain.');
+        error.status = 409;
+        throw error;
+      }
+      if (fs.existsSync(oldDirectory)) {
+        const oldDirectoryStats = fs.lstatSync(oldDirectory);
+        if (!oldDirectoryStats.isDirectory() || oldDirectoryStats.isSymbolicLink()) {
+          throw new Error('Folder berkas pendaftar tidak valid dan nomor tidak dapat diubah.');
+        }
+        if (fs.existsSync(newDirectory)) {
+          throw new Error('Folder berkas dengan nomor tujuan sudah tersedia.');
+        }
+        fs.renameSync(oldDirectory, newDirectory);
+        directoryMoved = true;
+      }
+      database.prepare('UPDATE applicants SET registration_number = ? WHERE id = ?')
+        .run(newRegistrationNumber, applicant.id);
+      database.prepare('DELETE FROM login_attempts WHERE registration_number = ?')
+        .run(oldRegistrationNumber);
+      queueSheetSync(applicant.id);
+    });
+  } catch (error) {
+    if (directoryMoved) {
+      try {
+        fs.renameSync(newDirectory, oldDirectory);
+      } catch (restoreError) {
+        console.error('Gagal mengembalikan folder berkas setelah perubahan nomor dibatalkan:',
+          oldRegistrationNumber, restoreError.message);
+        return response.status(500).json({
+          message: 'Perubahan nomor dibatalkan, tetapi folder berkas gagal dikembalikan. Hubungi administrator server.'
+        });
+      }
+    }
+    const status = error.status || (error.code === 'SQLITE_CONSTRAINT_UNIQUE' ? 409 : 500);
+    return response.status(status).json({ message: error.message || 'Nomor pendaftaran gagal diubah.' });
+  }
+
+  const updatedApplicant = getApplicantByRegistration(newRegistrationNumber);
+  setImmediate(syncQueuedApplications);
+  dispatchWhatsAppEvent('registration.number_changed', updatedApplicant, [
+    'Informasi SPMB SMK PGRI Cikoneng: nomor pendaftaran Anda telah diubah oleh panitia.',
+    'Nama: ' + updatedApplicant.student_name,
+    'Nomor lama: ' + oldRegistrationNumber,
+    'Nomor pendaftaran baru: ' + newRegistrationNumber,
+    'Gunakan nomor baru tersebut untuk masuk ke portal siswa. PIN Anda tetap sama.'
+  ].join('\n'), {
+    previousRegistrationNumber: oldRegistrationNumber,
+    registrationNumber: newRegistrationNumber,
+    studentName: updatedApplicant.student_name
+  });
+  response.json({
+    status: 'success',
+    changed: true,
+    oldRegistrationNumber: oldRegistrationNumber,
+    registrationNumber: newRegistrationNumber,
+    message: 'Nomor pendaftaran berhasil diubah.'
+  });
 });
 
 app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
