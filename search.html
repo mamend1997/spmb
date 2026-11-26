@@ -37,7 +37,11 @@
     .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
     .result-item { min-width: 0; padding: 12px 13px; border: 1px solid #e2e8f0; border-radius: 11px; background: white; }
     .result-item span { display: block; color: #64748b; font-size: 11px; }
-    .result-item strong { display: block; margin-top: 5px; color: #172033; font-size: 13px; line-height: 1.45; }
+    .result-item strong.status-badge { display: flex; width: 100%; min-height: 36px; box-sizing: border-box; align-items: center; margin-top: 8px; padding: 8px 10px; border-radius: 8px; color: white; font-size: 12px; line-height: 1.4; }
+    .status-badge.status-success { background: #15803d; }
+    .status-badge.status-warning { background: #facc15; color: #422006 !important; }
+    .status-badge.status-danger { background: #dc2626; }
+    .status-badge.status-progress { background: #2563eb; }
     .search-note { max-width: 620px; margin: 14px auto 0; color: #64748b; text-align: center; font-size: 12px; line-height: 1.7; }
     .search-note a { color: #c2410c; font-weight: 700; text-decoration: none; }
     .search-note a:hover { text-decoration: underline; }
@@ -113,6 +117,23 @@
       };
       let activeType = 'nisn';
 
+      function setStatusBadge(element, type, value) {
+        const status = String(value || '').trim().toLocaleLowerCase('id-ID');
+        let tone = 'progress';
+        if (type === 'documents') {
+          if (status === 'berkas terverifikasi') tone = 'success';
+          else if (status === 'perlu perbaikan') tone = 'danger';
+        } else if (status === 'tidak diterima' || status === 'ditolak' || status === 'belum diseleksi') {
+          tone = 'danger';
+        } else if (status === 'cadangan') {
+          tone = 'warning';
+        } else if (status === 'diterima' || status === 'diterima / lulus' || status === 'lulus' || status === 'lolos') {
+          tone = 'success';
+        }
+        element.textContent = value;
+        element.className = 'status-badge status-' + tone;
+      }
+
       document.querySelectorAll('[data-search-type]').forEach(function (tab) {
         tab.addEventListener('click', function () {
           activeType = tab.dataset.searchType;
@@ -172,8 +193,8 @@
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.message || 'Pencarian belum berhasil. Silakan coba kembali.');
-          document.getElementById('result-documents').textContent = data.documentStatus || 'Belum tersedia';
-          document.getElementById('result-selection').textContent = data.selectionStatus || 'Belum tersedia';
+          setStatusBadge(document.getElementById('result-documents'), 'documents', data.documentStatus || 'Belum tersedia');
+          setStatusBadge(document.getElementById('result-selection'), 'selection', data.selectionStatus || 'Belum tersedia');
           result.classList.remove('hidden');
           message.textContent = 'Data pendaftar ditemukan.';
           message.className = 'search-message is-success';

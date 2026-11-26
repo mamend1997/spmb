@@ -98,6 +98,11 @@ test('public applicant search uses a centered compact responsive layout', functi
   assert.match(searchHtml, /\.search-input \{ box-sizing: border-box; width: 100%/);
   assert.match(searchHtml, /\.search-help \{/);
   assert.match(searchHtml, /@media \(max-width: 560px\)[\s\S]*?\.result-grid \{ grid-template-columns: 1fr; \}/);
+  assert.match(searchHtml, /status === 'berkas terverifikasi'[\s\S]*?tone = 'success'/);
+  assert.match(searchHtml, /status === 'cadangan'[\s\S]*?tone = 'warning'/);
+  assert.match(searchHtml, /status === 'tidak diterima'[\s\S]*?tone = 'danger'/);
+  assert.match(searchHtml, /\.status-badge\.status-progress \{ background: #2563eb; \}/);
+  assert.match(searchHtml, /\.status-badge\.status-danger \{ background: #dc2626; \}/);
 });
 
 test('student can print biodata using the admin registration-summary layout', function () {
