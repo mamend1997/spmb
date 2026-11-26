@@ -786,7 +786,6 @@ function sanitizeConfig(input) {
     schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
     timelineEvents: sanitizeTimelineEvents(input.timelineEvents),
     contactLabel: String(input.contactLabel || '').trim(),
-    contactUrl: String(input.contactUrl || '').trim(),
     contactPersons: sanitizeContactPersons(input.contactPersons),
     registrationWaves: registrationWaves,
     registrationPaths: registrationPaths,
@@ -802,9 +801,6 @@ function sanitizeConfig(input) {
   }
   if (config.contactLabel.length < 2 || config.contactLabel.length > 60) {
     throw new Error('Nama Contact Person harus terdiri dari 2–60 karakter.');
-  }
-  if (!isAllowedPublicUrl(config.contactUrl)) {
-    throw new Error('Link Contact Person harus menggunakan URL HTTPS.');
   }
   ['formPdfUrl', 'scholarshipPdfUrl'].forEach(function (key) {
     if (!isAllowedPublicUrl(config[key]) || (!config[key].startsWith('/assets/') && !config[key].startsWith('/public-files/'))) {
@@ -1556,7 +1552,7 @@ function defaultRolePermissions() {
 }
 
 const adminConfigPermissionGroups = {
-  form: ['pageTitle', 'contactLabel', 'contactUrl', 'contactPersons', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  form: ['pageTitle', 'contactLabel', 'contactPersons', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
   academicYear: ['academicYear'],
   programs: ['programs'],
   classes: ['classes'],
