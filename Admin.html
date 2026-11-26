@@ -574,7 +574,7 @@
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
                 <span>Form Pendaftaran</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="contactPersons" data-permission-menu="form">
+              <button type="button" data-page-target="master-page" data-master-anchor="contactPersons" data-permission-menu="contactPersons">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-4.4A8.4 8.4 0 1 1 20 11.5Z"/><path d="M8 9c.7 2.5 2.5 4.3 5 5l1-1 2 1c-.2 1.2-1.2 2-2.4 2A8.5 8.5 0 0 1 7 9.4C7 8.2 7.8 7.2 9 7l1 2-1 1Z"/></svg>
                 <span>Contact Person WhatsApp</span>
               </button>
@@ -828,8 +828,10 @@
               <div id="brochure-slides-preview" class="brochure-slides-admin"></div>
               <p id="brochure-image-empty">Belum ada foto. Unggah foto untuk menampilkannya di beranda.</p>
             </div>
-            <div data-master-section="form"><label for="contact-label">Nama tombol Contact Person</label><input id="contact-label" maxlength="60" required></div>
-            <div id="contact-person-settings" class="wide master-group" data-master-section="form">
+            <h2 class="wide" data-master-section="contactPersons">Contact Person WhatsApp</h2>
+            <div id="contact-person-settings" class="wide master-group" data-master-section="contactPersons">
+              <label for="contact-label">Nama tombol Contact Person</label>
+              <input id="contact-label" maxlength="60" required>
               <div class="section-heading">
                 <div><h2>Daftar Kontak WhatsApp di Beranda</h2><p>Klik Tambah Contact Person, isi nama dan nomor WhatsApp (08... atau +62...), lalu klik Simpan Pengaturan.</p></div>
                 <button id="add-contact-person-button" class="secondary" type="button">Tambah Contact Person</button>
@@ -902,6 +904,18 @@
             <div class="wide master-group" data-master-section="documents">
               <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
               <div class="settings-grid">
+                <div class="wide">
+                  <label for="documents-banner-file">Banner halaman Dokumen (PNG/JPG · maksimal 5 MB)</label>
+                  <div class="file-setting">
+                    <input id="documents-banner-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+                    <button type="button" class="secondary upload-button" data-asset="documentsBanner">Unggah Banner</button>
+                  </div>
+                  <a id="documents-banner-current" href="#" target="_blank" rel="noopener noreferrer">Lihat banner saat ini</a>
+                  <div class="brochure-admin-preview">
+                    <p id="documents-banner-empty">Belum ada banner. Unggah gambar untuk menampilkannya di halaman Dokumen.</p>
+                    <img id="documents-banner-preview" alt="Pratinjau banner halaman Dokumen" hidden>
+                  </div>
+                </div>
                 <div class="wide">
                   <label for="registration-letterhead-mode">Mode kop biodata</label>
                   <select id="registration-letterhead-mode">
@@ -1709,7 +1723,7 @@
       if (pageId === 'backups-page' || pageId === 'file-manager-page') return 'ownerOnly';
       if (pageId === 'accounts-page') return 'accounts';
       if (pageId === 'whatsapp-page') return 'whatsapp';
-      if (pageId === 'master-page') return anchorId === 'contactPersons' ? 'form' : anchorId || 'form';
+      if (pageId === 'master-page') return anchorId || 'form';
       return '';
     }
 
@@ -1783,7 +1797,7 @@
       document.getElementById('export-excel-button').hidden =
         !canAdmin('applications', 'view') || !canAdmin('applications', 'edit');
       updateBulkActionPermissions();
-      const masterMenus = ['form', 'academicYear', 'programs', 'classes', 'whatsapp', 'waves', 'paths', 'timeline', 'googleIntegration', 'payment', 'documents'];
+      const masterMenus = ['form', 'contactPersons', 'academicYear', 'programs', 'classes', 'whatsapp', 'waves', 'paths', 'timeline', 'googleIntegration', 'payment', 'documents'];
       const masterNav = document.querySelector('[data-master-nav]');
       masterNav.hidden = !masterMenus.some(function (menu) { return canAdmin(menu, 'view'); });
       updateProfileUI();
@@ -1833,7 +1847,7 @@
           (!anchorId || button.dataset.masterAnchor === anchorId));
       });
       if (pageId === 'master-page') {
-        const sectionKey = anchorId === 'contactPersons' ? 'form' : anchorId || 'form';
+        const sectionKey = anchorId || 'form';
         document.querySelectorAll('[data-master-section]').forEach(function (section) {
           const isActiveSection = section.dataset.masterSection === sectionKey;
           section.hidden = !isActiveSection;
@@ -1843,15 +1857,17 @@
         const saveSettingsButton = document.getElementById('save-settings-button');
         saveSettingsButton.hidden = !mayEdit;
         saveSettingsButton.disabled = !mayEdit;
+        document.getElementById('settings-form').noValidate = sectionKey === 'contactPersons';
+        document.getElementById('contact-label').required = sectionKey === 'contactPersons';
+        document.querySelectorAll('#contact-person-settings [data-contact-person-name], #contact-person-settings [data-contact-person-phone]')
+          .forEach(function (control) { control.required = sectionKey === 'contactPersons'; });
         const activeSections = Array.from(document.querySelectorAll('[data-master-section="' + sectionKey + '"]'));
         activeSections.forEach(animateAdminElement);
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'true');
         document.getElementById('master-submenu').hidden = false;
         document.getElementById('master-nav-toggle').classList.add('active');
         if (sectionKey) setTimeout(function () {
-          const section = anchorId === 'contactPersons'
-            ? document.getElementById('contact-person-settings')
-            : document.querySelector('[data-master-section="' + sectionKey + '"]');
+          const section = document.querySelector('[data-master-section="' + sectionKey + '"]');
           if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 0);
       } else if (pageId === 'whatsapp-page') {
@@ -3006,7 +3022,7 @@
         remove.className = 'secondary field-delete';
         remove.textContent = 'Hapus';
         remove.dataset.permissionAction = 'delete';
-        remove.hidden = !canAdmin('form', 'delete');
+        remove.hidden = !canAdmin('contactPersons', 'delete');
         remove.disabled = remove.hidden;
         remove.addEventListener('click', function () {
           const currentContacts = getContactPersonRows();
@@ -3096,6 +3112,11 @@
       setCurrentFile('payment-qr-current', payment.qrisImageUrl);
       setCurrentFile('form-pdf-current', config.formPdfUrl);
       setCurrentFile('scholarship-pdf-current', config.scholarshipPdfUrl);
+      setCurrentFile('documents-banner-current', config.documentsBannerUrl);
+      const documentsBannerPreview = document.getElementById('documents-banner-preview');
+      documentsBannerPreview.hidden = !config.documentsBannerUrl;
+      documentsBannerPreview.src = config.documentsBannerUrl || '';
+      document.getElementById('documents-banner-empty').hidden = Boolean(config.documentsBannerUrl);
       setCurrentFile('registration-letterhead-current', config.registrationLetterheadUrl);
       setCurrentFile('registration-letterhead-logo-current', config.registrationLetterheadLogoUrl);
       document.getElementById('registration-letterhead-mode').value =
@@ -5944,6 +5965,7 @@
             brochureImageUrls: siteConfig.brochureImageUrls || [],
             formPdfUrl: siteConfig.formPdfUrl,
             scholarshipPdfUrl: siteConfig.scholarshipPdfUrl,
+            documentsBannerUrl: siteConfig.documentsBannerUrl || '',
             registrationLetterheadUrl: siteConfig.registrationLetterheadUrl || '',
             registrationLetterheadMode: document.getElementById('registration-letterhead-mode').value,
             registrationLetterheadLogoUrl: siteConfig.registrationLetterheadLogoUrl || '',
@@ -6092,11 +6114,12 @@
           : assetType === 'paymentQr' ? 'payment-qr-file'
             : assetType === 'registrationLetterhead' ? 'registration-letterhead-file'
               : assetType === 'registrationLetterheadLogo' ? 'registration-letterhead-logo-file'
+                : assetType === 'documentsBanner' ? 'documents-banner-file'
             : ['brochureImage', 'brochureSlide'].includes(assetType) ? 'brochure-image-file' : 'scholarship-pdf');
         const slideshowUpload = assetType === 'brochureSlide';
         const files = Array.from(input.files || []);
-        const imageUpload = ['paymentQr', 'brochureImage', 'brochureSlide', 'registrationLetterhead', 'registrationLetterheadLogo'].includes(assetType);
-        const maxImageBytes = ['brochureImage', 'brochureSlide', 'registrationLetterhead', 'registrationLetterheadLogo'].includes(assetType) ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+        const imageUpload = ['paymentQr', 'brochureImage', 'brochureSlide', 'registrationLetterhead', 'registrationLetterheadLogo', 'documentsBanner'].includes(assetType);
+        const maxImageBytes = ['brochureImage', 'brochureSlide', 'registrationLetterhead', 'registrationLetterheadLogo', 'documentsBanner'].includes(assetType) ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
         if (!files.length) return setStatus('settings-status', imageUpload ? 'Pilih gambar terlebih dahulu.' : 'Pilih PDF terlebih dahulu.', 'error');
         if (slideshowUpload && (siteConfig.brochureImageUrls || []).length + files.length > 6) {
           return setStatus('settings-status', 'Beranda dapat menampilkan maksimal 6 foto.', 'error');
@@ -6125,6 +6148,7 @@
           input.value = '';
           showConfig(latestConfig);
           const label = assetType === 'paymentQr' ? 'Gambar QRIS' :
+            assetType === 'documentsBanner' ? 'Banner halaman Dokumen' :
             assetType === 'registrationLetterhead' ? 'Gambar kop sekolah' :
             assetType === 'registrationLetterheadLogo' ? 'Logo kop sekolah' :
             ['brochureImage', 'brochureSlide'].includes(assetType) ? 'Foto beranda' : 'PDF';

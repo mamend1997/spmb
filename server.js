@@ -131,6 +131,7 @@ const initialConfig = {
     { key: 'offlineForm', title: 'Formulir Offline SPMB', description: 'Unduh formulir pendaftaran untuk diisi secara manual.', url: '/assets/spmb-formulir-offline.pdf', order: 1 },
     { key: 'scholarshipInfo', title: 'Informasi Beasiswa', description: 'Informasi program beasiswa bagi calon peserta didik.', url: '/assets/informasi-beasiswa.pdf', order: 2 }
   ],
+  documentsBannerUrl: '',
   contactLabel: 'Contact Person SPMB',
   contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
   contactPersons: [],
@@ -873,6 +874,7 @@ function sanitizeConfig(input) {
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
     schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
+    documentsBannerUrl: String(input.documentsBannerUrl || '').trim(),
     timelineEvents: sanitizeTimelineEvents(input.timelineEvents),
     faqs: sanitizeFaqs(input.faqs),
     schoolLocation: sanitizeSchoolLocation(input.schoolLocation),
@@ -1845,6 +1847,7 @@ const adminPermissionMenus = [
   { key: 'trash', label: 'Kotak Sampah' },
   { key: 'activityLog', label: 'Log Aktivitas' },
   { key: 'form', label: 'Form Pendaftaran' },
+  { key: 'contactPersons', label: 'Contact Person WhatsApp' },
   { key: 'academicYear', label: 'Tahun Pelajaran' },
   { key: 'programs', label: 'Program Studi' },
   { key: 'classes', label: 'Kelas' },
@@ -1883,7 +1886,8 @@ function defaultRolePermissions() {
 }
 
 const adminConfigPermissionGroups = {
-  form: ['pageTitle', 'contactLabel', 'contactPersons', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  form: ['pageTitle', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  contactPersons: ['contactLabel', 'contactPersons'],
   academicYear: ['academicYear'],
   programs: ['programs', 'programDetails'],
   classes: ['classes'],
@@ -1894,7 +1898,7 @@ const adminConfigPermissionGroups = {
   googleIntegration: ['googleIntegration'],
   payment: ['paymentSettings'],
   documents: [
-    'schoolDocuments', 'registrationLetterheadUrl', 'registrationLetterheadMode',
+    'schoolDocuments', 'documentsBannerUrl', 'registrationLetterheadUrl', 'registrationLetterheadMode',
     'registrationLetterheadLogoUrl', 'registrationLetterheadLines', 'registrationPrintTitleLines'
   ]
 };
@@ -1912,7 +1916,9 @@ function sanitizeRolePermissions(input) {
     const permissions = {};
     adminPermissionMenus.forEach(function (menu) {
       let actions = roleInput[menu.key];
-      if (!actions && ['academicYear', 'programs', 'classes'].includes(menu.key)) actions = roleInput.form;
+      if (!actions && ['academicYear', 'programs', 'classes', 'contactPersons'].includes(menu.key)) {
+        actions = roleInput.form;
+      }
       if (!actions) actions = { view: false, edit: false, delete: false };
       if (!actions || typeof actions !== 'object' || Array.isArray(actions) ||
           ['view', 'edit', 'delete'].some(function (action) { return typeof actions[action] !== 'boolean'; })) {
@@ -4611,7 +4617,8 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
       throw new Error('Gunakan Mulai Tahun Pelajaran Baru agar pendaftar tahun sebelumnya diarsipkan.');
     }
     const deletions = {
-      form: [['formFields', 'key'], ['documentRequirements', 'key'], ['contactPersons', 'phone']],
+      form: [['formFields', 'key'], ['documentRequirements', 'key']],
+      contactPersons: [['contactPersons', 'phone']],
       programs: [['programDetails', 'name']],
       waves: [['registrationWaves', 'name']],
       paths: [['registrationPaths', 'name']],
@@ -4772,6 +4779,7 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
     paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024, permission: 'payment' },
     brochureImage: { key: 'brochureImageUrl', replaceArrayKey: 'brochureImageUrls', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb', permission: 'timeline' },
     brochureSlide: { arrayKey: 'brochureImageUrls', maxItems: 6, image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'spmb-slide', permission: 'timeline' },
+    documentsBanner: { key: 'documentsBannerUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'banner-dokumen', permission: 'documents' },
     registrationLetterhead: { key: 'registrationLetterheadUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'kop-pendaftaran', permission: 'documents' },
     registrationLetterheadLogo: { key: 'registrationLetterheadLogoUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'logo-kop-pendaftaran', permission: 'documents' }
   };
@@ -6566,7 +6574,7 @@ app.get('/admin/:section', function (request, response) {
   response.sendFile(path.join(__dirname, 'Admin.html'));
 });
 app.get('/admin/master-data/:section', function (request, response) {
-  if (!['form-pendaftaran', 'gelombang-pendaftaran', 'jalur-pendaftaran',
+  if (!['form-pendaftaran', 'contact-person-whatsapp', 'gelombang-pendaftaran', 'jalur-pendaftaran',
     'timeline-beranda', 'google-drive-sheets', 'metode-pembayaran', 'dokumen-sekolah', 'tahun-pelajaran',
     'program-studi', 'kelas', 'wa-gateway'].includes(request.params.section)) {
     return response.status(404).end();

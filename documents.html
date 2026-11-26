@@ -15,6 +15,8 @@
     .documents-main { width: min(100% - 32px, 1120px); margin: 0 auto; padding: 48px 0 64px; }
     .documents-heading { margin-bottom: 24px; }
     .documents-heading p { max-width: 650px; margin: 10px 0 0; color: #64748b; font-size: 14px; line-height: 1.7; }
+    .documents-banner { margin-bottom: 24px; overflow: hidden; border: 1px solid #e4e9f0; border-radius: 20px; background: #f1f5f9; box-shadow: 0 10px 32px #16243a0a; }
+    .documents-banner img { display: block; width: 100%; max-height: 320px; aspect-ratio: 3 / 1; object-fit: cover; }
     .document-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 16px; }
     .document-card { display: flex; min-height: 190px; flex-direction: column; padding: 22px; border: 1px solid #e4e9f0; border-top: 3px solid #f97316; border-radius: 18px; background: white; box-shadow: 0 10px 32px #16243a0a; }
     .document-card h2 { margin: 0; color: #172554; font-size: 17px; }
@@ -26,7 +28,10 @@
     .document-card .document-action-download:hover { border-color: #c2410c; background: #ea580c; }
     .document-card svg { width: 16px; height: 16px; }
     .document-status { padding: 22px; border: 1px dashed #cbd5e1; border-radius: 16px; color: #64748b; background: white; }
-    @media (max-width: 640px) { .documents-main { padding-top: 30px; } }
+    @media (max-width: 640px) {
+      .documents-main { padding-top: 30px; }
+      .documents-banner img { max-height: 220px; aspect-ratio: 16 / 9; }
+    }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
   </style>
 </head>
@@ -51,6 +56,9 @@
       <h1>Dokumen Sekolah</h1>
       <p>Unduh formulir, informasi beasiswa, dan dokumen resmi lain yang disediakan oleh SMK PGRI Cikoneng.</p>
     </div>
+    <div id="documents-banner" class="documents-banner" hidden>
+      <img id="documents-banner-image" alt="Banner dokumen sekolah">
+    </div>
     <div id="document-status" class="document-status" role="status">Memuat daftar dokumen...</div>
     <div id="document-list" class="document-grid" aria-live="polite"></div>
   </main>
@@ -62,6 +70,16 @@
         const response = await fetch('/api/public-config', { headers: { Accept: 'application/json' } });
         const config = await response.json();
         if (!response.ok) throw new Error(config.message || 'Daftar dokumen tidak dapat dimuat.');
+        const bannerUrl = typeof config.documentsBannerUrl === 'string' ? config.documentsBannerUrl.trim() : '';
+        const banner = document.getElementById('documents-banner');
+        const bannerImage = document.getElementById('documents-banner-image');
+        if (bannerUrl) {
+          bannerImage.src = bannerUrl;
+          banner.hidden = false;
+        } else {
+          bannerImage.removeAttribute('src');
+          banner.hidden = true;
+        }
         const documents = Array.isArray(config.schoolDocuments) ? config.schoolDocuments : [];
         list.replaceChildren();
         if (!documents.length) {

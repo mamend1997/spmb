@@ -212,29 +212,6 @@
       </div>
     </section>
 
-    <section class="document-preview-section no-print" aria-labelledby="document-preview-title">
-      <header class="document-preview-heading">
-        <h2 id="document-preview-title">Pratinjau Dokumen</h2>
-        <p>Lihat isi formulir pendaftaran dan informasi beasiswa langsung di halaman ini.</p>
-      </header>
-      <div class="document-preview-grid">
-        <article class="document-preview-card">
-          <div class="document-preview-card-heading">
-            <h3>Formulir Offline</h3>
-            <a id="form-pdf-preview-link" href="/assets/spmb-formulir-offline.pdf" target="_blank" rel="noopener noreferrer">Buka PDF</a>
-          </div>
-          <iframe id="form-pdf-preview" src="/assets/spmb-formulir-offline.pdf" title="Pratinjau Formulir Offline SPMB" loading="lazy"></iframe>
-        </article>
-        <article class="document-preview-card">
-          <div class="document-preview-card-heading">
-            <h3>Informasi Beasiswa</h3>
-            <a id="scholarship-pdf-preview-link" href="/assets/informasi-beasiswa.pdf" target="_blank" rel="noopener noreferrer">Buka PDF</a>
-          </div>
-          <iframe id="scholarship-pdf-preview" src="/assets/informasi-beasiswa.pdf" title="Pratinjau Informasi Beasiswa" loading="lazy"></iframe>
-        </article>
-      </div>
-    </section>
-
     <section class="about-section no-print" aria-labelledby="about-title">
       <header class="about-heading">
         <h2 id="about-title">Tentang SPMB</h2>
@@ -1273,10 +1250,6 @@
       document.getElementById('academic-year-footer').textContent = 'SPMB Online · Tahun Ajaran ' + siteConfig.academicYear;
       document.getElementById('form-pdf-link').href = siteConfig.formPdfUrl;
       document.getElementById('scholarship-pdf-link').href = siteConfig.scholarshipPdfUrl;
-      document.getElementById('form-pdf-preview-link').href = siteConfig.formPdfUrl;
-      document.getElementById('form-pdf-preview').src = siteConfig.formPdfUrl;
-      document.getElementById('scholarship-pdf-preview-link').href = siteConfig.scholarshipPdfUrl;
-      document.getElementById('scholarship-pdf-preview').src = siteConfig.scholarshipPdfUrl;
       const brochureUrls = Array.isArray(siteConfig.brochureImageUrls)
         ? siteConfig.brochureImageUrls
         : (siteConfig.brochureImageUrl ? [siteConfig.brochureImageUrl] : []);
