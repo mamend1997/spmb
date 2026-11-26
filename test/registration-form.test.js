@@ -4,6 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const formHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
 test('all four registration steps expose clickable navigation buttons', function () {
   const targets = Array.from(formHtml.matchAll(
@@ -25,6 +26,11 @@ test('successful registration offers a printable biodata with configured fields 
   assert.match(formHtml, /id="biodata-groups"/);
   assert.match(formHtml, /id="biodata-print-location-date"/);
   assert.match(formHtml, /id="biodata-signature-name"/);
+  assert.match(formHtml, /id="biodata-documents-section"/);
+  assert.match(formHtml, /id="biodata-document-rows"/);
+  assert.match(formHtml, /documentData\.hasFile \? 'Ada' : 'Tidak Ada'/);
   assert.match(formHtml, /renderRegistrationBiodata\(result\.registrationData\)/);
   assert.match(formHtml, /printRegistrationDocument\('biodata'/);
+  assert.match(serverJs, /function makeRegistrationData\(applicant, config\)[\s\S]*?documents: documents/);
+  assert.match(serverJs, /hasFile: uploadedDocuments\.has\(document\.key\)/);
 });

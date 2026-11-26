@@ -2741,10 +2741,23 @@ function makeRegistrationData(applicant, config) {
     const value = field.custom ? customData[field.key] : applicant[columnName];
     fields[field.key] = value == null ? '' : String(value);
   });
+  const uploadedDocuments = new Set(database.prepare(
+    'SELECT field_key FROM uploaded_files WHERE applicant_id = ?'
+  ).all(applicant.id).map(function (file) { return file.field_key; }));
+  const documents = (config.documentRequirements || []).filter(function (document) {
+    return document.active && (!document.wave || document.wave === applicant.wave) &&
+      (!document.registrationPath || document.registrationPath === applicant.registration_path);
+  }).slice().sort(function (a, b) { return Number(a.order) - Number(b.order); }).map(function (document) {
+    return {
+      name: document.name,
+      hasFile: uploadedDocuments.has(document.key)
+    };
+  });
   return {
     registrationNumber: applicant.registration_number,
     registrationDate: applicant.created_at,
-    fields: fields
+    fields: fields,
+    documents: documents
   };
 }
 

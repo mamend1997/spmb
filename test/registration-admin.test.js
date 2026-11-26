@@ -43,6 +43,8 @@ test('admin print packet contains one card page followed by the biodata summary 
   assert.match(adminHtml, /id="print-applicant-summary"/);
   assert.match(adminHtml, /id="print-summary-letterhead-image"/);
   assert.match(adminHtml, /id="print-summary-groups"/);
+  assert.match(adminHtml, /id="print-summary-documents-section"/);
+  assert.match(adminHtml, /uploadedDocumentKeys\.has\(documentConfig\.key\) \? 'Ada' : 'Tidak Ada'/);
   assert.match(adminHtml, /id="print-summary-signature-name"/);
   assert.match(adminHtml, /break-after: page; page-break-after: always/);
   assert.match(adminHtml, /position: static !important; inset: auto !important/);
