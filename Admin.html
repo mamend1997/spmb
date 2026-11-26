@@ -328,9 +328,8 @@
     #print-applicant-summary .print-summary-documents-table th,
     #print-applicant-summary .print-summary-documents-table td { border: 1px solid #94a3b8; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     #print-applicant-summary .print-summary-documents-table th { background: #f8fafc; }
-    #print-applicant-summary .print-summary-documents-table td:first-child { width: 72%; }
-    #print-applicant-summary .print-summary-documents-table th:last-child,
-    #print-applicant-summary .print-summary-documents-table td:last-child { width: 28%; }
+    #print-applicant-summary .print-summary-documents-table col:first-child { width: 60%; }
+    #print-applicant-summary .print-summary-documents-table col:last-child { width: 40%; }
     #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: auto; page-break-inside: auto; }
     #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
     #print-applicant-summary .print-summary-section h3 { width: 92%; margin: 0 auto 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 16pt; }
@@ -1446,6 +1445,7 @@
       <section id="print-summary-documents-section" class="print-summary-section" hidden>
         <h3>BERKAS PENDAFTARAN</h3>
         <table class="print-summary-table print-summary-documents-table">
+          <colgroup><col><col></colgroup>
           <thead><tr><th>Nama Berkas</th><th>Keterangan</th></tr></thead>
           <tbody id="print-summary-document-rows"></tbody>
         </table>

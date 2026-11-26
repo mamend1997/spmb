@@ -59,6 +59,7 @@ test('admin print packet contains one card page followed by the biodata summary 
   assert.match(adminHtml, /id="print-summary-letterhead-image"/);
   assert.match(adminHtml, /id="print-summary-groups"/);
   assert.match(adminHtml, /id="print-summary-documents-section"/);
+  assert.match(adminHtml, /class="print-summary-table print-summary-documents-table">\s*<colgroup><col><col><\/colgroup>/);
   assert.match(adminHtml, /uploadedDocumentKeys\.has\(documentConfig\.key\) \? 'Ada' : 'Tidak Ada'/);
   assert.match(adminHtml, /id="print-summary-signature-name"/);
   assert.match(adminHtml, /break-after: page; page-break-after: always/);
@@ -109,6 +110,9 @@ test('student and admin biodata print use readable multi-page A4 layout', functi
   assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 16pt/);
   assert.match(indexHtml, /biodata-meta-item \{[^}]*border: 1px solid/);
   assert.match(adminHtml, /print-summary-meta-item \{[^}]*border: 1px solid/);
+  assert.match(indexHtml, /biodata-documents-table col:last-child \{ width: 40%; \}/);
+  assert.match(adminHtml, /print-summary-documents-table col:last-child \{ width: 40%; \}/);
+  assert.match(indexHtml, /class="biodata-documents-table">\s*<colgroup><col><col><\/colgroup>/);
   assert.match(indexHtml, /biodata-table \{ width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed/);
   assert.match(adminHtml, /print-summary-table \{ width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed/);
   assert.match(indexHtml, /biodata-signature-location-date \{ display: block; min-width: 90mm; white-space: nowrap; \}/);

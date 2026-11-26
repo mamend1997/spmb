@@ -91,8 +91,8 @@
       #print-biodata .biodata-documents-table { width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed; border-collapse: collapse; font-size: 16pt; line-height: 1.4; }
       #print-biodata .biodata-documents-table th, #print-biodata .biodata-documents-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
       #print-biodata .biodata-documents-table th { background: #f8fafc; }
-      #print-biodata .biodata-documents-table th:first-child, #print-biodata .biodata-documents-table td:first-child { width: 72%; }
-      #print-biodata .biodata-documents-table th:last-child, #print-biodata .biodata-documents-table td:last-child { width: 28%; }
+      #print-biodata .biodata-documents-table col:first-child { width: 60%; }
+      #print-biodata .biodata-documents-table col:last-child { width: 40%; }
     @media print {
         @page { size: A4 portrait; margin: 15mm; }
       body { background: white !important; }
@@ -688,6 +688,7 @@
           <section id="biodata-documents-section" class="biodata-section" hidden>
             <h3>BERKAS PENDAFTARAN</h3>
             <table class="biodata-documents-table">
+              <colgroup><col><col></colgroup>
               <thead><tr><th>Nama Berkas</th><th>Keterangan</th></tr></thead>
               <tbody id="biodata-document-rows"></tbody>
             </table>
