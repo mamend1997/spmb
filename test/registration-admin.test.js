@@ -69,6 +69,15 @@ test('admin can mark documents physically received when adding an applicant with
   assert.match(serverJs, /options && options\.allowMissingDocuments === true\s*\? sanitizeApplicablePhysicalDocumentKeys/);
 });
 
+test('physically received documents are included in review and verification status', function () {
+  assert.match(adminHtml, /const physicalDocumentKeys = new Set\(applicant\.physical_document_keys \|\| \[\]\)/);
+  assert.match(adminHtml, /physicalDocumentKeys\.forEach\(function \(key\) \{ uploadedDocumentKeys\.add\(key\); \}\)/);
+  assert.match(adminHtml, /reviewingApplicant\.physical_document_keys \|\| \[\]\)\.forEach\(function \(key\) \{ applicantFiles\.add\(key\); \}\)/);
+  assert.match(serverJs, /const physicalDocuments = new Set\(JSON\.parse\(applicant\.physical_documents_json \|\| '\[\]'\)\)/);
+  assert.match(serverJs, /physicalDocuments\.has\(document\.key\)/);
+  assert.match(serverJs, /physicallyReceivedDocuments\.has\(itemKey\)/);
+});
+
 test('applicant registration date includes local registration time', function () {
   assert.match(adminHtml, /new Intl\.DateTimeFormat\('id-ID', \{[\s\S]*hour: '2-digit',[\s\S]*minute: '2-digit',[\s\S]*timeZone: 'Asia\/Jakarta'/);
 });

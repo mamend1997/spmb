@@ -4055,9 +4055,12 @@
         return item.active !== false && (!item.wave || item.wave === applicant.wave) &&
           (!item.registrationPath || item.registrationPath === applicant.registration_path);
       });
+      const physicalDocumentKeys = new Set(applicant.physical_document_keys || []);
       documentConfigs.forEach(function (config) {
         const file = (applicant.files || []).find(function (item) { return item.key === config.key; });
-        if (!config.required && !file) return;
+        const physicallyReceived = physicalDocumentKeys.has(config.key);
+        const documentAvailable = Boolean(file || physicallyReceived);
+        if (!config.required && !documentAvailable) return;
         const review = reviews[config.key] || null;
         const revisionRequested = Boolean(review && review.status === 'revision');
         const card = document.createElement('article');
@@ -4068,10 +4071,10 @@
         title.textContent = config.name;
         head.appendChild(title);
         const documentStatus = revisionRequested ? 'Perlu Perbaikan / Ditolak'
-          : file ? review && review.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'
+          : documentAvailable ? review && review.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'
             : 'Belum Diunggah';
         const documentTone = revisionRequested ? 'revision'
-          : file ? review && review.status === 'verified' ? 'verified' : 'pending'
+          : documentAvailable ? review && review.status === 'verified' ? 'verified' : 'pending'
             : 'revision';
         head.appendChild(makeStatusBadge(documentStatus, documentTone));
         const fileRow = document.createElement('div');
@@ -4092,6 +4095,8 @@
                 : 'Menunggu sinkronisasi ke Google Drive'
               : 'Google Drive belum dikonfigurasi';
           fileRow.append(link, driveStatus);
+        } else if (physicallyReceived) {
+          fileRow.textContent = 'Berkas sudah diterima secara fisik.';
         } else {
           fileRow.textContent = config.required ? 'Berkas wajib belum diunggah.' : 'Belum ada berkas.';
         }
@@ -4108,22 +4113,23 @@
             const actions = document.createElement('div');
             actions.className = 'detail-document-actions';
             const verifyButton = createDetailReviewButton(
-              !file ? 'Unggah berkas dahulu'
+              !documentAvailable ? 'Unggah berkas dahulu'
+                : !file ? '✓ Verifikasi Dokumen Fisik'
                 : review && review.status === 'verified' ? '✓ Data telah diverifikasi valid' : '✓ Terima Dokumen',
               config.key, 'document', 'verified', 'detail-verified'
             );
-            verifyButton.disabled = !file || Boolean(review && review.status === 'verified');
+            verifyButton.disabled = !documentAvailable || Boolean(review && review.status === 'verified');
             const revisionButton = createDetailReviewButton(
               '✕ Tolak / Minta Revisi', config.key, 'document', 'revision', 'detail-revision'
             );
-            revisionButton.hidden = Boolean(file && review && review.status === 'verified');
+            revisionButton.hidden = Boolean(documentAvailable && review && review.status === 'verified');
             const cancelVerificationButton = document.createElement('button');
             cancelVerificationButton.className = 'secondary';
             cancelVerificationButton.type = 'button';
             cancelVerificationButton.textContent = 'Batalkan Verifikasi';
-            cancelVerificationButton.hidden = !(file && review && review.status === 'verified');
+            cancelVerificationButton.hidden = !(documentAvailable && review && review.status === 'verified');
             cancelVerificationButton.addEventListener('click', function () {
-              openDocumentVerificationResetConfirmation(file);
+              openDocumentVerificationResetConfirmation(file || { key: config.key, label: config.name });
             });
             actions.append(revisionButton, verifyButton, cancelVerificationButton);
             card.appendChild(actions);
@@ -4141,6 +4147,7 @@
         return field.required || applicantValue(applicant, field);
       });
       const uploadedDocumentKeys = new Set((applicant.files || []).map(function (file) { return file.key; }));
+      physicalDocumentKeys.forEach(function (key) { uploadedDocumentKeys.add(key); });
       const reviewableDocuments = documentConfigs.filter(function (item) {
         return item.required || uploadedDocumentKeys.has(item.key);
       });
@@ -4318,6 +4325,7 @@
 
     function getReviewableDocuments() {
       const applicantFiles = new Set((reviewingApplicant.files || []).map(function (file) { return file.key; }));
+      (reviewingApplicant.physical_document_keys || []).forEach(function (key) { applicantFiles.add(key); });
       return (adminReviewConfig && adminReviewConfig.documentRequirements || []).filter(function (item) {
         return item.active !== false && (!item.wave || item.wave === reviewingApplicant.wave) &&
           (!item.registrationPath || item.registrationPath === reviewingApplicant.registration_path) &&
@@ -4339,6 +4347,7 @@
       const items = fields.map(function (field) { return { key: field.key, type: 'field' }; });
       if (scope === 'all') {
         const files = new Set((reviewingApplicant.files || []).map(function (file) { return file.key; }));
+        (reviewingApplicant.physical_document_keys || []).forEach(function (key) { files.add(key); });
         const documents = getReviewableDocuments();
         const missingDocuments = documents.filter(function (item) { return item.required && !files.has(item.key); });
         if (missingDocuments.length) {

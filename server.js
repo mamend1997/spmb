@@ -5529,12 +5529,15 @@ app.post('/api/admin/applications/bulk/verify', requireAdmin, requirePermission(
     });
     const uploaded = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
       .all(applicant.id).map(function (file) { return file.field_key; }));
+    const physicalDocuments = new Set(JSON.parse(applicant.physical_documents_json || '[]'));
     const documents = config.documentRequirements.filter(function (document) {
-      return document.active && (document.required || uploaded.has(document.key)) &&
+      return document.active && (document.required || uploaded.has(document.key) || physicalDocuments.has(document.key)) &&
         (!document.wave || document.wave === applicant.wave) &&
         (!document.registrationPath || document.registrationPath === applicant.registration_path);
     });
-    const missingDocuments = documents.filter(function (document) { return document.required && !uploaded.has(document.key); });
+    const missingDocuments = documents.filter(function (document) {
+      return document.required && !uploaded.has(document.key) && !physicalDocuments.has(document.key);
+    });
     if (missingFields.length || missingDocuments.length) {
       const missing = missingFields.map(function (field) { return field.label; })
         .concat(missingDocuments.map(function (document) { return document.name; }));
@@ -6122,8 +6125,10 @@ app.patch('/api/admin/applications/:registrationNumber/reviews', requireAdmin, r
       return response.status(400).json({ message: 'Data wajib "' + item.label + '" belum diisi dan tidak dapat diverifikasi.' });
     }
   }
+  const physicallyReceivedDocuments = new Set(JSON.parse(applicant.physical_documents_json || '[]'));
   if (status === 'verified' && itemType === 'document' &&
-      !database.prepare('SELECT 1 FROM uploaded_files WHERE applicant_id = ? AND field_key = ?').get(applicant.id, itemKey)) {
+      !database.prepare('SELECT 1 FROM uploaded_files WHERE applicant_id = ? AND field_key = ?').get(applicant.id, itemKey) &&
+      !physicallyReceivedDocuments.has(itemKey)) {
     return response.status(400).json({ message: 'Dokumen belum diunggah dan tidak dapat diverifikasi.' });
   }
   const reviews = JSON.parse(applicant.field_reviews_json || '{}');
