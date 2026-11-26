@@ -109,6 +109,7 @@ const initialConfig = {
   },
   brochureImageUrl: '',
   brochureImageUrls: [],
+  registrationLetterheadUrl: '',
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
   schoolDocuments: [
@@ -833,6 +834,7 @@ function sanitizeConfig(input) {
     googleIntegration: sanitizeGoogleIntegrationConfig(input.googleIntegration),
     brochureImageUrl: brochureImageUrls[0] || '',
     brochureImageUrls: brochureImageUrls,
+    registrationLetterheadUrl: String(input.registrationLetterheadUrl || '').trim(),
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
     schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
@@ -862,6 +864,11 @@ function sanitizeConfig(input) {
       throw new Error('Link PDF harus menggunakan HTTPS atau file publik situs.');
     }
   });
+  if (config.registrationLetterheadUrl &&
+      (!isAllowedPublicUrl(config.registrationLetterheadUrl) ||
+       !/^\/public-files\/[a-zA-Z0-9_-]+\.(?:png|jpe?g)$/i.test(config.registrationLetterheadUrl))) {
+    throw new Error('Kop formulir harus menggunakan gambar PNG/JPG yang diunggah ke situs.');
+  }
   return config;
 }
 
@@ -1764,7 +1771,7 @@ const adminConfigPermissionGroups = {
   timeline: ['brochureImageUrl', 'brochureImageUrls', 'timelineEvents', 'faqs', 'schoolLocation'],
   googleIntegration: ['googleIntegration'],
   payment: ['paymentSettings'],
-  documents: ['schoolDocuments']
+  documents: ['schoolDocuments', 'registrationLetterheadUrl']
 };
 
 function sanitizeRolePermissions(input) {
@@ -2507,7 +2514,7 @@ function decodeUpload(upload, key, definition) {
   return { bytes: bytes, type: type, originalName: path.basename(String(upload.name || 'berkas')).slice(0, 120) };
 }
 
-function createApplicantUploads(applicantId, registrationNumber, uploads, now, config, applicantValues) {
+function createApplicantUploads(applicantId, registrationNumber, uploads, now, config, applicantValues, allowMissingRequired) {
   if (!uploads || typeof uploads !== 'object' || Array.isArray(uploads)) {
     throw new Error('Format unggahan tidak valid.');
   }
@@ -2520,7 +2527,9 @@ function createApplicantUploads(applicantId, registrationNumber, uploads, now, c
     if (!activeDocuments.some(function (document) { return document.key === key; })) throw new Error('Jenis berkas tidak dikenali.');
   });
   activeDocuments.forEach(function (document) {
-    if (document.required && !uploads[document.key]) throw new Error('Berkas ' + document.name + ' wajib diunggah.');
+    if (!allowMissingRequired && document.required && !uploads[document.key]) {
+      throw new Error('Berkas ' + document.name + ' wajib diunggah.');
+    }
   });
   const savedFiles = [];
   if (!Object.keys(uploads).length) return savedFiles;
@@ -2614,11 +2623,12 @@ app.get('/api/public-config', function (request, response) {
   response.json(config);
 });
 
-app.post('/api/registrations', function (request, response) {
+function createApplicantRegistration(input, options) {
   let applicantDirectory = '';
   try {
-    const payload = validateRegistration(request.body);
-    const uploads = buildRegistrationPayload(request.body, request.body.uploads);
+    const body = input || {};
+    const payload = validateRegistration(body);
+    const uploads = buildRegistrationPayload(body, body.uploads);
     const pin = String(crypto.randomInt(100000, 1000000));
     const salt = crypto.randomBytes(16).toString('hex');
     const now = new Date().toISOString();
@@ -2670,16 +2680,88 @@ app.post('/api/registrations', function (request, response) {
         }
       }
       getReenrollmentPricing(database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicantId), currentConfig);
-      createApplicantUploads(applicantId, registrationNumber, uploads.uploads, now, getConfig(), payload);
+      createApplicantUploads(
+        applicantId,
+        registrationNumber,
+        uploads.uploads,
+        now,
+        getConfig(),
+        payload,
+        options && options.allowMissingDocuments === true
+      );
       queueSheetSync(applicantId);
       return database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicantId);
     });
+    return { applicant: applicant, pin: pin };
+  } catch (error) {
+    if (applicantDirectory && fs.existsSync(applicantDirectory)) {
+      fs.rmSync(applicantDirectory, { recursive: true, force: true });
+    }
+    throw error;
+  }
+}
+
+function makeRegistrationData(applicant, config) {
+  const customData = JSON.parse(applicant.custom_data_json || '{}');
+  const fields = {};
+  (config.formFields || []).filter(function (field) { return field.active; }).forEach(function (field) {
+    const columnName = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    const value = field.custom ? customData[field.key] : applicant[columnName];
+    fields[field.key] = value == null ? '' : String(value);
+  });
+  return {
+    registrationNumber: applicant.registration_number,
+    registrationDate: applicant.created_at,
+    fields: fields
+  };
+}
+
+function sendRegistrationCreatedNotifications(applicant, pin) {
+  const portalUrl = '/portal';
+  const registrationMessage = [
+    'Pendaftaran SPMB SMK PGRI Cikoneng berhasil.',
+    'Nama: ' + applicant.student_name,
+    'Nomor pendaftaran: ' + applicant.registration_number,
+    'Login portal siswa: ' + portalUrl,
+    'PIN portal: ' + pin,
+    'Simpan nomor pendaftaran dan PIN ini dengan aman.'
+  ].join('\n');
+  dispatchWhatsAppEvent('registration.created', applicant, registrationMessage, {
+    registrationNumber: applicant.registration_number,
+    studentName: applicant.student_name,
+    portalPin: pin,
+    portalUrl: portalUrl
+  });
+  setImmediate(syncQueuedApplications);
+  setImmediate(syncQueuedDriveFiles);
+}
+
+function respondWithRegistrationError(response, error) {
+  const duplicate = error.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+    error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER';
+  response.status(duplicate ? 409 : 400).json({
+    status: 'error',
+    field: error.field,
+    message: error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER'
+      ? error.message
+      : error.code === 'SQLITE_CONSTRAINT_UNIQUE'
+        ? 'Data pendaftaran sudah tercatat. Hubungi panitia jika Anda perlu memperbaikinya.'
+        : error.message || 'Pendaftaran gagal disimpan.'
+  });
+}
+
+app.post('/api/registrations', function (request, response) {
+  try {
+    const result = createApplicantRegistration(request.body);
+    const applicant = result.applicant;
+    const pin = result.pin;
     response.status(201).json({
       status: 'success',
       message: 'Pendaftaran berhasil disimpan.',
       registrationNumber: applicant.registration_number,
       portalPin: pin,
       sheetSyncStatus: process.env.APPS_SCRIPT_SYNC_URL && process.env.SHEET_SYNC_TOKEN ? 'pending' : 'not_configured',
+      registrationData: makeRegistrationData(applicant, getConfig()),
       summary: {
         studentName: applicant.student_name,
         nisn: applicant.nisn,
@@ -2690,39 +2772,26 @@ app.post('/api/registrations', function (request, response) {
         schoolOrigin: applicant.school_origin
       }
     });
-    const portalUrl = '/portal';
-    const registrationMessage = [
-      'Pendaftaran SPMB SMK PGRI Cikoneng berhasil.',
-      'Nama: ' + applicant.student_name,
-      'Nomor pendaftaran: ' + applicant.registration_number,
-      'Login portal siswa: ' + portalUrl,
-      'PIN portal: ' + pin,
-      'Simpan nomor pendaftaran dan PIN ini dengan aman.'
-    ].join('\n');
-    dispatchWhatsAppEvent('registration.created', applicant, registrationMessage, {
-      registrationNumber: applicant.registration_number,
-      studentName: applicant.student_name,
-      portalPin: pin,
-      portalUrl: portalUrl
-    });
-    setImmediate(syncQueuedApplications);
-    setImmediate(syncQueuedDriveFiles);
+    sendRegistrationCreatedNotifications(applicant, pin);
   } catch (error) {
-    if (applicantDirectory && fs.existsSync(applicantDirectory)) {
-      fs.rmSync(applicantDirectory, { recursive: true, force: true });
-    }
-    const duplicate = error.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-      error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER';
-    const status = duplicate ? 409 : 400;
-    response.status(status).json({
-      status: 'error',
-      field: error.field,
-      message: error.code === 'DUPLICATE_REGISTRATION_IDENTIFIER'
-        ? error.message
-        : error.code === 'SQLITE_CONSTRAINT_UNIQUE'
-          ? 'Data pendaftaran sudah tercatat. Hubungi panitia jika Anda perlu memperbaikinya.'
-          : error.message || 'Pendaftaran gagal disimpan.'
+    respondWithRegistrationError(response, error);
+  }
+});
+
+app.post('/api/admin/applications', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {
+  try {
+    const result = createApplicantRegistration(request.body, { allowMissingDocuments: true });
+    response.status(201).json({
+      status: 'success',
+      message: 'Pendaftar berhasil ditambahkan.',
+      registrationNumber: result.applicant.registration_number,
+      portalPin: result.pin,
+      registrationData: makeRegistrationData(result.applicant, getConfig()),
+      sheetSyncStatus: process.env.APPS_SCRIPT_SYNC_URL && process.env.SHEET_SYNC_TOKEN ? 'pending' : 'not_configured'
     });
+    sendRegistrationCreatedNotifications(result.applicant, result.pin);
+  } catch (error) {
+    respondWithRegistrationError(response, error);
   }
 });
 
@@ -4399,7 +4468,8 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
     scholarshipPdf: { key: 'scholarshipPdfUrl', fileName: 'informasi-beasiswa.pdf', permission: 'form' },
     paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024, permission: 'payment' },
     brochureImage: { key: 'brochureImageUrl', replaceArrayKey: 'brochureImageUrls', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb', permission: 'timeline' },
-    brochureSlide: { arrayKey: 'brochureImageUrls', maxItems: 6, image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'spmb-slide', permission: 'timeline' }
+    brochureSlide: { arrayKey: 'brochureImageUrls', maxItems: 6, image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'spmb-slide', permission: 'timeline' },
+    registrationLetterhead: { key: 'registrationLetterheadUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'kop-pendaftaran', permission: 'documents' }
   };
   const asset = assetTypes[request.params.type];
   if (!asset) return response.status(400).json({ message: 'Jenis file tidak dikenali.' });

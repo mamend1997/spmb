@@ -139,6 +139,8 @@
     .school-document-row .wide { grid-column: 1 / -1; }
     .school-document-upload { display: flex; align-items: end; gap: 8px; }
     .school-document-upload input { min-width: 0; }
+    .admin-registration-section { margin-top: 18px; padding-top: 8px; border-top: 1px solid #edf0f4; }
+    .admin-registration-section h3 { margin: 0; color: #344054; font-size: 15px; }
     [data-master-section][hidden] { display: none !important; }
     .review-item { margin-top: 12px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
     .review-controls { display: grid; grid-template-columns: minmax(150px,.8fr) minmax(180px,1fr); gap: 8px; margin-top: 8px; }
@@ -558,6 +560,7 @@
         <div class="section-heading">
           <div><h2>Data Pendaftar</h2><p id="application-count">Memuat rekap...</p></div>
           <div class="actions">
+            <button id="add-applicant-button" data-permission-menu="applications" data-permission-action="edit" type="button">Tambah Pendaftar</button>
             <button id="export-excel-button" class="excel-button" data-admin-roles="owner,operator" type="button">Ekspor Excel</button>
           </div>
         </div>
@@ -842,6 +845,17 @@
             <h2 class="wide" id="master-documents" data-master-section="documents">Dokumen Sekolah</h2>
             <div class="wide master-group" data-master-section="documents">
               <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
+              <div class="settings-grid">
+                <div class="wide">
+                  <label for="registration-letterhead-file">Kop formulir pendaftaran (PNG/JPG, maksimal 5 MB)</label>
+                  <div class="file-setting">
+                    <input id="registration-letterhead-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+                    <button type="button" class="secondary upload-button" data-asset="registrationLetterhead">Unggah Kop Sekolah</button>
+                  </div>
+                  <a id="registration-letterhead-current" href="#" target="_blank" rel="noopener noreferrer">Lihat kop saat ini</a>
+                  <p class="helper">Gambar ini akan tampil pada biodata siap cetak setelah pendaftaran berhasil.</p>
+                </div>
+              </div>
               <div id="school-documents-list"></div>
               <button id="add-school-document-button" class="secondary" type="button" style="margin-top:10px">Tambah Dokumen Sekolah</button>
             </div>
@@ -1044,6 +1058,28 @@
         <div class="dialog-actions">
           <button id="cancel-edit-button" class="secondary" type="button">Batal</button>
           <button id="save-edit-button" type="submit">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="add-applicant-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading">
+        <div><h2>Tambah Pendaftar</h2><p>Nomor pendaftaran akan dibuat berurutan otomatis. Berkas dapat dilengkapi kemudian.</p></div>
+        <button id="close-add-applicant-button" class="secondary" type="button" aria-label="Tutup">Tutup</button>
+      </div>
+      <form id="add-applicant-form">
+        <div id="admin-registration-fields"></div>
+        <div class="master-group">
+          <h3>Berkas pendukung (opsional)</h3>
+          <p>Data tetap berstatus Menunggu Verifikasi sampai berkas diperiksa panitia.</p>
+          <div id="admin-registration-documents" class="edit-grid"></div>
+        </div>
+        <p id="add-applicant-status" class="status-line" role="status"></p>
+        <div class="dialog-actions">
+          <button id="cancel-add-applicant-button" class="secondary" type="button">Batal</button>
+          <button id="save-add-applicant-button" type="submit">Simpan Pendaftar</button>
         </div>
       </form>
     </div>
@@ -2578,6 +2614,127 @@
       });
     }
 
+    function renderAdminRegistrationFields() {
+      const container = document.getElementById('admin-registration-fields');
+      const fields = (siteConfig.formFields || []).filter(function (field) { return field.active; })
+        .slice().sort(function (a, b) { return Number(a.step) - Number(b.step) || Number(a.order) - Number(b.order); });
+      const stepLabels = {
+        1: 'Data Pendaftaran',
+        2: 'Data Siswa dan Asal Sekolah',
+        3: 'Data Orang Tua/Wali',
+        4: 'Data Tambahan'
+      };
+      const fieldLimits = {
+        studentName: 120, schoolOrigin: 120, nisn: 10, familyCardNumber: 16, studentNik: 16,
+        gender: 20, religion: 40, birthPlace: 100, birthDate: 10, email: 254, studentPhone: 20,
+        fatherNik: 16, fatherName: 120, fatherEducation: 40, fatherOccupation: 100, fatherIncome: 80,
+        fatherPhone: 20, motherNik: 16, motherName: 120, motherEducation: 40, motherOccupation: 100,
+        motherIncome: 80, motherPhone: 20, address: 500
+      };
+      container.replaceChildren();
+      [1, 2, 3, 4].forEach(function (step) {
+        const stepFields = fields.filter(function (field) { return Number(field.step) === step; });
+        if (!stepFields.length) return;
+        const section = document.createElement('section');
+        section.className = 'admin-registration-section';
+        const heading = document.createElement('h3');
+        heading.textContent = stepLabels[step];
+        const grid = document.createElement('div');
+        grid.className = 'edit-grid';
+        stepFields.forEach(function (field) {
+          const control = field.type === 'select'
+            ? document.createElement('select')
+            : field.type === 'textarea'
+              ? document.createElement('textarea')
+              : document.createElement('input');
+          if (control.tagName === 'INPUT') {
+            control.type = ['email', 'tel', 'date'].includes(field.type) ? field.type : 'text';
+            if (field.type === 'number') control.inputMode = 'numeric';
+          }
+          if (control.tagName !== 'SELECT') control.maxLength = field.custom ? 2000 : (fieldLimits[field.key] || 200);
+          control.dataset.adminRegistrationKey = field.key;
+          if (field.custom) control.dataset.adminRegistrationCustom = 'true';
+          control.required = field.required === true;
+          if (field.placeholder) control.placeholder = field.placeholder;
+          if (control.tagName === 'SELECT') {
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = field.placeholder || 'Pilih ' + field.label + '...';
+            control.appendChild(placeholder);
+            let options = field.options || [];
+            if (field.key === 'wave') {
+              options = (siteConfig.registrationWaves || []).filter(function (wave) {
+                return wave.status === 'open' && (!wave.academicYear || wave.academicYear === siteConfig.academicYear);
+              }).map(function (wave) { return wave.name; });
+            } else if (field.key === 'registrationPath') {
+              options = adminRegistrationPathsForWave('');
+            } else if (field.key === 'major' && !options.length) {
+              options = siteConfig.programs || programs;
+            }
+            options.forEach(function (value) { control.appendChild(new Option(value, value)); });
+          }
+          if (field.helpText) {
+            const group = makeLabeledControl(field.label, control);
+            const helper = document.createElement('p');
+            helper.className = 'helper';
+            helper.textContent = field.helpText;
+            group.appendChild(helper);
+            grid.appendChild(group);
+          } else {
+            grid.appendChild(makeLabeledControl(field.label, control));
+          }
+        });
+        section.append(heading, grid);
+        container.appendChild(section);
+      });
+    }
+
+    function adminRegistrationPathsForWave(waveName) {
+      return (siteConfig.registrationPaths || []).filter(function (item) {
+        return item.active && (!item.wave || item.wave === waveName);
+      }).map(function (item) { return item.name; });
+    }
+
+    function updateAdminRegistrationPaths() {
+      const select = document.querySelector('#admin-registration-fields [data-admin-registration-key="registrationPath"]');
+      if (!select) return;
+      const waveSelect = document.querySelector('#admin-registration-fields [data-admin-registration-key="wave"]');
+      const currentValue = select.value;
+      const validPaths = adminRegistrationPathsForWave(waveSelect ? waveSelect.value : '');
+      select.replaceChildren(new Option('Pilih Jalur Pendaftaran...', ''));
+      validPaths.forEach(function (value) { select.appendChild(new Option(value, value)); });
+      if (validPaths.includes(currentValue)) select.value = currentValue;
+    }
+
+    function renderAdminRegistrationDocuments() {
+      const container = document.getElementById('admin-registration-documents');
+      const waveSelect = document.querySelector('#admin-registration-fields [data-admin-registration-key="wave"]');
+      const pathSelect = document.querySelector('#admin-registration-fields [data-admin-registration-key="registrationPath"]');
+      const wave = waveSelect ? waveSelect.value : '';
+      const registrationPath = pathSelect ? pathSelect.value : '';
+      const documents = (siteConfig.documentRequirements || []).filter(function (item) {
+        return item.active && (!item.wave || item.wave === wave) &&
+          (!item.registrationPath || item.registrationPath === registrationPath);
+      }).slice().sort(function (a, b) { return Number(a.order) - Number(b.order); });
+      container.replaceChildren();
+      documents.forEach(function (documentConfig) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = documentConfig.extensions.map(function (extension) { return '.' + extension; }).join(',');
+        input.dataset.adminRegistrationUpload = documentConfig.key;
+        input.dataset.maxKb = String(documentConfig.maxKB || 2048);
+        input.setAttribute('aria-label', documentConfig.name + ' (opsional)');
+        const group = makeLabeledControl(documentConfig.name + ' (opsional)', input);
+        if (documentConfig.description) {
+          const helper = document.createElement('p');
+          helper.className = 'helper';
+          helper.textContent = documentConfig.description;
+          group.appendChild(helper);
+        }
+        container.appendChild(group);
+      });
+    }
+
     function getSchoolDocumentRows() {
       return Array.from(document.querySelectorAll('[data-school-document]')).map(function (row, index) {
         return {
@@ -2700,6 +2857,7 @@
       setCurrentFile('payment-qr-current', payment.qrisImageUrl);
       setCurrentFile('form-pdf-current', config.formPdfUrl);
       setCurrentFile('scholarship-pdf-current', config.scholarshipPdfUrl);
+      setCurrentFile('registration-letterhead-current', config.registrationLetterheadUrl);
       const googleIntegration = config.googleIntegration || {};
       document.getElementById('google-spreadsheet-id').value = googleIntegration.spreadsheetId || '';
       document.getElementById('google-drive-folder-id').value = googleIntegration.driveFolderId || '';
@@ -5170,11 +5328,12 @@
         const assetType = button.dataset.asset;
         const input = document.getElementById(assetType === 'formPdf' ? 'form-pdf'
           : assetType === 'paymentQr' ? 'payment-qr-file'
+            : assetType === 'registrationLetterhead' ? 'registration-letterhead-file'
             : ['brochureImage', 'brochureSlide'].includes(assetType) ? 'brochure-image-file' : 'scholarship-pdf');
         const slideshowUpload = assetType === 'brochureSlide';
         const files = Array.from(input.files || []);
-        const imageUpload = ['paymentQr', 'brochureImage', 'brochureSlide'].includes(assetType);
-        const maxImageBytes = ['brochureImage', 'brochureSlide'].includes(assetType) ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+        const imageUpload = ['paymentQr', 'brochureImage', 'brochureSlide', 'registrationLetterhead'].includes(assetType);
+        const maxImageBytes = ['brochureImage', 'brochureSlide', 'registrationLetterhead'].includes(assetType) ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
         if (!files.length) return setStatus('settings-status', imageUpload ? 'Pilih gambar terlebih dahulu.' : 'Pilih PDF terlebih dahulu.', 'error');
         if (slideshowUpload && (siteConfig.brochureImageUrls || []).length + files.length > 6) {
           return setStatus('settings-status', 'Beranda dapat menampilkan maksimal 6 foto.', 'error');
@@ -5203,6 +5362,7 @@
           input.value = '';
           showConfig(latestConfig);
           const label = assetType === 'paymentQr' ? 'Gambar QRIS' :
+            assetType === 'registrationLetterhead' ? 'Kop sekolah' :
             ['brochureImage', 'brochureSlide'].includes(assetType) ? 'Foto beranda' : 'PDF';
           setStatus('settings-status', label + (slideshowUpload ? ' berhasil diunggah (' + files.length + ').' : ' berhasil diunggah.'), 'success');
         } catch (error) {
@@ -5327,6 +5487,73 @@
         }
       } catch (error) {
         setStatus('edit-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('add-applicant-button').addEventListener('click', function () {
+      document.getElementById('add-applicant-form').reset();
+      renderAdminRegistrationFields();
+      updateAdminRegistrationPaths();
+      renderAdminRegistrationDocuments();
+      setStatus('add-applicant-status', '', '');
+      document.getElementById('add-applicant-dialog').showModal();
+    });
+    ['close-add-applicant-button', 'cancel-add-applicant-button'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', function () {
+        document.getElementById('add-applicant-dialog').close();
+      });
+    });
+    document.getElementById('admin-registration-fields').addEventListener('change', function (event) {
+      const key = event.target.dataset.adminRegistrationKey;
+      if (key === 'wave') updateAdminRegistrationPaths();
+      if (key === 'wave' || key === 'registrationPath') renderAdminRegistrationDocuments();
+    });
+    document.getElementById('add-applicant-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = document.getElementById('save-add-applicant-button');
+      button.disabled = true;
+      setStatus('add-applicant-status', 'Menyimpan pendaftar...', '');
+      try {
+        const payload = { customData: {}, uploads: {} };
+        form.querySelectorAll('[data-admin-registration-key]').forEach(function (control) {
+          if (control.dataset.adminRegistrationCustom === 'true') payload.customData[control.dataset.adminRegistrationKey] = control.value;
+          else payload[control.dataset.adminRegistrationKey] = control.value;
+        });
+        const uploadInputs = Array.from(form.querySelectorAll('[data-admin-registration-upload]'));
+        for (const input of uploadInputs) {
+          const file = input.files && input.files[0];
+          if (!file) continue;
+          const allowedExtensions = input.accept.split(',').map(function (extension) {
+            return extension.trim().replace(/^\./, '').toLowerCase();
+          });
+          const extension = file.name.split('.').pop().toLowerCase();
+          const maxBytes = Number(input.dataset.maxKb || 2048) * 1024;
+          if (!allowedExtensions.includes(extension) || file.size > maxBytes) {
+            throw new Error('Berkas ' + input.getAttribute('aria-label') + ' harus sesuai format yang diizinkan dan maksimal ' +
+              Math.round(maxBytes / 1024) + ' KB.');
+          }
+          payload.uploads[input.dataset.adminRegistrationUpload] = {
+            name: file.name,
+            contentType: file.type,
+            size: file.size,
+            base64: await readFileBase64(file)
+          };
+        }
+        const result = await api('/api/admin/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        document.getElementById('add-applicant-dialog').close();
+        await loadApplications();
+        setStatus('applications-status',
+          'Pendaftar berhasil ditambahkan. Nomor: ' + result.registrationNumber + '. PIN portal: ' + result.portalPin + '.',
+          'success');
+      } catch (error) {
+        setStatus('add-applicant-status', error.message || 'Pendaftar gagal disimpan.', 'error');
       } finally {
         button.disabled = false;
       }

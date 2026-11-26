@@ -66,7 +66,13 @@
       .section-banner { margin-left: 1rem !important; margin-right: 1rem !important; }
       .step-item { align-items: flex-start; padding: .55rem; }
     }
+      #print-biodata .biodata-section { margin-top: 18px; break-inside: avoid; }
+      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 13px; font-weight: 800; }
+      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      #print-biodata .biodata-table td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
+      #print-biodata .biodata-table td:first-child { width: 34%; font-weight: 700; }
     @media print {
+        @page { size: A4; margin: 15mm; }
       body { background: white !important; }
       .no-print, header, footer, #help-card { display: none !important; }
       main { padding: 0 !important; }
@@ -74,13 +80,21 @@
       .field-row { break-inside: avoid; }
       input, select, textarea { color: #111 !important; }
       body * { visibility: hidden !important; }
-      #print-card, #print-card * { visibility: visible !important; }
+        body[data-print-target="card"] #print-card, body[data-print-target="card"] #print-card * { visibility: visible !important; }
+        body[data-print-target="biodata"] #print-biodata, body[data-print-target="biodata"] #print-biodata * { visibility: visible !important; }
       #modal.no-print { display: block !important; position: static !important; padding: 0 !important; background: white !important; }
       #modal > div { max-height: none !important; max-width: none !important; overflow: visible !important; padding: 0 !important; box-shadow: none !important; }
       #modal > div > *:not(#success-receipt) { display: none !important; }
-      #success-receipt, #print-card { display: block !important; }
-      #success-receipt > *:not(#print-card) { display: none !important; }
-      #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
+        #success-receipt { display: block !important; }
+        #success-receipt > *:not(.print-document) { display: none !important; }
+        .print-document { display: none !important; }
+        body[data-print-target="card"] #print-card,
+        body[data-print-target="biodata"] #print-biodata {
+          display: block !important; position: static; width: 100%; max-width: none;
+          border: 1px solid #cbd5e1; background: white !important; color: #172033 !important;
+        }
+        body[data-print-target="biodata"] #print-biodata { border: 0; padding: 0 !important; font-family: Arial, sans-serif; }
+        body[data-print-target="biodata"] #biodata-letterhead { display: block; width: 100%; max-height: 150px; object-fit: contain; }
     }
   </style>
   <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-03">
@@ -591,7 +605,7 @@
         <button id="confirmation-submit" type="button" class="inline-flex flex-1 items-center justify-center rounded-full bg-orange-600 px-4 py-3 text-sm font-bold text-white hover:bg-orange-700">Ya, kirim pendaftaran</button>
       </div>
       <div id="success-receipt" class="hidden">
-        <div id="print-card" class="mt-4 rounded-lg border border-slate-300 bg-white p-4">
+        <div id="print-card" class="print-document mt-4 rounded-lg border border-slate-300 bg-white p-4">
           <div class="flex items-center gap-3 border-2 border-slate-700 p-3">
             <img class="h-12 w-12 object-contain" src="/assets/logo-pgri-cikoneng.png" alt="">
             <div><p class="text-xs font-extrabold uppercase tracking-wide text-slate-500">Kartu Peserta SPMB</p><p id="receipt-year" class="mt-1 text-[11px] font-semibold text-slate-600"></p></div>
@@ -611,9 +625,27 @@
             </div>
           </div>
         </div>
+        <div id="print-biodata" class="print-document mt-4 bg-white p-4 text-slate-900">
+          <div id="biodata-letterhead-wrap" class="hidden mb-4">
+            <img id="biodata-letterhead" alt="Kop sekolah" class="block w-full object-contain">
+          </div>
+          <div class="text-center">
+            <h1 class="text-lg font-extrabold">BIODATA MURID BARU</h1>
+            <p class="mt-2 text-sm"><strong>Nomor Pendaftaran:</strong> <span id="biodata-registration-number"></span></p>
+            <p class="text-sm"><strong>Tanggal Pendaftaran:</strong> <span id="biodata-registration-date"></span></p>
+          </div>
+          <div id="biodata-groups"></div>
+          <div class="mt-8 ml-auto w-64 text-center text-sm">
+            <p id="biodata-print-location-date"></p>
+            <p class="mt-2">Calon Murid Baru,</p>
+            <div class="h-20"></div>
+            <p id="biodata-signature-name" class="border-t border-slate-700 pt-1 font-bold"></p>
+          </div>
+        </div>
         <p class="mt-3 text-xs leading-5 text-amber-800">Simpan nomor pendaftaran dan PIN ini. PIN tidak ditampilkan kembali setelah jendela ini ditutup.</p>
         <div class="mt-4 grid gap-2 sm:grid-cols-2">
           <button id="download-card-button" type="button" class="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-3 text-center text-sm font-bold text-white">Unduh Kartu Peserta (PDF)</button>
+          <button id="download-biodata-button" type="button" class="inline-flex items-center justify-center rounded-full bg-blue-700 px-4 py-3 text-center text-sm font-bold text-white">Cetak / Simpan Biodata (PDF)</button>
           <a href="/portal.html" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center rounded-full bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white">Login Siswa</a>
         </div>
       </div>
@@ -1661,6 +1693,80 @@
       confirmationBackButton.focus();
     }
 
+    function formatBiodataDate(value) {
+      if (!value) return '-';
+      const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+      const date = dateOnly
+        ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+        : new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleDateString('id-ID', { dateStyle: 'long', timeZone: 'Asia/Jakarta' });
+    }
+
+    function renderRegistrationBiodata(registrationData) {
+      if (!registrationData || !registrationData.fields) return;
+      const values = registrationData.fields;
+      document.getElementById('biodata-registration-number').textContent = registrationData.registrationNumber || '';
+      document.getElementById('biodata-registration-date').textContent = formatBiodataDate(registrationData.registrationDate);
+      document.getElementById('biodata-signature-name').textContent = values.studentName || '';
+      document.getElementById('biodata-print-location-date').textContent = 'Cikoneng, ' + formatBiodataDate(new Date().toISOString());
+      const letterhead = document.getElementById('biodata-letterhead');
+      const letterheadWrap = document.getElementById('biodata-letterhead-wrap');
+      if (siteConfig.registrationLetterheadUrl) {
+        letterhead.src = siteConfig.registrationLetterheadUrl;
+        letterheadWrap.classList.remove('hidden');
+        letterhead.onerror = function () { letterheadWrap.classList.add('hidden'); };
+      } else {
+        letterhead.removeAttribute('src');
+        letterheadWrap.classList.add('hidden');
+      }
+
+      const groupNames = ['Pendaftaran', 'Data Siswa', 'Asal Sekolah', 'Data Orang Tua/Wali'];
+      const groups = new Map(groupNames.map(function (name) { return [name, []]; }));
+      (siteConfig.formFields || []).filter(function (field) {
+        return field.active && Object.prototype.hasOwnProperty.call(values, field.key);
+      }).slice().sort(function (a, b) {
+        return Number(a.step) - Number(b.step) || Number(a.order) - Number(b.order);
+      }).forEach(function (field) {
+        const group = ['wave', 'registrationPath', 'major'].includes(field.key)
+          ? 'Pendaftaran'
+          : field.key === 'schoolOrigin'
+            ? 'Asal Sekolah'
+            : Number(field.step) === 3 || /^(father|mother)/.test(field.key)
+              ? 'Data Orang Tua/Wali'
+              : 'Data Siswa';
+        groups.get(group).push({ field: field, value: values[field.key] });
+      });
+
+      const container = document.getElementById('biodata-groups');
+      container.replaceChildren();
+      groupNames.forEach(function (groupName) {
+        const rows = groups.get(groupName);
+        if (!rows.length) return;
+        const section = document.createElement('section');
+        section.className = 'biodata-section';
+        const heading = document.createElement('h3');
+        heading.textContent = groupName.toLocaleUpperCase('id-ID');
+        const table = document.createElement('table');
+        table.className = 'biodata-table';
+        const body = document.createElement('tbody');
+        rows.forEach(function (rowData) {
+          const row = document.createElement('tr');
+          const label = document.createElement('td');
+          label.textContent = rowData.field.label;
+          const value = document.createElement('td');
+          value.textContent = rowData.field.type === 'date'
+            ? formatBiodataDate(rowData.value)
+            : rowData.value || '-';
+          row.append(label, value);
+          body.appendChild(row);
+        });
+        table.appendChild(body);
+        section.append(heading, table);
+        container.appendChild(section);
+      });
+    }
+
     function showModal(title, message, success, result) {
       modalTitle.textContent = title;
       modalMessage.textContent = message;
@@ -1678,6 +1784,7 @@
         document.getElementById('receipt-wave').textContent = summary.wave || '-';
         document.getElementById('receipt-major').textContent = summary.major || '-';
         document.getElementById('receipt-pin').textContent = result.portalPin || '-';
+        renderRegistrationBiodata(result.registrationData);
       }
       modalSymbol.className = 'mb-4 flex h-12 w-12 items-center justify-center rounded-full ' +
         (success ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600');
@@ -1885,11 +1992,22 @@
         saveFormDraft();
       });
     });
-    document.getElementById('download-card-button').addEventListener('click', function () {
+    function printRegistrationDocument(target, title) {
       const previousTitle = document.title;
-      document.title = 'Kartu Peserta SPMB';
+      document.body.dataset.printTarget = target;
+      document.title = title;
       window.print();
+      delete document.body.dataset.printTarget;
       document.title = previousTitle;
+    }
+
+    document.getElementById('download-card-button').addEventListener('click', function () {
+      printRegistrationDocument('card', 'Kartu Peserta SPMB');
+    });
+    document.getElementById('download-biodata-button').addEventListener('click', function () {
+      document.getElementById('biodata-print-location-date').textContent =
+        'Cikoneng, ' + formatBiodataDate(new Date().toISOString());
+      printRegistrationDocument('biodata', 'Biodata Murid Baru - SPMB');
     });
 
     setActiveStep(1, false);

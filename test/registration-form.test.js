@@ -18,3 +18,13 @@ test('registration checks every step before displaying the confirmation', functi
   assert.match(formHtml, /function validateAllSteps\(\)[\s\S]*?stepNumber <= formSteps\.length/);
   assert.match(formHtml, /if \(!validateAllSteps\(\)\) return;\s*showRegistrationConfirmation\(\);/);
 });
+
+test('successful registration offers a printable biodata with configured fields and school letterhead', function () {
+  assert.match(formHtml, /id="print-biodata"/);
+  assert.match(formHtml, /id="biodata-letterhead"/);
+  assert.match(formHtml, /id="biodata-groups"/);
+  assert.match(formHtml, /id="biodata-print-location-date"/);
+  assert.match(formHtml, /id="biodata-signature-name"/);
+  assert.match(formHtml, /renderRegistrationBiodata\(result\.registrationData\)/);
+  assert.match(formHtml, /printRegistrationDocument\('biodata'/);
+});
