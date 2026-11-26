@@ -1152,6 +1152,7 @@
           <p id="detail-payment-note" class="muted"></p>
           <p id="detail-payment-proof"></p>
           <div class="detail-payment-actions" data-detail-edit-actions>
+            <label class="payment-check-control"><input id="detail-payment-cash-toggle" type="checkbox"> Sudah membayar daftar ulang secara cash</label>
             <textarea id="detail-payment-review-note" rows="2" maxlength="1000" placeholder="Catatan pembayaran untuk siswa"></textarea>
             <div class="detail-card-actions">
               <button id="detail-payment-revision" class="detail-revision" type="button">Minta Perbaikan Bukti</button>
@@ -4144,6 +4145,7 @@
 
       const paymentStatus = applicant.payment_status || applicant.reenrollment_status || 'Belum Daftar Ulang';
       setDetailStatusBadge('detail-payment-status', paymentStatus);
+      document.getElementById('detail-payment-cash-toggle').checked = applicant.payment_method === 'Tunai';
       const activeConfig = siteConfig || adminReviewConfig || {};
       const waveConfig = (activeConfig.registrationWaves || []).find(function (item) { return item.name === applicant.wave; });
       document.getElementById('detail-payment-info').textContent = applicant.reenrollment_fee_base >= 0
@@ -4570,6 +4572,30 @@
         setStatus('detail-status', error.message || 'Status pembayaran gagal diperbarui.', 'error');
       } finally {
         button.disabled = false;
+      }
+    }
+
+    async function updateCashPayment(cashPaid) {
+      if (!reviewingApplicant) return;
+      const toggle = document.getElementById('detail-payment-cash-toggle');
+      let saved = false;
+      toggle.disabled = true;
+      try {
+        await api('/api/admin/applications/' + encodeURIComponent(reviewingApplicant.registration_number) + '/payment/cash', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cashPaid: cashPaid })
+        });
+        saved = true;
+        await loadApplications();
+        setStatus('detail-status', cashPaid
+          ? 'Pembayaran cash dicatat dan daftar ulang diselesaikan.'
+          : 'Status pembayaran cash dibatalkan.', 'success');
+      } catch (error) {
+        if (!saved) toggle.checked = !cashPaid;
+        setStatus('detail-status', error.message || 'Status pembayaran cash gagal diperbarui.', 'error');
+      } finally {
+        toggle.disabled = false;
       }
     }
 
@@ -6427,6 +6453,9 @@
     });
     document.getElementById('detail-payment-approve').addEventListener('click', function () { updateDetailPayment('approve'); });
     document.getElementById('detail-payment-revision').addEventListener('click', function () { updateDetailPayment('revision'); });
+    document.getElementById('detail-payment-cash-toggle').addEventListener('change', function (event) {
+      updateCashPayment(event.target.checked);
+    });
     window.addEventListener('popstate', showRouteFromLocation);
 
     document.getElementById('close-edit-button').addEventListener('click', function () { editDialog.close(); });

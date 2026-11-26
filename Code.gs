@@ -9,7 +9,8 @@ const SHEET_HEADERS = [
   'Pendidikan Terakhir Ibu', 'Pekerjaan Ibu', 'Penghasilan Ibu / bulan',
   'No. Telepon/WA Ibu', 'Alamat Lengkap', 'Data Tambahan (JSON)', 'Review Field/Dokumen (JSON)',
   'Status Verifikasi Berkas', 'Status Hasil Seleksi', 'Nilai Seleksi', 'Catatan Hasil Seleksi',
-  'Status Pembayaran Daftar Ulang', 'Catatan Pembayaran', 'Waktu Verifikasi Pembayaran', 'Status Daftar Ulang'
+  'Status Pembayaran Daftar Ulang', 'Metode Pembayaran Daftar Ulang', 'Catatan Pembayaran',
+  'Waktu Verifikasi Pembayaran', 'Status Daftar Ulang'
 ];
 
 function doGet() {
@@ -204,6 +205,7 @@ function makeRowValues_(headers, data) {
     'Nilai Seleksi': data.selectionScore,
     'Catatan Hasil Seleksi': data.selectionNote,
     'Status Pembayaran Daftar Ulang': data.paymentStatus,
+    'Metode Pembayaran Daftar Ulang': data.paymentMethod,
     'Catatan Pembayaran': data.paymentNote,
     'Waktu Verifikasi Pembayaran': data.paymentReviewedAt,
     'Status Daftar Ulang': data.reenrollmentStatus

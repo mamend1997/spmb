@@ -263,6 +263,7 @@ database.exec(`
     class_assignment TEXT NOT NULL DEFAULT '',
     reenrollment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
     payment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
+    payment_method TEXT NOT NULL DEFAULT '',
     payment_note TEXT NOT NULL DEFAULT '',
     payment_reviewed_at TEXT NOT NULL DEFAULT '',
     status_updated_at TEXT NOT NULL,
@@ -392,6 +393,7 @@ function migrateApplicantStorage() {
           class_assignment TEXT NOT NULL DEFAULT '',
           reenrollment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
           payment_status TEXT NOT NULL DEFAULT 'Belum Daftar Ulang',
+          payment_method TEXT NOT NULL DEFAULT '',
           payment_note TEXT NOT NULL DEFAULT '',
           payment_reviewed_at TEXT NOT NULL DEFAULT '',
           status_updated_at TEXT NOT NULL,
@@ -462,6 +464,7 @@ function migrateApplicantStorage() {
     selection_note: "TEXT NOT NULL DEFAULT ''",
     class_assignment: "TEXT NOT NULL DEFAULT ''",
     payment_status: "TEXT NOT NULL DEFAULT 'Belum Daftar Ulang'",
+    payment_method: "TEXT NOT NULL DEFAULT ''",
     payment_note: "TEXT NOT NULL DEFAULT ''",
     payment_reviewed_at: "TEXT NOT NULL DEFAULT ''",
     custom_data_json: "TEXT NOT NULL DEFAULT '{}'",
@@ -1581,6 +1584,7 @@ function makeSheetPayload(applicant, previousRegistrationNumber) {
     selectionNote: applicant.selection_note,
     reenrollmentStatus: applicant.reenrollment_status,
     paymentStatus: applicant.payment_status,
+    paymentMethod: applicant.payment_method,
     paymentNote: applicant.payment_note,
     paymentReviewedAt: applicant.payment_reviewed_at
   };
@@ -3934,7 +3938,7 @@ app.post('/api/payments/kasera/callback', function (request, response) {
         WHERE id = ? AND status != 'paid'
       `).run(paidAt, transaction.id);
       database.prepare(`
-        UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = ?,
+        UPDATE applicants SET payment_status = ?, payment_method = 'Kasera', payment_note = '', payment_reviewed_at = ?,
           reenrollment_status = ?, status_updated_at = ? WHERE id = ?
       `).run('Pembayaran Terverifikasi', paidAt, 'Daftar Ulang Selesai', paidAt, applicant.id);
       queueSheetSync(applicant.id);
@@ -4030,7 +4034,7 @@ app.post('/api/payments/qiospay/callback', function (request, response) {
       WHERE id = ? AND status = 'pending'
     `).run(paidAt, invoice.id);
     database.prepare(`
-      UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = ?,
+      UPDATE applicants SET payment_status = ?, payment_method = 'QiosPay', payment_note = '', payment_reviewed_at = ?,
         reenrollment_status = ?, status_updated_at = ? WHERE id = ?
     `).run('Pembayaran Terverifikasi', paidAt, 'Daftar Ulang Selesai', paidAt, applicant.id);
     queueSheetSync(applicant.id);
@@ -4824,6 +4828,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       const reenrollmentPricing = getReenrollmentPricing(applicant, config);
       Object.assign(result, {
         selection_note: applicant.selection_note,
+        payment_method: applicant.payment_method,
         payment_note: applicant.payment_note,
         wave_fee: applicant.wave_fee,
         reenrollment_fee: reenrollmentPricing.amount,
@@ -5364,6 +5369,7 @@ app.post('/api/admin/applications/bulk/selection', requireAdmin, requirePermissi
       UPDATE applicants SET selection_status = ?, selection_score = ?, selection_note = ?,
         class_assignment = CASE WHEN ? THEN class_assignment ELSE '' END,
         payment_status = CASE WHEN ? THEN payment_status ELSE 'Belum Daftar Ulang' END,
+        payment_method = CASE WHEN ? THEN payment_method ELSE '' END,
         payment_note = CASE WHEN ? THEN payment_note ELSE '' END,
         payment_reviewed_at = CASE WHEN ? THEN payment_reviewed_at ELSE '' END,
         reenrollment_status = CASE WHEN ? THEN reenrollment_status ELSE 'Belum Daftar Ulang' END,
@@ -5371,7 +5377,7 @@ app.post('/api/admin/applications/bulk/selection', requireAdmin, requirePermissi
     `);
     result.applicants.forEach(function (applicant) {
       update.run(selectionStatus, score, note, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
-        isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, now, applicant.id);
+        isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, now, applicant.id);
     });
   });
   result.applicants.forEach(function (applicant) {
@@ -5952,6 +5958,7 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requirePe
     SET document_status = ?, selection_status = ?, selection_score = ?, selection_note = ?,
       class_assignment = CASE WHEN ? THEN class_assignment ELSE '' END,
       payment_status = CASE WHEN ? THEN payment_status ELSE 'Belum Daftar Ulang' END,
+      payment_method = CASE WHEN ? THEN payment_method ELSE '' END,
       payment_note = CASE WHEN ? THEN payment_note ELSE '' END,
       payment_reviewed_at = CASE WHEN ? THEN payment_reviewed_at ELSE '' END,
       reenrollment_status = CASE WHEN ? THEN reenrollment_status ELSE 'Belum Daftar Ulang' END,
@@ -5960,7 +5967,8 @@ app.patch('/api/admin/applications/:registrationNumber', requireAdmin, requirePe
   `).run(
     documentStatus, selectionStatus, score,
     String(statuses.selectionNote || '').trim().slice(0, 1000),
-    isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
+    isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0, isAccepted ? 1 : 0,
+    isAccepted ? 1 : 0, isAccepted ? 1 : 0,
     now, applicant.id
   );
   if (selectionStatus !== applicant.selection_status) {
@@ -6058,9 +6066,9 @@ app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, r
   const paymentStatus = decision === 'approve' ? 'Pembayaran Terverifikasi' : 'Perlu Perbaikan';
   const reenrollmentStatus = decision === 'approve' ? 'Daftar Ulang Selesai' : 'Belum Daftar Ulang';
   database.prepare(`
-    UPDATE applicants SET payment_status = ?, payment_note = ?, payment_reviewed_at = ?,
+    UPDATE applicants SET payment_status = ?, payment_method = ?, payment_note = ?, payment_reviewed_at = ?,
       reenrollment_status = ?, status_updated_at = ? WHERE id = ?
-  `).run(paymentStatus, note, now, reenrollmentStatus, now, applicant.id);
+  `).run(paymentStatus, decision === 'approve' ? 'Transfer' : '', note, now, reenrollmentStatus, now, applicant.id);
   queueSheetSync(applicant.id);
   setImmediate(syncQueuedApplications);
   const updatedApplicant = getApplicantByRegistration(applicant.registration_number);
@@ -6079,6 +6087,54 @@ app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, r
     note: note
   });
   response.json({ status: 'success', paymentStatus: paymentStatus, reenrollmentStatus: reenrollmentStatus });
+});
+
+app.patch('/api/admin/applications/:registrationNumber/payment/cash', requireAdmin,
+  requirePermission('applications', 'edit'), function (request, response) {
+  const applicant = getApplicantByRegistration(String(request.params.registrationNumber || '').toUpperCase());
+  if (!applicant) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(400).json({ message: 'Daftar ulang hanya tersedia bagi siswa yang diterima.' });
+  }
+  const cashPaid = request.body && request.body.cashPaid;
+  if (typeof cashPaid !== 'boolean') {
+    return response.status(400).json({ message: 'Status pembayaran cash tidak valid.' });
+  }
+  if (database.prepare(
+    "SELECT 1 FROM qiospay_invoices WHERE applicant_id = ? AND status = 'paid' LIMIT 1"
+  ).get(applicant.id) || database.prepare(
+    "SELECT 1 FROM kasera_transactions WHERE applicant_id = ? AND status = 'paid' LIMIT 1"
+  ).get(applicant.id)) {
+    return response.status(409).json({ message: 'Pembayaran gateway sudah terverifikasi otomatis dan tidak dapat diubah sebagai pembayaran cash.' });
+  }
+  if (cashPaid && (database.prepare(
+    "SELECT 1 FROM qiospay_invoices WHERE applicant_id = ? AND status = 'pending' LIMIT 1"
+  ).get(applicant.id) || database.prepare(
+    "SELECT 1 FROM kasera_transactions WHERE applicant_id = ? AND status = 'pending' LIMIT 1"
+  ).get(applicant.id))) {
+    return response.status(409).json({ message: 'Pembayaran melalui gateway masih berlangsung. Selesaikan atau batalkan pembayaran tersebut terlebih dahulu.' });
+  }
+  if (cashPaid && applicant.payment_status === 'Pembayaran Terverifikasi' && applicant.payment_method !== 'Tunai') {
+    return response.status(409).json({ message: 'Pembayaran sudah terverifikasi dengan metode lain.' });
+  }
+  if (!cashPaid && applicant.payment_method !== 'Tunai') {
+    return response.status(409).json({ message: 'Status pembayaran siswa bukan pembayaran cash.' });
+  }
+  const now = new Date().toISOString();
+  const paymentStatus = cashPaid ? 'Pembayaran Terverifikasi' : 'Belum Daftar Ulang';
+  const reenrollmentStatus = cashPaid ? 'Daftar Ulang Selesai' : 'Belum Daftar Ulang';
+  database.prepare(`
+    UPDATE applicants SET payment_status = ?, payment_method = ?, payment_note = '',
+      payment_reviewed_at = ?, reenrollment_status = ?, status_updated_at = ? WHERE id = ?
+  `).run(paymentStatus, cashPaid ? 'Tunai' : '', cashPaid ? now : '', reenrollmentStatus, now, applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  response.json({
+    status: 'success',
+    paymentStatus: paymentStatus,
+    paymentMethod: cashPaid ? 'Tunai' : '',
+    reenrollmentStatus: reenrollmentStatus
+  });
 });
 
 app.post('/api/admin/applications/:registrationNumber/reset-pin', requireAdmin, requirePermission('applications', 'edit'), function (request, response) {

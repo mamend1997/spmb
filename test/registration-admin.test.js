@@ -4,6 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const adminHtml = fs.readFileSync(path.join(__dirname, '..', 'Admin.html'), 'utf8');
+const googleAppsScript = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
@@ -13,6 +14,18 @@ test('admin can add applicants through the edit-protected registration flow', fu
   assert.match(adminHtml, /id="admin-registration-documents"/);
   assert.match(adminHtml, /api\/admin\/applications/);
   assert.match(serverJs, /app\.post\('\/api\/admin\/applications', requireAdmin, requirePermission\('applications', 'edit'\)/);
+});
+
+test('admin can toggle and persist cash re-enrollment payments', function () {
+  assert.match(adminHtml, /id="detail-payment-cash-toggle" type="checkbox"/);
+  assert.match(adminHtml, /\/payment\/cash[\s\S]*?cashPaid: cashPaid/);
+  assert.match(serverJs, /payment_method TEXT NOT NULL DEFAULT ''/);
+  assert.match(serverJs, /app\.patch\('\/api\/admin\/applications\/:registrationNumber\/payment\/cash'/);
+  assert.match(serverJs, /payment_method = \?, payment_note = ''/);
+  assert.match(serverJs, /paymentMethod: applicant\.payment_method/);
+  assert.match(serverJs, /paymentMethod: cashPaid \? 'Tunai' : ''/);
+  assert.match(serverJs, /payment_method !== 'Tunai'/);
+  assert.match(googleAppsScript, /'Metode Pembayaran Daftar Ulang': data\.paymentMethod/);
 });
 
 test('manual registration may omit required uploads without weakening public registration', function () {
