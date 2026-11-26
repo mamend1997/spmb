@@ -302,6 +302,10 @@
     .wave-row { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(140px, .7fr) minmax(130px, .7fr) auto; align-items: end; gap: 10px; margin-top: 10px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
     .wave-row label { margin: 0 0 5px; }
     .wave-row button { min-height: 40px; }
+    .program-admin-row, .faq-admin-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: 10px; margin-top: 10px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
+    .program-admin-row label, .faq-admin-row label { display: block; margin: 0 0 5px; color: #475467; font-size: 12px; font-weight: 700; }
+    .program-admin-row textarea, .faq-admin-row textarea { width: 100%; }
+    .program-admin-row button, .faq-admin-row button { min-height: 40px; }
     .file-setting { display: grid; grid-template-columns: minmax(160px, 1fr) auto; align-items: center; gap: 8px; margin-top: 8px; }
     .file-setting input { min-height: 38px; padding: 7px; font-size: 12px; }
     .file-setting a { color: #c2410c; font-size: 12px; }
@@ -331,7 +335,8 @@
       .sidebar button { min-width: max-content; width: auto; }
       .sidebar-collapse-toggle { flex: 0 0 auto; }
       .sidebar-collapsed .sidebar button, .sidebar-collapsed .sidebar-collapse-toggle { min-width: 42px; width: 42px; flex: 0 0 42px; }
-      .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row,
+      .program-admin-row, .faq-admin-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
       body { padding: 12px 10px 32px; }
@@ -353,7 +358,8 @@
       .settings-grid .wide, .edit-grid .wide { grid-column: auto; }
       .wave-row { grid-template-columns: 1fr; }
       .master-row, .review-controls { grid-template-columns: 1fr; }
-      .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row { grid-template-columns: 1fr; }
+      .master-row, .field-config-row, #timeline-list .timeline-admin-row, .wave-row,
+      .program-admin-row, .faq-admin-row { grid-template-columns: 1fr; }
       .chart { gap: 4px; }
       .chart-label { font-size: 12px; }
       .file-setting { grid-template-columns: 1fr; }
@@ -499,7 +505,7 @@
               </button>
               <button type="button" data-page-target="master-page" data-master-anchor="timeline" data-permission-menu="timeline">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                <span>Foto & Timeline Beranda</span>
+                <span>Konten & Timeline Beranda</span>
               </button>
               <button type="button" data-page-target="master-page" data-master-anchor="payment" data-permission-menu="payment">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
@@ -752,6 +758,21 @@
               <div id="timeline-list"></div>
               <button id="add-timeline-event-button" class="secondary" type="button" style="margin-top:10px">Tambah Tahap Timeline</button>
             </div>
+            <div class="wide master-group" data-master-section="timeline">
+              <h2>FAQ Beranda</h2>
+              <p>Jawaban ditampilkan pada beranda. Pastikan informasi biaya dan kebijakan mengikuti ketentuan resmi sekolah.</p>
+              <div id="faq-list"></div>
+              <button id="add-faq-button" class="secondary" type="button" style="margin-top:10px">Tambah FAQ</button>
+            </div>
+            <div class="wide master-group" data-master-section="timeline">
+              <h2>Lokasi &amp; Jam Layanan Panitia</h2>
+              <p>Bagian ini tidak ditampilkan di beranda sampai ada informasi yang diisi.</p>
+              <div class="settings-grid">
+                <div class="wide"><label for="school-address">Alamat sekolah</label><textarea id="school-address" maxlength="500" rows="3"></textarea></div>
+                <div class="wide"><label for="school-map-url">Tautan peta (HTTPS)</label><input id="school-map-url" type="url" maxlength="1000" placeholder="https://maps.google.com/..."></div>
+                <div class="wide"><label for="school-service-hours">Jam layanan tatap muka</label><input id="school-service-hours" maxlength="200" placeholder="Contoh: Senin–Jumat, 08.00–14.00"></div>
+              </div>
+            </div>
             <div class="wide master-group" data-master-section="form">
               <h2>Dokumen Tambahan</h2>
               <p>Pengaturan berlaku pada formulir baru; dokumen pendaftar lama tetap tersimpan.</p>
@@ -767,7 +788,7 @@
             </div>
             <h2 class="wide" id="master-programs" data-master-section="programs">Program Studi</h2>
             <div class="wide master-group" data-master-section="programs">
-              <p>Daftar ini langsung menjadi pilihan Program Studi pada formulir pendaftaran dan validasi data siswa.</p>
+              <p>Daftar ini menjadi pilihan pada formulir. Deskripsi, keterampilan, dan peluang karier akan ditampilkan di beranda.</p>
               <div id="programs-list"></div>
               <button id="add-program-button" class="secondary" type="button" style="margin-top:10px">Tambah Program Studi</button>
             </div>
@@ -834,6 +855,12 @@
             </div>
             <h2 class="wide" id="master-waves" data-master-section="waves">Gelombang Pendaftaran</h2>
             <div class="wide master-group" data-master-section="waves">
+              <h3>Promo Daftar Ulang Pendaftar Awal</h3>
+              <div class="settings-grid">
+                <div><label for="early-bird-count">Jumlah pendaftar pertama</label><input id="early-bird-count" type="number" min="0" max="100000" step="1"></div>
+                <div><label for="early-bird-percent">Potongan promo (%)</label><input id="early-bird-percent" type="number" min="0" max="99" step="1"></div>
+                <p class="wide helper">Promo ini berlaku untuk pendaftar pertama pada tahun ajaran aktif. Persentase dan biaya daftar ulang dicatat saat pendaftaran.</p>
+              </div>
               <div id="wave-list"></div>
               <button id="add-wave-button" class="secondary" type="button" style="margin-top:10px">Tambah Gelombang</button>
             </div>
@@ -1645,15 +1672,6 @@
         document.getElementById('master-nav-toggle').classList.remove('active');
         document.getElementById('master-submenu').hidden = true;
       }
-
-      function maskCurrentDetail() {
-        if (sensitiveDataRevealed && maskedApplicantForDetail) {
-          sensitiveDataRevealed = false;
-          renderApplicantDetail(maskedApplicantForDetail);
-        }
-        maskedApplicantForDetail = null;
-        sensitiveDataLoading = false;
-      }
       animateAdminElement(document.getElementById(pageId));
       if (pageId === 'trash-page') loadTrash();
       if (pageId === 'activity-page') loadActivityLog();
@@ -1661,6 +1679,15 @@
         loadFileManager();
         loadFileManagerBackups();
       }
+    }
+
+    function maskCurrentDetail() {
+      if (sensitiveDataRevealed && maskedApplicantForDetail) {
+        sensitiveDataRevealed = false;
+        renderApplicantDetail(maskedApplicantForDetail);
+      }
+      maskedApplicantForDetail = null;
+      sensitiveDataLoading = false;
     }
 
     function makeOption(value, label) {
@@ -1703,19 +1730,35 @@
       });
     }
 
-    function renderProgramRows(items) {
+    function renderProgramRows(items, details) {
       const list = document.getElementById('programs-list');
       list.replaceChildren();
       (items || []).forEach(function (item) {
         const row = document.createElement('div');
-        row.className = 'timeline-admin-row';
+        row.className = 'program-admin-row';
         row.dataset.program = 'true';
+        const detail = (details || []).find(function (entry) { return entry.name === item; }) || {};
         const name = document.createElement('input');
         name.dataset.programName = 'true';
         name.maxLength = 120;
         name.required = true;
         name.value = item;
         name.setAttribute('aria-label', 'Nama program studi');
+        const description = document.createElement('textarea');
+        description.dataset.programDescription = 'true';
+        description.maxLength = 600;
+        description.rows = 3;
+        description.value = detail.description || '';
+        const skills = document.createElement('textarea');
+        skills.dataset.programSkills = 'true';
+        skills.maxLength = 1200;
+        skills.rows = 3;
+        skills.value = (detail.skills || []).join('\n');
+        const careers = document.createElement('textarea');
+        careers.dataset.programCareers = 'true';
+        careers.maxLength = 1200;
+        careers.rows = 3;
+        careers.value = (detail.careers || []).join('\n');
         const remove = makeIconDeleteButton('Hapus program studi', function () {
           if (list.children.length <= 1) {
             setStatus('settings-status', 'Minimal harus tersedia satu program studi.', 'error');
@@ -1725,7 +1768,13 @@
         });
         remove.dataset.permissionAction = 'delete';
         remove.dataset.permissionMenu = 'programs';
-        row.append(makeLabeledControl('Nama program studi', name), remove);
+        row.append(
+          makeLabeledControl('Nama program studi', name),
+          makeLabeledControl('Deskripsi singkat', description),
+          makeLabeledControl('Keterampilan yang dipelajari (satu per baris)', skills),
+          makeLabeledControl('Peluang karier (satu per baris)', careers),
+          remove
+        );
         list.appendChild(row);
       });
     }
@@ -1733,6 +1782,22 @@
     function getProgramRows() {
       return Array.from(document.querySelectorAll('[data-program]')).map(function (row) {
         return row.querySelector('[data-program-name]').value.trim();
+      });
+    }
+
+    function getProgramDetailsRows() {
+      return Array.from(document.querySelectorAll('[data-program]')).map(function (row) {
+        function parseLines(selector) {
+          return row.querySelector(selector).value.split(/\r?\n/).map(function (value) {
+            return value.trim();
+          }).filter(Boolean);
+        }
+        return {
+          name: row.querySelector('[data-program-name]').value.trim(),
+          description: row.querySelector('[data-program-description]').value.trim(),
+          skills: parseLines('[data-program-skills]'),
+          careers: parseLines('[data-program-careers]')
+        };
       });
     }
 
@@ -1832,6 +1897,14 @@
         reenrollmentFee.dataset.waveReenrollmentFee = 'true';
         reenrollmentFee.placeholder = 'Biaya daftar ulang';
         reenrollmentFee.value = wave.reenrollmentFee || '';
+        const reenrollmentDiscount = document.createElement('input');
+        reenrollmentDiscount.type = 'number';
+        reenrollmentDiscount.min = '0';
+        reenrollmentDiscount.max = '99';
+        reenrollmentDiscount.step = '1';
+        reenrollmentDiscount.dataset.waveDiscount = 'true';
+        reenrollmentDiscount.placeholder = '0';
+        reenrollmentDiscount.value = wave.reenrollmentDiscountPercent || 0;
         const announcementDate = document.createElement('input');
         announcementDate.type = 'date';
         announcementDate.dataset.waveAnnouncement = 'true';
@@ -1870,6 +1943,7 @@
           makeLabeledControl('Kuota', quota),
           feeGroup,
           makeLabeledControl('Biaya daftar ulang (Rp)', reenrollmentFee),
+          makeLabeledControl('Diskon gelombang daftar ulang (%)', reenrollmentDiscount),
           makeLabeledControl('Pengumuman', announcementDate),
           statusGroup,
           makeLabeledControl('Catatan', notes),
@@ -1898,6 +1972,7 @@
           quota: Number(row.querySelector('[data-wave-quota]').value || 0),
           fee: row.querySelector('[data-wave-fee]').value,
           reenrollmentFee: row.querySelector('[data-wave-reenrollment-fee]').value,
+          reenrollmentDiscountPercent: Number(row.querySelector('[data-wave-discount]').value || 0),
           order: Array.from(row.parentElement.children).indexOf(row) + 1,
           status: row.querySelector('[data-wave-status]').value,
           notes: row.querySelector('[data-wave-notes]').value
@@ -1970,6 +2045,47 @@
           dateLabel: row.querySelector('[data-timeline-date]').value.trim(),
           status: row.querySelector('[data-timeline-status]').value,
           order: Number(row.querySelector('[data-timeline-order]').value)
+        };
+      });
+    }
+
+    function renderFaqRows(items) {
+      const list = document.getElementById('faq-list');
+      list.replaceChildren();
+      (items || []).slice().sort(function (a, b) { return Number(a.order) - Number(b.order); })
+        .forEach(function (item) {
+          const row = document.createElement('div');
+          row.className = 'faq-admin-row';
+          row.dataset.faq = 'true';
+          const question = document.createElement('input');
+          question.dataset.faqQuestion = 'true';
+          question.maxLength = 160;
+          question.required = true;
+          question.value = item.question || '';
+          const answer = document.createElement('textarea');
+          answer.dataset.faqAnswer = 'true';
+          answer.maxLength = 1000;
+          answer.rows = 3;
+          answer.required = true;
+          answer.value = item.answer || '';
+          const remove = makeIconDeleteButton('Hapus FAQ', function () { row.remove(); });
+          remove.dataset.permissionAction = 'delete';
+          remove.dataset.permissionMenu = 'timeline';
+          row.append(
+            makeLabeledControl('Pertanyaan', question),
+            makeLabeledControl('Jawaban', answer),
+            remove
+          );
+          list.appendChild(row);
+        });
+    }
+
+    function getFaqRows() {
+      return Array.from(document.querySelectorAll('[data-faq]')).map(function (row, index) {
+        return {
+          question: row.querySelector('[data-faq-question]').value.trim(),
+          answer: row.querySelector('[data-faq-answer]').value.trim(),
+          order: index + 1
         };
       });
     }
@@ -2527,13 +2643,20 @@
       document.getElementById('contact-label').value = config.contactLabel || '';
       renderContactPersonRows(config.contactPersons || []);
       renderTimelineRows(config.timelineEvents || []);
+      renderFaqRows(config.faqs || []);
+      document.getElementById('school-address').value = config.schoolLocation && config.schoolLocation.address || '';
+      document.getElementById('school-map-url').value = config.schoolLocation && config.schoolLocation.mapUrl || '';
+      document.getElementById('school-service-hours').value = config.schoolLocation && config.schoolLocation.serviceHours || '';
       renderWaveRows(config.registrationWaves || []);
       renderRegistrationPathsAdmin(config.registrationPaths || []);
       renderFormFieldRows(config.formFields || []);
       renderDocumentRows(config.documentRequirements || []);
       renderSchoolDocumentRows(config.schoolDocuments || []);
-      renderProgramRows(config.programs || programs);
+      renderProgramRows(config.programs || programs, config.programDetails || []);
       renderClassRows(config.classes || []);
+      const promotion = config.reenrollmentPromotion || {};
+      document.getElementById('early-bird-count').value = promotion.earlyBirdCount == null ? 25 : promotion.earlyBirdCount;
+      document.getElementById('early-bird-percent').value = promotion.earlyBirdPercent == null ? 13 : promotion.earlyBirdPercent;
       const whatsapp = config.whatsappGateway || {};
       document.getElementById('whatsapp-enabled').checked = whatsapp.enabled === true;
       document.getElementById('whatsapp-provider').value = whatsapp.provider === 'fonnte' ? 'fonnte' : 'webhook';
@@ -3457,8 +3580,17 @@
       setDetailStatusBadge('detail-payment-status', paymentStatus);
       const activeConfig = siteConfig || adminReviewConfig || {};
       const waveConfig = (activeConfig.registrationWaves || []).find(function (item) { return item.name === applicant.wave; });
-      document.getElementById('detail-payment-info').textContent = 'Rincian pembayaran · ' +
-        (waveConfig && waveConfig.reenrollmentFee ? 'Rp ' + Number(waveConfig.reenrollmentFee).toLocaleString('id-ID') : 'Nominal mengikuti informasi panitia.');
+      document.getElementById('detail-payment-info').textContent = applicant.reenrollment_fee_base >= 0
+        ? 'Rincian pembayaran · Biaya daftar ulang Rp ' +
+          Number(applicant.reenrollment_fee).toLocaleString('id-ID') +
+          ' (harga awal Rp ' + Number(applicant.reenrollment_fee_base).toLocaleString('id-ID') +
+          (applicant.reenrollment_discount_percent
+            ? '; potongan promo ' + applicant.reenrollment_discount_percent + '% = Rp ' +
+              Number(applicant.reenrollment_discount_amount).toLocaleString('id-ID')
+            : '') + ').'
+        : 'Rincian pembayaran · ' +
+          (waveConfig && waveConfig.reenrollmentFee
+            ? 'Nominal mengikuti informasi panitia.' : 'Biaya daftar ulang belum ditetapkan.');
       document.getElementById('detail-payment-note').textContent = applicant.payment_note || 'Tidak ada catatan khusus dari calon siswa / pendaftar.';
       document.getElementById('detail-payment-review-note').value = applicant.payment_note || '';
       const paymentProof = (applicant.files || []).find(function (file) { return file.key === 'paymentProof'; });
@@ -4821,6 +4953,7 @@
             pageTitle: document.getElementById('page-title').value.trim(),
             academicYear: document.getElementById('academic-year').value.trim(),
             programs: getProgramRows(),
+            programDetails: getProgramDetailsRows(),
             classes: getClassRows(),
             brochureImageUrls: siteConfig.brochureImageUrls || [],
             formPdfUrl: siteConfig.formPdfUrl,
@@ -4828,7 +4961,17 @@
             contactLabel: document.getElementById('contact-label').value.trim(),
             contactPersons: getContactPersonRows(),
             timelineEvents: getTimelineRows(),
+            faqs: getFaqRows(),
+            schoolLocation: {
+              address: document.getElementById('school-address').value.trim(),
+              mapUrl: document.getElementById('school-map-url').value.trim(),
+              serviceHours: document.getElementById('school-service-hours').value.trim()
+            },
             registrationWaves: getWaveRows(),
+            reenrollmentPromotion: {
+              earlyBirdCount: Number(document.getElementById('early-bird-count').value || 0),
+              earlyBirdPercent: Number(document.getElementById('early-bird-percent').value || 0)
+            },
             registrationPaths: getRegistrationPathRows(),
             formFields: getFormFieldRows(),
             documentRequirements: getDocumentRows(),
@@ -4992,7 +5135,7 @@
       if (waves.length >= 10) return setStatus('settings-status', 'Maksimal 10 gelombang.', 'error');
       waves.push({
         name: 'Gelombang ' + (waves.length + 1), academicYear: siteConfig.academicYear, fee: '',
-        reenrollmentFee: '', status: 'closed', quota: 0, order: waves.length + 1
+        reenrollmentFee: '', reenrollmentDiscountPercent: 0, status: 'closed', quota: 0, order: waves.length + 1
       });
       renderWaveRows(waves);
       renderRegistrationPathsAdmin(paths);
@@ -5014,6 +5157,14 @@
         order: events.reduce(function (maximum, event) { return Math.max(maximum, event.order || 0); }, 0) + 1
       });
       renderTimelineRows(events);
+    });
+    document.getElementById('add-faq-button').addEventListener('click', function () {
+      const faqs = getFaqRows();
+      if (faqs.length >= 20) return setStatus('settings-status', 'Maksimal 20 FAQ.', 'error');
+      faqs.push({ question: '', answer: '', order: faqs.length + 1 });
+      renderFaqRows(faqs);
+      const questions = document.querySelectorAll('[data-faq-question]');
+      questions[questions.length - 1].focus();
     });
     document.getElementById('add-form-field-button').addEventListener('click', function () {
       const fields = getFormFieldRows();
@@ -5115,7 +5266,7 @@
       document.getElementById('master-submenu').hidden = isExpanded;
     });
     document.getElementById('add-program-button').addEventListener('click', function () {
-      renderProgramRows(getProgramRows().concat(''));
+      renderProgramRows(getProgramRows().concat(''), getProgramDetailsRows());
       const inputs = document.querySelectorAll('[data-program-name]');
       if (inputs.length) inputs[inputs.length - 1].focus();
     });

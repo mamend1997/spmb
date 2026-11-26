@@ -83,7 +83,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-01">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-02">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -181,6 +181,59 @@
           <p>Formulir dan informasi pendaftaran dapat dibuka secara online.</p>
         </article>
       </div>
+    </section>
+
+    <section id="home-requirements" class="home-info-section no-print" aria-labelledby="requirements-title">
+      <header class="home-info-heading">
+        <h2 id="requirements-title">Persiapan Pendaftaran</h2>
+        <p>Gunakan checklist ini agar data dan berkas yang diminta sudah siap sebelum mengisi formulir.</p>
+      </header>
+      <div class="home-info-grid">
+        <article class="home-info-card">
+          <h3>Data yang perlu disiapkan</h3>
+          <ul id="required-data-list" class="home-checklist"></ul>
+        </article>
+        <article class="home-info-card">
+          <h3>Dokumen yang perlu diunggah</h3>
+          <ul id="required-document-list" class="home-checklist"></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="school-location-section" class="home-info-section no-print" aria-labelledby="school-location-title" hidden>
+      <header class="home-info-heading">
+        <h2 id="school-location-title">Lokasi &amp; Jam Layanan Panitia</h2>
+        <p>Informasi layanan tatap muka SPMB SMK PGRI Cikoneng.</p>
+      </header>
+      <div class="home-info-card location-card">
+        <p id="school-address-display" class="location-address"></p>
+        <p id="school-service-hours-display" class="location-hours"></p>
+        <a id="school-map-link" class="home-info-link" target="_blank" rel="noopener noreferrer" hidden>Lihat peta</a>
+      </div>
+    </section>
+
+    <section id="program-info-section" class="home-info-section no-print" aria-labelledby="program-info-title">
+      <header class="home-info-heading">
+        <h2 id="program-info-title">Program Studi</h2>
+        <p>Kenali bidang yang dipelajari dan gambaran peluang karier setiap program.</p>
+      </header>
+      <div id="program-details-list" class="program-card-grid"></div>
+    </section>
+
+    <section id="registration-waves-section" class="home-info-section no-print" aria-labelledby="registration-waves-title">
+      <header class="home-info-heading">
+        <h2 id="registration-waves-title">Gelombang Pendaftaran</h2>
+        <p id="registration-promotion-summary"></p>
+      </header>
+      <div id="registration-wave-list" class="wave-info-grid"></div>
+    </section>
+
+    <section id="faq-section" class="home-info-section no-print" aria-labelledby="faq-title">
+      <header class="home-info-heading">
+        <h2 id="faq-title">Pertanyaan yang Sering Diajukan</h2>
+        <p>Informasi singkat seputar pendaftaran SPMB.</p>
+      </header>
+      <div id="faq-list-public" class="faq-list-public"></div>
     </section>
 
     <section id="timeline" class="timeline-section no-print" aria-labelledby="timeline-title">
@@ -539,6 +592,10 @@
         'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
         'BISNIS DIGITAL'
       ],
+      programDetails: [],
+      faqs: [],
+      schoolLocation: { address: '', mapUrl: '', serviceHours: '' },
+      reenrollmentPromotion: { earlyBirdCount: 25, earlyBirdPercent: 13, earlyBirdRemaining: 25 },
       brochureImageUrl: '',
       brochureImageUrls: [],
       formPdfUrl: '/assets/spmb-formulir-offline.pdf',
@@ -547,7 +604,7 @@
       contactPersons: [],
       contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
       timelineEvents: [],
-      registrationWaves: [{ name: 'Gelombang 1', fee: '', status: 'open' }],
+      registrationWaves: [{ name: 'Gelombang 1', academicYear: '2027/2028', openDate: '', closeDate: '', fee: '', reenrollmentFee: '', reenrollmentDiscountPercent: 6, status: 'open', order: 1 }],
       registrationPaths: [{ name: 'Reguler / Umum', wave: '', active: true }]
     };
     const form = document.getElementById('spmb-form');
@@ -693,6 +750,193 @@
       });
     }
 
+    function appendChecklistItems(list, items, emptyMessage) {
+      list.replaceChildren();
+      if (!items.length) {
+        const empty = document.createElement('li');
+        empty.textContent = emptyMessage;
+        list.appendChild(empty);
+        return;
+      }
+      items.forEach(function (item) { list.appendChild(item); });
+    }
+
+    function renderHomeRequirements(config) {
+      const requiredFields = (config.formFields || []).filter(function (field) {
+        return field.active !== false && field.required === true;
+      }).sort(function (a, b) {
+        return Number(a.step || 0) - Number(b.step || 0) ||
+          Number(a.order || 0) - Number(b.order || 0);
+      });
+      const dataItems = requiredFields.map(function (field) {
+        const item = document.createElement('li');
+        item.textContent = field.label;
+        return item;
+      });
+      appendChecklistItems(
+        document.getElementById('required-data-list'),
+        dataItems,
+        'Periksa kembali data yang diminta pada formulir.'
+      );
+      const documents = (config.documentRequirements || []).filter(function (document) {
+        return document.active !== false;
+      }).sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); });
+      const documentItems = documents.map(function (documentConfig) {
+        const item = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = documentConfig.name;
+        const status = document.createElement('small');
+        status.className = 'checklist-status';
+        status.textContent = documentConfig.required ? 'Wajib' : 'Opsional';
+        item.append(name, status);
+        return item;
+      });
+      appendChecklistItems(
+        document.getElementById('required-document-list'),
+        documentItems,
+        'Belum ada dokumen aktif yang ditetapkan.'
+      );
+    }
+
+    function renderSchoolLocation(location) {
+      const info = location || {};
+      const hasInformation = Boolean(info.address || info.mapUrl || info.serviceHours);
+      const section = document.getElementById('school-location-section');
+      section.hidden = !hasInformation;
+      document.getElementById('school-address-display').textContent = info.address || '';
+      document.getElementById('school-address-display').hidden = !info.address;
+      document.getElementById('school-service-hours-display').textContent =
+        info.serviceHours ? 'Jam layanan: ' + info.serviceHours : '';
+      document.getElementById('school-service-hours-display').hidden = !info.serviceHours;
+      const mapLink = document.getElementById('school-map-link');
+      mapLink.hidden = !info.mapUrl;
+      if (info.mapUrl) mapLink.href = info.mapUrl;
+      else mapLink.removeAttribute('href');
+    }
+
+    function renderProgramDetails(config) {
+      const container = document.getElementById('program-details-list');
+      container.replaceChildren();
+      const detailsByName = new Map((config.programDetails || []).map(function (item) {
+        return [item.name, item];
+      }));
+      (config.programs || []).forEach(function (name) {
+        const detail = detailsByName.get(name) || {};
+        const card = document.createElement('article');
+        card.className = 'program-info-card';
+        const title = document.createElement('h3');
+        title.textContent = name;
+        card.appendChild(title);
+        if (detail.description) {
+          const description = document.createElement('p');
+          description.textContent = detail.description;
+          card.appendChild(description);
+        }
+        [
+          ['Keterampilan yang dipelajari', detail.skills || []],
+          ['Peluang karier', detail.careers || []]
+        ].forEach(function (group) {
+          if (!group[1].length) return;
+          const heading = document.createElement('h4');
+          heading.textContent = group[0];
+          const list = document.createElement('ul');
+          group[1].forEach(function (value) {
+            const item = document.createElement('li');
+            item.textContent = value;
+            list.appendChild(item);
+          });
+          card.append(heading, list);
+        });
+        container.appendChild(card);
+      });
+      document.getElementById('program-info-section').hidden = !container.children.length;
+    }
+
+    function formatWaveDate(value) {
+      if (!value) return 'Belum diumumkan';
+      const date = new Date(value + 'T00:00:00');
+      return Number.isNaN(date.getTime()) ? 'Belum diumumkan'
+        : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    function renderRegistrationWaveInfo(config) {
+      const container = document.getElementById('registration-wave-list');
+      container.replaceChildren();
+      const waves = (config.registrationWaves || []).filter(function (wave) {
+        return !wave.academicYear || wave.academicYear === config.academicYear;
+      }).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); });
+      waves.forEach(function (wave) {
+        const card = document.createElement('article');
+        card.className = 'wave-info-card';
+        const title = document.createElement('h3');
+        title.textContent = wave.name;
+        const status = document.createElement('span');
+        status.className = 'wave-info-status' + (wave.status === 'open' ? ' is-open' : '');
+        status.textContent = wave.status === 'open' ? 'Dibuka' : 'Ditutup';
+        const dates = document.createElement('p');
+        dates.textContent = 'Pendaftaran: ' + formatWaveDate(wave.openDate) + ' – ' + formatWaveDate(wave.closeDate);
+        card.append(title, status, dates);
+        if (wave.fee) {
+          const registrationFee = document.createElement('p');
+          registrationFee.textContent = 'Biaya pendaftaran: Rp ' + Number(wave.fee).toLocaleString('id-ID');
+          card.appendChild(registrationFee);
+        }
+        if (wave.reenrollmentFee) {
+          const reenrollmentFee = document.createElement('p');
+          reenrollmentFee.textContent = 'Biaya daftar ulang sebelum promo: Rp ' +
+            Number(wave.reenrollmentFee).toLocaleString('id-ID');
+          card.appendChild(reenrollmentFee);
+        }
+        const earlyBird = config.reenrollmentPromotion || {};
+        const earlyBirdActive = Number(earlyBird.earlyBirdCount) > 0 &&
+          Number(earlyBird.earlyBirdPercent) > 0 && Number(earlyBird.earlyBirdRemaining) > 0;
+        const wavePercent = Number(wave.reenrollmentDiscountPercent || 0);
+        if (earlyBirdActive || wavePercent) {
+          const promotion = document.createElement('p');
+          promotion.className = 'wave-info-promotion';
+          const parts = [];
+          if (earlyBirdActive) parts.push(earlyBird.earlyBirdPercent + '% untuk ' +
+            earlyBird.earlyBirdCount + ' pendaftar pertama');
+          if (wavePercent) parts.push(wavePercent + '% promo ' + wave.name);
+          promotion.textContent = 'Potongan biaya daftar ulang: ' + parts.join(' + ') +
+            (parts.length > 1 ? ' (dapat digabung bagi yang memenuhi syarat).' : '.');
+          card.appendChild(promotion);
+        }
+        container.appendChild(card);
+      });
+      document.getElementById('registration-waves-section').hidden = !waves.length;
+      const promotion = config.reenrollmentPromotion || {};
+      const summary = document.getElementById('registration-promotion-summary');
+      if (promotion.earlyBirdCount > 0 && promotion.earlyBirdPercent > 0) {
+        const remaining = Number.isFinite(Number(promotion.earlyBirdRemaining))
+          ? Number(promotion.earlyBirdRemaining) : promotion.earlyBirdCount;
+        summary.textContent = remaining > 0
+          ? 'Promo daftar ulang ' + promotion.earlyBirdPercent + '% untuk ' + promotion.earlyBirdCount +
+            ' pendaftar pertama tahun ajaran ini. Kuota promo tersisa ' + remaining + ' pendaftar.'
+          : 'Kuota promo ' + promotion.earlyBirdCount + ' pendaftar pertama telah terpenuhi.';
+      } else {
+        summary.textContent = '';
+      }
+      summary.hidden = !summary.textContent;
+    }
+
+    function renderFaqs(faqs) {
+      const container = document.getElementById('faq-list-public');
+      container.replaceChildren();
+      (faqs || []).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); })
+        .forEach(function (item) {
+          const details = document.createElement('details');
+          details.className = 'faq-item';
+          const question = document.createElement('summary');
+          question.textContent = item.question;
+          const answer = document.createElement('p');
+          answer.textContent = item.answer;
+          details.append(question, answer);
+          container.appendChild(details);
+        });
+      document.getElementById('faq-section').hidden = !container.children.length;
+    }
+
     function observePublicSections() {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) return;
       if (!revealObserver) {
@@ -704,7 +948,7 @@
           });
         }, { threshold: 0.12, rootMargin: '0px 0px -24px 0px' });
       }
-      document.querySelectorAll('.home-hero, .about-heading, .benefit-card, .timeline-heading, .timeline-item, .form-area-heading')
+      document.querySelectorAll('.home-hero, .about-heading, .benefit-card, .timeline-heading, .timeline-item, .form-area-heading, .home-info-heading, .home-info-card, .program-info-card, .wave-info-card')
         .forEach(function (element) {
           if (element.classList.contains('reveal-on-scroll')) return;
           element.classList.add('reveal-on-scroll');
@@ -747,7 +991,12 @@
       if (!Array.isArray(siteConfig.registrationWaves)) siteConfig.registrationWaves = DEFAULT_SITE_CONFIG.registrationWaves;
       if (!Array.isArray(siteConfig.timelineEvents)) siteConfig.timelineEvents = DEFAULT_SITE_CONFIG.timelineEvents;
       if (!Array.isArray(siteConfig.programs)) siteConfig.programs = DEFAULT_SITE_CONFIG.programs;
+      if (!Array.isArray(siteConfig.programDetails)) siteConfig.programDetails = DEFAULT_SITE_CONFIG.programDetails;
+      if (!Array.isArray(siteConfig.faqs)) siteConfig.faqs = DEFAULT_SITE_CONFIG.faqs;
       if (!Array.isArray(siteConfig.contactPersons)) siteConfig.contactPersons = DEFAULT_SITE_CONFIG.contactPersons;
+      if (!siteConfig.schoolLocation || typeof siteConfig.schoolLocation !== 'object') {
+        siteConfig.schoolLocation = DEFAULT_SITE_CONFIG.schoolLocation;
+      }
       document.getElementById('timeline-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('page-title').textContent = siteConfig.pageTitle;
       document.getElementById('academic-year').textContent = 'SMK PGRI CIKONENG TAHUN AJARAN ' + siteConfig.academicYear;
@@ -759,6 +1008,11 @@
         : (siteConfig.brochureImageUrl ? [siteConfig.brochureImageUrl] : []);
       initializeBrochureSlideshow(brochureUrls);
       renderTimelineEvents(siteConfig.timelineEvents);
+      renderHomeRequirements(siteConfig);
+      renderSchoolLocation(siteConfig.schoolLocation);
+      renderProgramDetails(siteConfig);
+      renderRegistrationWaveInfo(siteConfig);
+      renderFaqs(siteConfig.faqs);
       renderContactPersons(siteConfig.contactPersons);
       document.getElementById('contact-label').textContent = siteConfig.contactLabel;
       const registrationPage = document.documentElement.dataset.spmbPage === 'registration';

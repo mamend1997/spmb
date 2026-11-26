@@ -968,13 +968,15 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
 .hero-register:hover { transform: translateY(-2px) scale(1.025); }
 
 .about-section,
-.timeline-section {
+.timeline-section,
+.home-info-section {
   max-width: 1080px;
   margin: 0 auto 54px;
 }
 
 .about-heading,
-.timeline-heading {
+.timeline-heading,
+.home-info-heading {
   max-width: 760px;
   margin: 0 auto 24px;
   text-align: center;
@@ -988,7 +990,8 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
 }
 
 .about-heading h2,
-.timeline-heading h2 {
+.timeline-heading h2,
+.home-info-heading h2 {
   margin: 8px 0 10px;
   color: #172554;
   font-size: clamp(24px, 3vw, 34px);
@@ -997,12 +1000,96 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
 }
 
 .about-heading p,
-.timeline-heading p {
+.timeline-heading p,
+.home-info-heading p {
   margin: 0;
   color: #64748b;
   font-size: 14px;
   line-height: 1.8;
 }
+
+.home-info-grid,
+.program-card-grid,
+.wave-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.home-info-card,
+.program-info-card,
+.wave-info-card {
+  padding: 22px;
+  border: 1px solid #e8eaf2;
+  border-radius: 20px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 9px 24px rgb(23 37 84 / 5%);
+}
+
+.home-info-card h3,
+.program-info-card h3,
+.wave-info-card h3 {
+  margin: 0 0 12px;
+  color: #1e293b;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.home-checklist,
+.program-info-card ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-checklist li,
+.program-info-card li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.home-checklist li::before {
+  flex: 0 0 auto;
+  color: #ea580c;
+  content: "✓";
+  font-weight: 800;
+}
+
+.checklist-status {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.location-address { white-space: pre-line; }
+.location-card p { margin: 0 0 12px; color: #475569; line-height: 1.7; }
+.location-card p:last-of-type { margin-bottom: 0; }
+.home-info-link { display: inline-flex; margin-top: 14px; color: #c2410c; font-weight: 800; }
+
+.program-info-card { display: grid; align-content: start; gap: 12px; }
+.program-info-card h3 { margin: 0; }
+.program-info-card p { margin: 0; color: #64748b; font-size: 13px; line-height: 1.7; }
+.program-info-card h4 { margin: 0 0 7px; color: #334155; font-size: 12px; font-weight: 800; }
+.program-info-card li { display: list-item; margin-left: 17px; list-style: disc; }
+
+.wave-info-card { position: relative; }
+.wave-info-card p { margin: 8px 0 0; color: #64748b; font-size: 13px; line-height: 1.65; }
+.wave-info-card .wave-info-promotion { color: #9a3412; font-weight: 700; }
+.wave-info-status { display: inline-flex; margin: -4px 0 4px; color: #64748b; font-size: 11px; font-weight: 800; }
+.wave-info-status.is-open { color: #15803d; }
+
+.faq-list-public { display: grid; gap: 10px; }
+.faq-item { padding: 17px 20px; border: 1px solid #e8eaf2; border-radius: 16px; background: #fff; }
+.faq-item summary { color: #1e293b; cursor: pointer; font-size: 14px; font-weight: 800; }
+.faq-item p { margin: 12px 0 0; color: #64748b; font-size: 13px; line-height: 1.75; }
 
 .timeline-heading h2 span { color: #ea580c; }
 
@@ -1250,9 +1337,10 @@ a[href]:hover {
 @media (max-width: 760px) {
   .hero-actions { align-items: stretch; }
   .hero-actions > a { flex: 1 1 220px; margin-top: 20px; }
-  .about-section, .timeline-section { margin-bottom: 38px; }
+  .about-section, .timeline-section, .home-info-section { margin-bottom: 38px; }
   .timeline-track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .timeline-card { min-height: 175px; }
+  .home-info-grid, .program-card-grid, .wave-info-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -1280,6 +1368,7 @@ html[data-spmb-page="home"] #formulir { display: none !important; }
 
 html[data-spmb-page="registration"] #beranda,
 html[data-spmb-page="registration"] .about-section,
+html[data-spmb-page="registration"] .home-info-section,
 html[data-spmb-page="registration"] #timeline {
   display: none !important;
 }

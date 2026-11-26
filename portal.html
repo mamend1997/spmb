@@ -363,6 +363,7 @@
         <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Unggah Bukti Pembayaran</p>
           <p id="payment-fee" class="mt-1 text-lg font-extrabold text-slate-900"></p>
+          <p id="payment-price-details" class="mt-1 text-sm text-slate-600"></p>
           <p id="payment-review-note" class="mt-1 text-sm text-slate-600"></p>
           <form id="payment-proof-form" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div class="flex-1">
@@ -778,9 +779,6 @@
       proofLink.hidden = !paymentVerified || !application.paymentProofUrl;
       if (application.paymentProofUrl) proofLink.href = application.paymentProofUrl;
       showText('payment-instructions', settings.instructions || 'Ikuti petunjuk pembayaran dari panitia.');
-      showText('payment-fee', application.paymentFee
-        ? 'Nominal daftar ulang: Rp ' + Number(application.paymentFee).toLocaleString('id-ID')
-        : 'Nominal daftar ulang mengikuti informasi panitia.');
       showText('payment-review-note', application.paymentNote || '');
 
       const bank = document.getElementById('bank-payment');
@@ -808,6 +806,27 @@
       const activeKaseraTransaction = kaseraTransaction && kaseraTransaction.status === 'pending' &&
         Date.parse(kaseraTransaction.expiresAt) > Date.now();
       const pendingAutomaticPayment = Boolean(activeInvoice || activeKaseraTransaction);
+      const activePaymentAmount = activeInvoice ? invoice.totalAmount
+        : activeKaseraTransaction ? kaseraTransaction.amount : application.paymentFee;
+      showText('payment-fee', activeInvoice || activeKaseraTransaction
+        ? 'Tagihan aktif: Rp ' + Number(activePaymentAmount).toLocaleString('id-ID')
+        : application.paymentFeeConfigured
+          ? 'Nominal daftar ulang: Rp ' + Number(application.paymentFee).toLocaleString('id-ID')
+          : 'Nominal daftar ulang mengikuti informasi panitia.');
+      const discountBreakdown = [
+        application.earlyBirdDiscountPercent
+          ? application.earlyBirdDiscountPercent + '% untuk pendaftar awal' : '',
+        application.waveDiscountPercent
+          ? application.waveDiscountPercent + '% promo ' + (application.wave || 'gelombang') : ''
+      ].filter(Boolean).join(' + ');
+      showText('payment-price-details', !activePaymentAmount && activePaymentAmount !== 0
+        ? ''
+        : !activeInvoice && !activeKaseraTransaction && application.paymentFeeConfigured &&
+          application.paymentDiscountPercent > 0
+          ? 'Harga awal Rp ' + Number(application.paymentFeeBase).toLocaleString('id-ID') +
+            ' · Diskon ' + discountBreakdown + ' (total ' + application.paymentDiscountPercent +
+            '%, hemat Rp ' + Number(application.paymentDiscountAmount).toLocaleString('id-ID') + ').'
+          : '');
       const gateway = document.getElementById('gateway-payment');
       const selectedApiAvailable = (qiospaySelected && qiospayAvailable) || (kaseraSelected && kaseraAvailable);
       gateway.classList.toggle('hidden', settings.gatewayEnabled === false || selectedApiAvailable ||

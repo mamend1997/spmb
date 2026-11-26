@@ -11,6 +11,7 @@ const {
   normalizeWhatsAppPhone
 } = require('./registration-identifiers');
 const { sanitizeContactPersons } = require('./contact-persons');
+const { calculateReenrollmentPricing } = require('./reenrollment-pricing');
 
 const app = express();
 const publicLookupRequests = new Map();
@@ -73,6 +74,26 @@ const initialConfig = {
   pageTitle: 'FORMULIR PENDAFTARAN CALON PESERTA DIDIK BARU',
   academicYear: '2027/2028',
   programs: programs,
+  programDetails: [
+    {
+      name: 'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
+      description: 'Pelajari administrasi perkantoran, pengelolaan arsip, korespondensi, dan layanan bisnis dengan dukungan teknologi digital.',
+      skills: ['Administrasi dan pengelolaan dokumen', 'Korespondensi dan layanan pelanggan', 'Aplikasi perkantoran digital'],
+      careers: ['Staf administrasi', 'Resepsionis', 'Staf layanan bisnis']
+    },
+    {
+      name: 'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
+      description: 'Pelajari pencatatan transaksi, penyusunan laporan keuangan, administrasi perpajakan, dan penggunaan aplikasi akuntansi.',
+      skills: ['Pencatatan dan pemeriksaan transaksi', 'Penyusunan laporan keuangan', 'Aplikasi akuntansi dan administrasi pajak'],
+      careers: ['Staf akuntansi pemula', 'Staf administrasi keuangan', 'Kasir']
+    },
+    {
+      name: 'BISNIS DIGITAL',
+      description: 'Pelajari pemasaran digital, pengelolaan toko daring, pembuatan konten, dan dasar analisis bisnis berbasis teknologi.',
+      skills: ['Pemasaran digital dan media sosial', 'Pengelolaan toko daring', 'Pembuatan konten bisnis'],
+      careers: ['Staf pemasaran digital', 'Admin toko daring', 'Admin media sosial']
+    }
+  ],
   classes: [],
   whatsappGateway: {
     enabled: false,
@@ -104,9 +125,18 @@ const initialConfig = {
     { title: 'Seleksi', description: 'Proses seleksi dan pengumuman hasil.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 5 },
     { title: 'Registrasi', description: 'Daftar ulang bagi peserta yang dinyatakan diterima.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 6 }
   ],
+  faqs: [
+    { question: 'Bagaimana alur pendaftaran SPMB?', answer: 'Isi formulir online dan unggah dokumen yang diminta. Panitia akan memeriksa data; pantau status dan pengumuman melalui portal siswa.', order: 1 },
+    { question: 'Berapa biaya pendaftaran dan daftar ulang?', answer: 'Nominal mengikuti informasi pada gelombang pendaftaran dan pengumuman resmi sekolah. Periksa kembali nominal serta petunjuk pembayaran di portal sebelum membayar.', order: 2 },
+    { question: 'Bagaimana jika ada data yang perlu diperbaiki?', answer: 'Masuk ke portal siswa dan ikuti catatan revisi dari panitia. Perbarui data atau unggah ulang dokumen yang diminta, lalu pantau statusnya kembali.', order: 3 },
+    { question: 'Bagaimana cara mengecek hasil seleksi?', answer: 'Masuk ke portal siswa menggunakan nomor pendaftaran dan PIN, atau gunakan halaman Pencarian Pendaftar untuk melihat status yang tersedia.', order: 4 }
+  ],
+  schoolLocation: { address: '', mapUrl: '', serviceHours: '' },
+  reenrollmentPromotion: { earlyBirdCount: 25, earlyBirdPercent: 13 },
   registrationWaves: [{
     name: 'Gelombang 1', academicYear: '2027/2028', openDate: '', closeDate: '',
-    announcementDate: '', quota: 0, fee: '', reenrollmentFee: '', order: 1, status: 'open', notes: ''
+    announcementDate: '', quota: 0, fee: '', reenrollmentFee: '', reenrollmentDiscountPercent: 6,
+    order: 1, status: 'open', notes: ''
   }],
   registrationPaths: [{
     name: 'Reguler / Umum', wave: '', quota: 0, description: 'Pendaftaran jalur umum dan reguler.',
@@ -457,6 +487,17 @@ if (!applicantColumns.some(function (column) { return column.name === 'archived_
 if (!applicantColumns.some(function (column) { return column.name === 'deleted_at'; })) {
   database.exec("ALTER TABLE applicants ADD COLUMN deleted_at TEXT NOT NULL DEFAULT ''");
 }
+const pricingColumns = new Set(database.prepare('PRAGMA table_info(applicants)').all()
+  .map(function (column) { return column.name; }));
+if (!pricingColumns.has('reenrollment_fee_base')) {
+  database.exec('ALTER TABLE applicants ADD COLUMN reenrollment_fee_base INTEGER NOT NULL DEFAULT -1');
+}
+if (!pricingColumns.has('early_bird_discount_percent')) {
+  database.exec('ALTER TABLE applicants ADD COLUMN early_bird_discount_percent INTEGER NOT NULL DEFAULT -1');
+}
+if (!pricingColumns.has('wave_discount_percent')) {
+  database.exec('ALTER TABLE applicants ADD COLUMN wave_discount_percent INTEGER NOT NULL DEFAULT -1');
+}
 database.exec('CREATE INDEX IF NOT EXISTS idx_applicants_deleted_at ON applicants(deleted_at, id DESC)');
 database.exec('CREATE INDEX IF NOT EXISTS idx_admin_activity_log_created_at ON admin_activity_log(created_at DESC)');
 database.exec(`
@@ -762,10 +803,19 @@ function sanitizeGoogleIntegrationConfig(input) {
 function sanitizeConfig(input) {
   if (!input || typeof input !== 'object') throw new Error('Pengaturan situs tidak valid.');
   const configuredPrograms = sanitizePrograms(input.programs);
+  const programDetails = sanitizeProgramDetails(input.programDetails, configuredPrograms);
   const formFields = sanitizeFormFields(input.formFields);
   const majorField = formFields.find(function (field) { return field.key === 'major'; });
   if (majorField) majorField.options = configuredPrograms.slice();
   const registrationWaves = sanitizeWaves(input.registrationWaves);
+  const reenrollmentPromotion = sanitizeReenrollmentPromotion(input.reenrollmentPromotion);
+  registrationWaves.forEach(function (wave) {
+    const earlyBirdPercent = reenrollmentPromotion.earlyBirdCount > 0
+      ? reenrollmentPromotion.earlyBirdPercent : 0;
+    if (wave.reenrollmentDiscountPercent + earlyBirdPercent > 99) {
+      throw new Error('Total potongan daftar ulang untuk setiap gelombang maksimal 99%.');
+    }
+  });
   const registrationPaths = sanitizePaths(input.registrationPaths, registrationWaves);
   const brochureImageUrls = sanitizeBrochureImageUrls(
     Object.prototype.hasOwnProperty.call(input, 'brochureImageUrls')
@@ -776,6 +826,7 @@ function sanitizeConfig(input) {
     pageTitle: String(input.pageTitle || '').trim(),
     academicYear: String(input.academicYear || '').trim(),
     programs: configuredPrograms,
+    programDetails: programDetails,
     classes: sanitizeClasses(input.classes),
     whatsappGateway: sanitizeWhatsAppGatewayConfig(input.whatsappGateway),
     googleIntegration: sanitizeGoogleIntegrationConfig(input.googleIntegration),
@@ -785,9 +836,12 @@ function sanitizeConfig(input) {
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
     schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
     timelineEvents: sanitizeTimelineEvents(input.timelineEvents),
+    faqs: sanitizeFaqs(input.faqs),
+    schoolLocation: sanitizeSchoolLocation(input.schoolLocation),
     contactLabel: String(input.contactLabel || '').trim(),
     contactPersons: sanitizeContactPersons(input.contactPersons),
     registrationWaves: registrationWaves,
+    reenrollmentPromotion: reenrollmentPromotion,
     registrationPaths: registrationPaths,
     formFields: formFields,
     documentRequirements: sanitizeDocumentRequirements(input.documentRequirements, registrationWaves, registrationPaths),
@@ -808,6 +862,59 @@ function sanitizeConfig(input) {
     }
   });
   return config;
+}
+
+function getReenrollmentPricing(applicant, config) {
+  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  let baseAmount = Number(applicant.reenrollment_fee_base);
+  let earlyBirdDiscountPercent = Number(applicant.early_bird_discount_percent);
+  let waveDiscountPercent = Number(applicant.wave_discount_percent);
+  if (baseAmount < 0 || earlyBirdDiscountPercent < 0 || waveDiscountPercent < 0) {
+    const promotion = config.reenrollmentPromotion;
+    if (baseAmount < 0) {
+      baseAmount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : -1;
+    }
+    if (earlyBirdDiscountPercent < 0 || waveDiscountPercent < 0) {
+      const registrationRank = Number(database.prepare(
+        'SELECT COUNT(*) AS count FROM applicants WHERE academic_year = ? AND id <= ?'
+      ).get(applicant.academic_year || config.academicYear, applicant.id).count);
+      if (earlyBirdDiscountPercent < 0) {
+        earlyBirdDiscountPercent = promotion.earlyBirdCount > 0 && registrationRank <= promotion.earlyBirdCount
+          ? promotion.earlyBirdPercent : 0;
+      }
+      if (waveDiscountPercent < 0) {
+        waveDiscountPercent = wave ? wave.reenrollmentDiscountPercent : 0;
+      }
+    }
+    if (!Number.isSafeInteger(baseAmount) || baseAmount < -1 ||
+        !Number.isSafeInteger(earlyBirdDiscountPercent) || earlyBirdDiscountPercent < 0 ||
+        !Number.isSafeInteger(waveDiscountPercent) || waveDiscountPercent < 0) {
+      throw new Error('Snapshot biaya daftar ulang tidak valid.');
+    }
+    database.prepare(`
+      UPDATE applicants SET reenrollment_fee_base = ?, early_bird_discount_percent = ?,
+        wave_discount_percent = ? WHERE id = ?
+    `).run(
+      baseAmount,
+      earlyBirdDiscountPercent,
+      waveDiscountPercent,
+      applicant.id
+    );
+    applicant.reenrollment_fee_base = baseAmount;
+    applicant.early_bird_discount_percent = earlyBirdDiscountPercent;
+    applicant.wave_discount_percent = waveDiscountPercent;
+  }
+  if (baseAmount < 0) {
+    return {
+      baseAmount: baseAmount,
+      earlyBirdDiscountPercent: earlyBirdDiscountPercent,
+      waveDiscountPercent: waveDiscountPercent,
+      discountPercent: earlyBirdDiscountPercent + waveDiscountPercent,
+      discountAmount: 0,
+      amount: 0
+    };
+  }
+  return calculateReenrollmentPricing(baseAmount, earlyBirdDiscountPercent, waveDiscountPercent);
 }
 
 function sanitizeBrochureImageUrls(input) {
@@ -843,6 +950,105 @@ function sanitizePrograms(input) {
     names.add(normalized);
     return name;
   });
+}
+
+function sanitizeProgramDetails(input, configuredPrograms) {
+  if (input === undefined) input = initialConfig.programDetails;
+  if (!Array.isArray(input) || input.length > 20) {
+    throw new Error('Informasi program studi tidak valid.');
+  }
+  const detailsByName = new Map();
+  input.forEach(function (item) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error('Informasi program studi tidak valid.');
+    }
+    const name = String(item.name || '').trim();
+    const key = name.toLocaleLowerCase('id-ID');
+    if (!name || detailsByName.has(key)) throw new Error('Informasi program studi harus memiliki nama unik.');
+    function sanitizeList(values, label) {
+      if (values === undefined) values = [];
+      if (typeof values === 'string') values = values.split(/\r?\n/);
+      if (!Array.isArray(values) || values.length > 10) throw new Error(label + ' maksimal berisi 10 butir.');
+      return values.map(function (value) {
+        const text = String(value || '').trim();
+        if (text.length < 2 || text.length > 160) throw new Error(label + ' harus terdiri dari 2–160 karakter.');
+        return text;
+      }).filter(Boolean);
+    }
+    const description = String(item.description || '').trim();
+    if (description.length > 600) throw new Error('Deskripsi program studi maksimal 600 karakter.');
+    detailsByName.set(key, {
+      name: name,
+      description: description,
+      skills: sanitizeList(item.skills, 'Keterampilan'),
+      careers: sanitizeList(item.careers, 'Peluang karier')
+    });
+  });
+  return configuredPrograms.map(function (name) {
+    const key = name.toLocaleLowerCase('id-ID');
+    const detail = detailsByName.get(key) || { name: name, description: '', skills: [], careers: [] };
+    return Object.assign({}, detail, { name: name });
+  });
+}
+
+function sanitizeFaqs(input) {
+  if (input === undefined) input = initialConfig.faqs;
+  if (!Array.isArray(input) || input.length > 20) throw new Error('FAQ maksimal berisi 20 pertanyaan.');
+  const questions = new Set();
+  return input.map(function (item, index) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Data FAQ tidak valid.');
+    const question = String(item.question || '').trim();
+    const answer = String(item.answer || '').trim();
+    const key = question.toLocaleLowerCase('id-ID');
+    if (question.length < 3 || question.length > 160 || questions.has(key)) {
+      throw new Error('Pertanyaan FAQ harus unik dan terdiri dari 3–160 karakter.');
+    }
+    if (answer.length < 5 || answer.length > 1000) throw new Error('Jawaban FAQ harus terdiri dari 5–1000 karakter.');
+    questions.add(key);
+    return {
+      question: question,
+      answer: answer,
+      order: Number.isSafeInteger(Number(item.order)) && Number(item.order) > 0 ? Number(item.order) : index + 1
+    };
+  });
+}
+
+function sanitizeSchoolLocation(input) {
+  if (input === undefined) input = initialConfig.schoolLocation;
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Informasi lokasi dan jam layanan tidak valid.');
+  }
+  const address = String(input.address || '').trim();
+  const mapUrl = String(input.mapUrl || '').trim();
+  const serviceHours = String(input.serviceHours || '').trim();
+  if (address.length > 500) throw new Error('Alamat sekolah maksimal 500 karakter.');
+  if (serviceHours.length > 200) throw new Error('Jam layanan maksimal 200 karakter.');
+  if (mapUrl) {
+    let url;
+    try { url = new URL(mapUrl); } catch (error) {
+      throw new Error('Tautan peta tidak valid.');
+    }
+    if (url.protocol !== 'https:' || !isAllowedPublicUrl(mapUrl)) {
+      throw new Error('Tautan peta harus menggunakan HTTPS dan alamat publik.');
+    }
+  }
+  return { address: address, mapUrl: mapUrl, serviceHours: serviceHours };
+}
+
+function sanitizeReenrollmentPromotion(input) {
+  if (input === undefined) input = initialConfig.reenrollmentPromotion;
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Pengaturan promo daftar ulang tidak valid.');
+  }
+  const earlyBirdCount = Number(input.earlyBirdCount);
+  const earlyBirdPercent = Number(input.earlyBirdPercent);
+  if (!Number.isSafeInteger(earlyBirdCount) || earlyBirdCount < 0 || earlyBirdCount > 100000) {
+    throw new Error('Kuota promo pendaftar pertama harus antara 0–100.000.');
+  }
+  if (!Number.isSafeInteger(earlyBirdPercent) || earlyBirdPercent < 0 || earlyBirdPercent > 99) {
+    throw new Error('Persentase promo daftar ulang harus antara 0–99%.');
+  }
+  return { earlyBirdCount: earlyBirdCount, earlyBirdPercent: earlyBirdPercent };
 }
 
 function sanitizeClasses(input) {
@@ -927,11 +1133,19 @@ function sanitizeWaves(waves) {
     const closeDate = String(wave && wave.closeDate || '').trim();
     const announcementDate = String(wave && wave.announcementDate || '').trim();
     const quota = Number(wave && wave.quota || 0);
+    const defaultWave = initialConfig.registrationWaves.find(function (item) { return item.name === wave.name; });
+    const reenrollmentDiscountPercent = Number(wave.reenrollmentDiscountPercent === undefined
+      ? defaultWave && defaultWave.reenrollmentDiscountPercent || 0
+      : wave.reenrollmentDiscountPercent);
     if (name.length < 3 || name.length > 40 || names.has(name.toLowerCase())) {
       throw new Error('Nama gelombang harus unik dan terdiri dari 3–40 karakter.');
     }
     if (fee && !/^\d{1,9}$/.test(fee)) throw new Error('Biaya gelombang harus berupa angka rupiah.');
     if (reenrollmentFee && !/^\d{1,9}$/.test(reenrollmentFee)) throw new Error('Biaya daftar ulang harus berupa angka rupiah.');
+    if (!Number.isSafeInteger(reenrollmentDiscountPercent) ||
+        reenrollmentDiscountPercent < 0 || reenrollmentDiscountPercent > 99) {
+      throw new Error('Persentase potongan daftar ulang per gelombang harus antara 0–99%.');
+    }
     if (status !== 'open' && status !== 'closed') throw new Error('Status gelombang tidak valid.');
     if (!Number.isSafeInteger(quota) || quota < 0 || quota > 100000) throw new Error('Kuota gelombang tidak valid.');
     [openDate, closeDate, announcementDate].forEach(function (date) {
@@ -949,6 +1163,7 @@ function sanitizeWaves(waves) {
       quota: quota,
       fee: fee,
       reenrollmentFee: reenrollmentFee,
+      reenrollmentDiscountPercent: reenrollmentDiscountPercent,
       order: Number.isSafeInteger(Number(wave.order)) && Number(wave.order) > 0 ? Number(wave.order) : names.size,
       status: status,
       notes: String(wave.notes || '').trim().slice(0, 500)
@@ -1554,12 +1769,12 @@ function defaultRolePermissions() {
 const adminConfigPermissionGroups = {
   form: ['pageTitle', 'contactLabel', 'contactPersons', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
   academicYear: ['academicYear'],
-  programs: ['programs'],
+  programs: ['programs', 'programDetails'],
   classes: ['classes'],
   whatsapp: ['whatsappGateway'],
-  waves: ['registrationWaves'],
+  waves: ['registrationWaves', 'reenrollmentPromotion'],
   paths: ['registrationPaths'],
-  timeline: ['brochureImageUrl', 'brochureImageUrls', 'timelineEvents'],
+  timeline: ['brochureImageUrl', 'brochureImageUrls', 'timelineEvents', 'faqs', 'schoolLocation'],
   googleIntegration: ['googleIntegration'],
   payment: ['paymentSettings'],
   documents: ['schoolDocuments']
@@ -1970,7 +2185,8 @@ function dispatchSelectionNotifications(applicant, config) {
   });
   if (!['Diterima / Lulus', 'Diterima'].includes(status)) return;
   const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
-  const fee = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : null;
+  const pricing = getReenrollmentPricing(applicant, config);
+  const fee = wave && pricing.baseAmount >= 0 ? pricing.amount : null;
   const instructions = config.paymentSettings.instructions || 'Hubungi panitia untuk informasi daftar ulang.';
   const reenrollmentMessage = [
     'Informasi daftar ulang SPMB SMK PGRI Cikoneng',
@@ -1978,13 +2194,17 @@ function dispatchSelectionNotifications(applicant, config) {
     'Nomor pendaftaran: ' + applicant.registration_number,
     'Tahun pelajaran: ' + config.academicYear,
     'Biaya daftar ulang: ' + (fee === null ? 'Belum ditetapkan; silakan hubungi panitia.' : 'Rp ' + fee.toLocaleString('id-ID')),
+    pricing.discountPercent ? 'Potongan promo: ' + pricing.discountPercent + '% (hemat Rp ' + pricing.discountAmount.toLocaleString('id-ID') + ')' : '',
     'Petunjuk: ' + instructions
-  ].join('\n');
+  ].filter(Boolean).join('\n');
   dispatchWhatsAppEvent('reenrollment.instructions', applicant, reenrollmentMessage, {
     registrationNumber: applicant.registration_number,
     studentName: applicant.student_name,
     academicYear: config.academicYear,
     reenrollmentFee: fee,
+    reenrollmentFeeBeforeDiscount: pricing.baseAmount || null,
+    reenrollmentDiscountPercent: pricing.discountPercent,
+    reenrollmentDiscountAmount: pricing.discountAmount,
     instructions: instructions
   });
 }
@@ -2388,6 +2608,13 @@ app.get('/healthz', function (request, response) {
 
 app.get('/api/public-config', function (request, response) {
   const config = getConfig();
+  const registeredThisYear = Number(database.prepare(
+    'SELECT COUNT(*) AS count FROM applicants WHERE academic_year = ?'
+  ).get(config.academicYear).count);
+  config.reenrollmentPromotion.earlyBirdRemaining = Math.max(
+    0,
+    config.reenrollmentPromotion.earlyBirdCount - registeredThisYear
+  );
   delete config.whatsappGateway;
   delete config.googleIntegration;
   response.json(config);
@@ -2448,6 +2675,7 @@ app.post('/api/registrations', function (request, response) {
           if (pathCount > pathConfig.quota) throw new Error('Kuota jalur pendaftaran ini sudah terpenuhi.');
         }
       }
+      getReenrollmentPricing(database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicantId), currentConfig);
       createApplicantUploads(applicantId, registrationNumber, uploads.uploads, now, getConfig(), payload);
       queueSheetSync(applicantId);
       return database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicantId);
@@ -2871,6 +3099,7 @@ function buildPortalApplication(applicant, config) {
   const fieldReviews = JSON.parse(applicant.field_reviews_json || '{}');
   const customData = JSON.parse(applicant.custom_data_json || '{}');
   const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  const reenrollmentPricing = getReenrollmentPricing(applicant, config);
   const visibleDocuments = config.documentRequirements.filter(function (document) {
     return document.active && (!document.wave || document.wave === applicant.wave) &&
       (!document.registrationPath || document.registrationPath === applicant.registration_path);
@@ -2986,7 +3215,13 @@ function buildPortalApplication(applicant, config) {
     reenrollmentStatus: paymentDetails.reenrollment_status,
     paymentStatus: paymentDetails.payment_status,
     paymentNote: paymentDetails.payment_note,
-    paymentFee: wave ? wave.reenrollmentFee : '',
+    paymentFee: reenrollmentPricing.amount,
+    paymentFeeConfigured: reenrollmentPricing.baseAmount >= 0,
+    paymentFeeBase: reenrollmentPricing.baseAmount,
+    paymentDiscountAmount: reenrollmentPricing.discountAmount,
+    paymentDiscountPercent: reenrollmentPricing.discountPercent,
+    earlyBirdDiscountPercent: reenrollmentPricing.earlyBirdDiscountPercent,
+    waveDiscountPercent: reenrollmentPricing.waveDiscountPercent,
     paymentSettings: config.paymentSettings,
     paymentProofUrl: uploadedFiles.has('paymentProof') ? '/api/portal/documents/paymentProof' : '',
     qiospayAvailable: Boolean(getQiospayCredentials()) && config.paymentSettings.gatewayEnabled !== false,
@@ -3334,8 +3569,7 @@ app.post('/api/portal/payment/qiospay', requirePortal, async function (request, 
   if (config.paymentSettings.gatewayProvider.toLowerCase() !== 'qiospay') {
     return response.status(403).json({ message: 'Provider pembayaran otomatis saat ini bukan QiosPay.' });
   }
-  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
-  const amount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : 0;
+  const amount = getReenrollmentPricing(applicant, config).amount;
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(403).json({ message: 'Pembayaran daftar ulang hanya tersedia bagi siswa yang diterima.' });
   }
@@ -3374,8 +3608,7 @@ app.post('/api/portal/payment/kasera', requirePortal, async function (request, r
   if (config.paymentSettings.gatewayProvider.toLowerCase() !== 'kasera') {
     return response.status(403).json({ message: 'Provider pembayaran otomatis saat ini bukan Kasera.' });
   }
-  const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
-  const amount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : 0;
+  const amount = getReenrollmentPricing(applicant, config).amount;
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(403).json({ message: 'Pembayaran daftar ulang hanya tersedia bagi siswa yang diterima.' });
   }
@@ -4013,9 +4246,10 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
     }
     const deletions = {
       form: [['formFields', 'key'], ['documentRequirements', 'key'], ['contactPersons', 'phone']],
+      programs: [['programDetails', 'name']],
       waves: [['registrationWaves', 'name']],
       paths: [['registrationPaths', 'name']],
-      timeline: [['timelineEvents', 'title']],
+      timeline: [['timelineEvents', 'title'], ['faqs', 'question']],
       documents: [['schoolDocuments', 'key']]
     };
     Object.keys(deletions).forEach(function (menu) {
@@ -4367,10 +4601,15 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       created_at: applicant.created_at
     };
     if (!isViewer) {
+      const reenrollmentPricing = getReenrollmentPricing(applicant, config);
       Object.assign(result, {
         selection_note: applicant.selection_note,
         payment_note: applicant.payment_note,
         wave_fee: applicant.wave_fee,
+        reenrollment_fee: reenrollmentPricing.amount,
+        reenrollment_fee_base: reenrollmentPricing.baseAmount,
+        reenrollment_discount_amount: reenrollmentPricing.discountAmount,
+        reenrollment_discount_percent: reenrollmentPricing.discountPercent,
         school_origin: applicant.school_origin,
         nisn: applicant.nisn,
         family_card_number: maskSensitiveValue(applicant.family_card_number),
