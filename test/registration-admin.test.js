@@ -22,6 +22,15 @@ test('manual registration may omit required uploads without weakening public reg
   assert.match(serverJs, /const result = createApplicantRegistration\(request\.body\);/);
 });
 
+test('admin can mark documents physically received when adding an applicant without uploading them', function () {
+  assert.match(adminHtml, /data-admin-registration-physical-key/);
+  assert.match(adminHtml, /payload\.physicalDocumentKeys = Array\.from\(form\.querySelectorAll\('\[data-admin-registration-physical-key\]:checked'\)\)/);
+  assert.match(serverJs, /sanitizeApplicablePhysicalDocumentKeys\(body\.physicalDocumentKeys, currentConfig, payload\.wave, payload\.registrationPath\)/);
+  assert.match(serverJs, /physicalDocumentsJson: JSON\.stringify\(physicalDocumentKeys\)/);
+  assert.match(serverJs, /physical_documents_json[\s\S]*?@physicalDocumentsJson/);
+  assert.match(serverJs, /options && options\.allowMissingDocuments === true\s*\? sanitizeApplicablePhysicalDocumentKeys/);
+});
+
 test('school letterhead supports a reusable image and five-line manual design', function () {
   assert.match(adminHtml, /id="registration-letterhead-file"/);
   assert.match(adminHtml, /data-asset="registrationLetterhead"/);

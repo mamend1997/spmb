@@ -1521,6 +1521,18 @@ function sanitizePhysicalDocumentKeys(input, existing) {
   return keys;
 }
 
+function sanitizeApplicablePhysicalDocumentKeys(input, config, wave, registrationPath) {
+  const keys = sanitizePhysicalDocumentKeys(input, { physical_documents_json: '[]' });
+  const applicableKeys = new Set((config.documentRequirements || []).filter(function (document) {
+    return document.active && (!document.wave || document.wave === wave) &&
+      (!document.registrationPath || document.registrationPath === registrationPath);
+  }).map(function (document) { return document.key; }));
+  if (keys.some(function (key) { return !applicableKeys.has(key); })) {
+    throw new Error('Berkas fisik yang dipilih tidak tersedia untuk gelombang dan jalur pendaftaran ini.');
+  }
+  return keys;
+}
+
 function isApplicantVerifiedForSelection(applicant, config) {
   const reviews = JSON.parse(applicant.field_reviews_json || '{}');
   const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
@@ -2749,6 +2761,10 @@ function createApplicantRegistration(input, options) {
     const body = input || {};
     const payload = validateRegistration(body);
     const uploads = buildRegistrationPayload(body, body.uploads);
+    const currentConfig = getConfig();
+    const physicalDocumentKeys = options && options.allowMissingDocuments === true
+      ? sanitizeApplicablePhysicalDocumentKeys(body.physicalDocumentKeys, currentConfig, payload.wave, payload.registrationPath)
+      : [];
     const pin = String(crypto.randomInt(100000, 1000000));
     const salt = crypto.randomBytes(16).toString('hex');
     const now = new Date().toISOString();
@@ -2757,6 +2773,7 @@ function createApplicantRegistration(input, options) {
       assertRegistrationIdentifiersAvailable(payload);
       const insertValues = Object.assign({}, payload, {
         customDataJson: JSON.stringify(payload.customData),
+        physicalDocumentsJson: JSON.stringify(physicalDocumentKeys),
         academicYear: getConfig().academicYear,
         salt: salt,
         pinHash: makePinHash(pin, salt),
@@ -2769,13 +2786,14 @@ function createApplicantRegistration(input, options) {
           gender, religion, birth_place, birth_date, email, student_phone, father_nik, father_name,
           father_education, father_occupation, father_income, father_phone, mother_nik, mother_name,
           mother_education, mother_occupation, mother_income, mother_phone, address, custom_data_json, academic_year, portal_pin_salt,
-          portal_pin_hash, document_status, selection_status, reenrollment_status, status_updated_at, created_at
+          portal_pin_hash, document_status, selection_status, reenrollment_status, status_updated_at, created_at,
+          physical_documents_json
         ) VALUES (
           @wave, @waveFee, @registrationPath, @major, @studentName, @schoolOrigin, @nisn, @familyCardNumber, @studentNik,
           @gender, @religion, @birthPlace, @birthDate, @email, @studentPhone, @fatherNik, @fatherName,
           @fatherEducation, @fatherOccupation, @fatherIncome, @fatherPhone, @motherNik, @motherName,
           @motherEducation, @motherOccupation, @motherIncome, @motherPhone, @address, @customDataJson, @academicYear, @salt, @pinHash,
-          'Menunggu Verifikasi', 'Menunggu Pengumuman', 'Belum Daftar Ulang', @now, @now
+          'Menunggu Verifikasi', 'Menunggu Pengumuman', 'Belum Daftar Ulang', @now, @now, @physicalDocumentsJson
         )
       `).run(insertValues);
       const applicantId = Number(insert.lastInsertRowid);

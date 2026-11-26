@@ -143,6 +143,10 @@
     .school-document-row .wide { grid-column: 1 / -1; }
     .school-document-upload { display: flex; align-items: end; gap: 8px; }
     .school-document-upload input { min-width: 0; }
+    #admin-registration-documents { gap: 12px 14px; }
+    .admin-registration-document-card { min-width: 0; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; background: #fff; }
+    .admin-registration-physical { display: flex !important; align-items: center; gap: 8px; margin: 10px 0 0 !important; cursor: pointer; }
+    .admin-registration-physical input { width: 16px; min-height: 16px; margin: 0; accent-color: #ea580c; }
     .admin-registration-section { margin-top: 18px; padding-top: 8px; border-top: 1px solid #edf0f4; }
     .admin-registration-section h3 { margin: 0; color: #344054; font-size: 15px; }
     [data-master-section][hidden] { display: none !important; }
@@ -1167,7 +1171,7 @@
         <div id="edit-fields" class="edit-grid"></div>
         <fieldset id="edit-documents" class="edit-documents" hidden>
           <legend>Berkas pendukung</legend>
-          <p class="helper">Data tetap berstatus Menunggu Verifikasi sampai berkas diperiksa panitia. Panitia dapat mengunggah berkas atau mencentang jika berkas diterima secara fisik.</p>
+          <p class="helper">Data tetap berstatus Menunggu Verifikasi sampai berkas diperiksa panitia. Centang jika berkas sudah diterima secara fisik; berkas tersebut tidak perlu diunggah.</p>
           <div id="edit-document-options" class="edit-document-options"></div>
         </fieldset>
         <p id="edit-status" class="status-line" role="status"></p>
@@ -1189,7 +1193,7 @@
         <div id="admin-registration-fields"></div>
         <div class="master-group">
           <h3>Berkas pendukung (opsional)</h3>
-          <p>Data tetap berstatus Menunggu Verifikasi sampai berkas diperiksa panitia.</p>
+          <p>Data tetap berstatus Menunggu Verifikasi sampai berkas diperiksa panitia. Centang jika berkas sudah diterima secara fisik; berkas tersebut tidak perlu diunggah.</p>
           <div id="admin-registration-documents" class="edit-grid"></div>
         </div>
         <p id="add-applicant-status" class="status-line" role="status"></p>
@@ -2898,12 +2902,27 @@
         input.dataset.maxKb = String(documentConfig.maxKB || 2048);
         input.setAttribute('aria-label', documentConfig.name + ' (opsional)');
         const group = makeLabeledControl(documentConfig.name + ' (opsional)', input);
+        group.className = 'admin-registration-document-card';
         if (documentConfig.description) {
           const helper = document.createElement('p');
           helper.className = 'helper';
           helper.textContent = documentConfig.description;
           group.appendChild(helper);
         }
+        const physicalLabel = document.createElement('label');
+        physicalLabel.className = 'admin-registration-physical';
+        const physicalCheckbox = document.createElement('input');
+        physicalCheckbox.type = 'checkbox';
+        physicalCheckbox.dataset.adminRegistrationPhysicalKey = documentConfig.key;
+        physicalCheckbox.setAttribute('aria-label', documentConfig.name + ' sudah diterima secara fisik');
+        physicalCheckbox.addEventListener('change', function () {
+          input.disabled = physicalCheckbox.checked;
+          if (physicalCheckbox.checked) input.value = '';
+        });
+        const physicalText = document.createElement('span');
+        physicalText.textContent = 'Sudah diterima secara fisik';
+        physicalLabel.append(physicalCheckbox, physicalText);
+        group.appendChild(physicalLabel);
         container.appendChild(group);
       });
     }
@@ -3390,6 +3409,9 @@
             day: '2-digit',
             month: 'short',
             year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
             timeZone: 'Asia/Jakarta'
           }).format(registeredAt);
         const photoCell = document.createElement('td');
@@ -5153,6 +5175,11 @@
         checkbox.type = 'checkbox';
         checkbox.dataset.physicalDocumentKey = item.key;
         checkbox.checked = existingKeys.includes(item.key);
+        input.disabled = checkbox.checked;
+        checkbox.addEventListener('change', function () {
+          input.disabled = checkbox.checked;
+          if (checkbox.checked) input.value = '';
+        });
         const text = document.createElement('span');
         text.textContent = 'Sudah diterima secara fisik';
         physicalLabel.append(checkbox, text);
@@ -6148,6 +6175,8 @@
           const upload = await serializeDocumentUpload(input);
           if (upload) payload.uploads[input.dataset.adminRegistrationUpload] = upload;
         }
+        payload.physicalDocumentKeys = Array.from(form.querySelectorAll('[data-admin-registration-physical-key]:checked'))
+          .map(function (checkbox) { return checkbox.dataset.adminRegistrationPhysicalKey; });
         const result = await api('/api/admin/applications', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
