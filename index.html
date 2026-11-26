@@ -66,15 +66,24 @@
       .section-banner { margin-left: 1rem !important; margin-right: 1rem !important; }
       .step-item { align-items: flex-start; padding: .55rem; }
     }
-      #print-biodata { font-size: 12pt; }
-      #print-biodata p { font-size: 12pt; }
-      #print-biodata .biodata-signature { margin-top: 24px; font-size: 12pt; break-inside: avoid; page-break-inside: avoid; }
+      #print-biodata { font-size: 14pt; }
+      #print-biodata p { font-size: 14pt; }
+      #print-biodata .biodata-manual-letterhead { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6mm; padding-bottom: 3mm; border-bottom: 2px solid #172033; }
+      #print-biodata .biodata-manual-letterhead[hidden] { display: none !important; }
+      #print-biodata .biodata-manual-logo { width: 24mm; height: 24mm; flex: 0 0 24mm; object-fit: contain; }
+      #print-biodata .biodata-manual-lines { flex: 1; text-align: center; line-height: 1.15; }
+      #print-biodata .biodata-print-title { margin: 0 0 4px; text-align: center; line-height: 1.2; }
+      #print-biodata .biodata-print-title div:first-child,
+      #print-biodata .biodata-print-title div:last-child { font-size: 13pt; font-weight: 700; }
+      #print-biodata .biodata-print-title div:nth-child(2) { font-size: 16pt; font-weight: 800; }
+      #print-biodata .biodata-signature { margin-top: 24px; font-size: 14pt; break-inside: avoid; page-break-inside: avoid; }
       #print-biodata .biodata-section { margin-top: 18px; break-inside: auto; page-break-inside: auto; }
-      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 12pt; font-weight: 800; }
-      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 12pt; line-height: 1.35; }
+      #print-biodata .biodata-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
+      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 14pt; font-weight: 800; }
+      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 14pt; line-height: 1.4; }
       #print-biodata .biodata-table td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
       #print-biodata .biodata-table td:first-child { width: 34%; font-weight: 700; }
-      #print-biodata .biodata-documents-table { width: 100%; border-collapse: collapse; font-size: 12pt; line-height: 1.35; }
+      #print-biodata .biodata-documents-table { width: 100%; border-collapse: collapse; font-size: 14pt; line-height: 1.4; }
       #print-biodata .biodata-documents-table th, #print-biodata .biodata-documents-table td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; vertical-align: top; }
       #print-biodata .biodata-documents-table th { background: #f8fafc; }
       #print-biodata .biodata-documents-table th:last-child, #print-biodata .biodata-documents-table td:last-child { width: 28%; }
@@ -101,7 +110,7 @@
           border: 1px solid #cbd5e1; background: white !important; color: #172033 !important;
         }
         body[data-print-target="biodata"] #print-biodata {
-          border: 0; padding: 0 !important; font-family: Arial, sans-serif; font-size: 12pt !important;
+          border: 0; padding: 0 !important; font-family: Arial, sans-serif; font-size: 14pt !important;
           width: 100% !important; max-width: none !important; zoom: 1 !important; transform: none !important;
         }
         body[data-print-target="biodata"] #print-biodata p,
@@ -109,8 +118,8 @@
         body[data-print-target="biodata"] #print-biodata .biodata-table td,
         body[data-print-target="biodata"] #print-biodata .biodata-documents-table,
         body[data-print-target="biodata"] #print-biodata .biodata-documents-table th,
-        body[data-print-target="biodata"] #print-biodata .biodata-documents-table td { font-size: 12pt !important; }
-        body[data-print-target="biodata"] #print-biodata h1 { font-size: 16pt !important; }
+        body[data-print-target="biodata"] #print-biodata .biodata-documents-table td { font-size: 14pt !important; }
+        body[data-print-target="biodata"] #print-biodata h1 { font-size: 18pt !important; }
         body[data-print-target="biodata"] #print-biodata .biodata-heading { margin-bottom: 6px; line-height: 1.2; }
         body[data-print-target="biodata"] #print-biodata .biodata-heading h1 { margin: 0 0 4px; line-height: 1.15; }
         body[data-print-target="biodata"] #print-biodata .biodata-heading p { margin: 2px 0; line-height: 1.25; }
@@ -118,6 +127,7 @@
         body[data-print-target="biodata"] #print-biodata .biodata-signature p { margin: 2px 0; line-height: 1.25; }
         body[data-print-target="biodata"] #print-biodata .biodata-signature-space { height: 50px; }
         body[data-print-target="biodata"] #print-biodata .biodata-section { break-inside: auto; page-break-inside: auto; }
+        body[data-print-target="biodata"] #print-biodata .biodata-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
         body[data-print-target="biodata"] #print-biodata .biodata-table tr { break-inside: avoid; page-break-inside: avoid; }
         body[data-print-target="biodata"] #print-biodata .biodata-documents-table thead { display: table-header-group; }
         body[data-print-target="biodata"] #print-biodata .biodata-documents-table tr { break-inside: avoid; page-break-inside: avoid; }
@@ -656,7 +666,12 @@
           <div id="biodata-letterhead-wrap" class="hidden mb-4">
             <img id="biodata-letterhead" alt="Kop sekolah" class="block w-full object-contain">
           </div>
+          <div id="biodata-manual-letterhead" class="biodata-manual-letterhead" hidden>
+            <img id="biodata-manual-logo" class="biodata-manual-logo" alt="Logo sekolah" hidden>
+            <div id="biodata-manual-lines" class="biodata-manual-lines"></div>
+          </div>
           <div class="biodata-heading text-center">
+            <div id="biodata-print-title" class="biodata-print-title"></div>
             <h1 class="text-lg font-extrabold">BIODATA MURID BARU</h1>
             <p class="mt-2 text-sm"><strong>Nomor Pendaftaran:</strong> <span id="biodata-registration-number"></span></p>
             <p class="text-sm"><strong>Tanggal Pendaftaran:</strong> <span id="biodata-registration-date"></span></p>
@@ -702,6 +717,15 @@
       reenrollmentPromotion: { earlyBirdCount: 25, earlyBirdPercent: 13, earlyBirdRemaining: 25 },
       brochureImageUrl: '',
       brochureImageUrls: [],
+      registrationLetterheadUrl: '',
+      registrationLetterheadMode: 'image',
+      registrationLetterheadLogoUrl: '',
+      registrationLetterheadLines: [],
+      registrationPrintTitleLines: [
+        'SISTEM PENERIMAAN MURID BARU (SPMB)',
+        'SMK PGRI CIKONENG',
+        'TAHUN PELAJARAN 2027/2028'
+      ],
       formPdfUrl: '/assets/spmb-formulir-offline.pdf',
       scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
       contactLabel: 'Contact Person SPMB',
@@ -1756,16 +1780,64 @@
       return date.toLocaleDateString('id-ID', { dateStyle: 'long', timeZone: 'Asia/Jakarta' });
     }
 
+    function renderBiodataManualLetterhead() {
+      const wrapper = document.getElementById('biodata-manual-letterhead');
+      const logo = document.getElementById('biodata-manual-logo');
+      const linesContainer = document.getElementById('biodata-manual-lines');
+      const config = siteConfig || {};
+      const logoUrl = config.registrationLetterheadLogoUrl || '';
+      const lines = (config.registrationLetterheadLines || [])
+        .map(function (line, index) { return Object.assign({ index: index }, line); })
+        .filter(function (line) { return String(line.text || '').trim(); })
+        .sort(function (a, b) { return Number(a.order) - Number(b.order) || a.index - b.index; });
+      if (logoUrl) {
+        logo.src = logoUrl;
+        logo.hidden = false;
+        logo.onerror = function () { logo.hidden = true; };
+      } else {
+        logo.removeAttribute('src');
+        logo.hidden = true;
+      }
+      linesContainer.replaceChildren();
+      lines.forEach(function (line) {
+        const element = document.createElement('div');
+        element.textContent = line.text;
+        element.style.fontSize = Number(line.fontSize || 12) + 'pt';
+        element.style.fontWeight = line.bold === true ? '700' : '400';
+        element.style.fontStyle = line.italic === true ? 'italic' : 'normal';
+        linesContainer.appendChild(element);
+      });
+      wrapper.hidden = !logoUrl && !lines.length;
+      return logo;
+    }
+
     function renderRegistrationBiodata(registrationData) {
       if (!registrationData || !registrationData.fields) return;
       const values = registrationData.fields;
       document.getElementById('biodata-registration-number').textContent = registrationData.registrationNumber || '';
       document.getElementById('biodata-registration-date').textContent = formatBiodataDate(registrationData.registrationDate);
+      const defaultAcademicYearLine = 'TAHUN PELAJARAN 2027/2028';
+      const printTitleLines = siteConfig.registrationPrintTitleLines || [
+        'SISTEM PENERIMAAN MURID BARU (SPMB)',
+        'SMK PGRI CIKONENG',
+        defaultAcademicYearLine
+      ];
+      const printTitle = document.getElementById('biodata-print-title');
+      printTitle.replaceChildren();
+      printTitleLines.forEach(function (line) {
+        const element = document.createElement('div');
+        element.textContent = line === defaultAcademicYearLine && siteConfig.academicYear
+          ? 'TAHUN PELAJARAN ' + siteConfig.academicYear : line;
+        printTitle.appendChild(element);
+      });
       document.getElementById('biodata-signature-name').textContent = values.studentName || '';
       document.getElementById('biodata-print-location-date').textContent = 'Cikoneng, ' + formatBiodataDate(new Date().toISOString());
       const letterhead = document.getElementById('biodata-letterhead');
       const letterheadWrap = document.getElementById('biodata-letterhead-wrap');
-      if (siteConfig.registrationLetterheadUrl) {
+      const manualLetterhead = siteConfig.registrationLetterheadMode === 'manual';
+      if (manualLetterhead) renderBiodataManualLetterhead();
+      else document.getElementById('biodata-manual-letterhead').hidden = true;
+      if (!manualLetterhead && siteConfig.registrationLetterheadUrl) {
         letterhead.src = siteConfig.registrationLetterheadUrl;
         letterheadWrap.classList.remove('hidden');
         letterhead.onerror = function () { letterheadWrap.classList.add('hidden'); };
@@ -1798,6 +1870,7 @@
         if (!rows.length) return;
         const section = document.createElement('section');
         section.className = 'biodata-section';
+        section.dataset.printGroup = groupName;
         const heading = document.createElement('h3');
         heading.textContent = groupName.toLocaleUpperCase('id-ID');
         const table = document.createElement('table');
@@ -2060,10 +2133,24 @@
         saveFormDraft();
       });
     });
-    function printRegistrationDocument(target, title) {
+    function waitForRegistrationPrintImage(image) {
+      if (!image || image.hidden || !image.getAttribute('src') || image.complete) return Promise.resolve();
+      return new Promise(function (resolve) {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    }
+
+    async function printRegistrationDocument(target, title) {
       const previousTitle = document.title;
       document.body.dataset.printTarget = target;
       document.title = title;
+      if (target === 'biodata') {
+        await Promise.all([
+          waitForRegistrationPrintImage(document.getElementById('biodata-letterhead')),
+          waitForRegistrationPrintImage(document.getElementById('biodata-manual-logo'))
+        ]);
+      }
       window.print();
       delete document.body.dataset.printTarget;
       document.title = previousTitle;

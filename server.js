@@ -110,6 +110,20 @@ const initialConfig = {
   brochureImageUrl: '',
   brochureImageUrls: [],
   registrationLetterheadUrl: '',
+  registrationLetterheadMode: 'image',
+  registrationLetterheadLogoUrl: '',
+  registrationLetterheadLines: [
+    { text: '', order: 1, fontSize: 12, bold: false, italic: false },
+    { text: '', order: 2, fontSize: 12, bold: false, italic: false },
+    { text: '', order: 3, fontSize: 12, bold: false, italic: false },
+    { text: '', order: 4, fontSize: 12, bold: false, italic: false },
+    { text: '', order: 5, fontSize: 12, bold: false, italic: false }
+  ],
+  registrationPrintTitleLines: [
+    'SISTEM PENERIMAAN MURID BARU (SPMB)',
+    'SMK PGRI CIKONENG',
+    'TAHUN PELAJARAN 2027/2028'
+  ],
   formPdfUrl: '/assets/spmb-formulir-offline.pdf',
   scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
   schoolDocuments: [
@@ -238,6 +252,7 @@ database.exec(`
     mother_phone TEXT NOT NULL,
     address TEXT NOT NULL,
     custom_data_json TEXT NOT NULL DEFAULT '{}',
+    physical_documents_json TEXT NOT NULL DEFAULT '[]',
     field_reviews_json TEXT NOT NULL DEFAULT '{}',
     portal_pin_salt TEXT NOT NULL,
     portal_pin_hash TEXT NOT NULL,
@@ -366,6 +381,7 @@ function migrateApplicantStorage() {
           mother_phone TEXT NOT NULL,
           address TEXT NOT NULL,
           custom_data_json TEXT NOT NULL DEFAULT '{}',
+          physical_documents_json TEXT NOT NULL DEFAULT '[]',
           field_reviews_json TEXT NOT NULL DEFAULT '{}',
           portal_pin_salt TEXT NOT NULL,
           portal_pin_hash TEXT NOT NULL,
@@ -449,6 +465,7 @@ function migrateApplicantStorage() {
     payment_note: "TEXT NOT NULL DEFAULT ''",
     payment_reviewed_at: "TEXT NOT NULL DEFAULT ''",
     custom_data_json: "TEXT NOT NULL DEFAULT '{}'",
+    physical_documents_json: "TEXT NOT NULL DEFAULT '[]'",
     field_reviews_json: "TEXT NOT NULL DEFAULT '{}'"
   };
   Object.keys(additions).forEach(function (name) {
@@ -835,6 +852,11 @@ function sanitizeConfig(input) {
     brochureImageUrl: brochureImageUrls[0] || '',
     brochureImageUrls: brochureImageUrls,
     registrationLetterheadUrl: String(input.registrationLetterheadUrl || '').trim(),
+    registrationLetterheadMode: input.registrationLetterheadMode == null || input.registrationLetterheadMode === ''
+      ? 'image' : String(input.registrationLetterheadMode),
+    registrationLetterheadLogoUrl: String(input.registrationLetterheadLogoUrl || '').trim(),
+    registrationLetterheadLines: sanitizeRegistrationLetterheadLines(input.registrationLetterheadLines),
+    registrationPrintTitleLines: sanitizeRegistrationPrintTitleLines(input.registrationPrintTitleLines),
     formPdfUrl: String(input.formPdfUrl || '').trim(),
     scholarshipPdfUrl: String(input.scholarshipPdfUrl || '').trim(),
     schoolDocuments: sanitizeSchoolDocuments(input.schoolDocuments, input.formPdfUrl, input.scholarshipPdfUrl),
@@ -864,12 +886,54 @@ function sanitizeConfig(input) {
       throw new Error('Link PDF harus menggunakan HTTPS atau file publik situs.');
     }
   });
-  if (config.registrationLetterheadUrl &&
-      (!isAllowedPublicUrl(config.registrationLetterheadUrl) ||
-       !/^\/public-files\/[a-zA-Z0-9_-]+\.(?:png|jpe?g)$/i.test(config.registrationLetterheadUrl))) {
-    throw new Error('Kop formulir harus menggunakan gambar PNG/JPG yang diunggah ke situs.');
+  if (!['image', 'manual'].includes(config.registrationLetterheadMode)) {
+    throw new Error('Mode kop sekolah tidak valid.');
   }
+  ['registrationLetterheadUrl', 'registrationLetterheadLogoUrl'].forEach(function (key) {
+    if (config[key] &&
+        (!isAllowedPublicUrl(config[key]) ||
+         !/^\/public-files\/[a-zA-Z0-9_-]+\.(?:png|jpe?g)$/i.test(config[key]))) {
+      throw new Error('Gambar kop sekolah harus berupa PNG/JPG yang diunggah ke situs.');
+    }
+  });
   return config;
+}
+
+function sanitizeRegistrationLetterheadLines(lines) {
+  const source = lines === undefined ? initialConfig.registrationLetterheadLines : lines;
+  if (!Array.isArray(source) || source.length > 5) {
+    throw new Error('Kop manual hanya dapat menggunakan maksimal 5 baris.');
+  }
+  return Array.from({ length: 5 }, function (_, index) {
+    const line = source[index] || {};
+    const order = Number(line.order == null ? index + 1 : line.order);
+    const fontSize = Number(line.fontSize == null ? 12 : line.fontSize);
+    if (!Number.isInteger(order) || order < 1 || order > 5) {
+      throw new Error('Urutan baris kop harus antara 1 dan 5.');
+    }
+    if (!Number.isInteger(fontSize) || fontSize < 8 || fontSize > 36) {
+      throw new Error('Ukuran teks kop harus antara 8 dan 36 pt.');
+    }
+    return {
+      text: String(line.text || '').trim().slice(0, 160),
+      order: order,
+      fontSize: fontSize,
+      bold: line.bold === true,
+      italic: line.italic === true
+    };
+  });
+}
+
+function sanitizeRegistrationPrintTitleLines(lines) {
+  const source = lines === undefined ? initialConfig.registrationPrintTitleLines : lines;
+  if (!Array.isArray(source) || source.length > 3) {
+    throw new Error('Judul cetak harus terdiri dari maksimal 3 baris.');
+  }
+  return Array.from({ length: 3 }, function (_, index) {
+    const text = source[index] == null ? '' : String(source[index]).trim();
+    if (text.length > 120) throw new Error('Setiap baris judul cetak maksimal 120 karakter.');
+    return text;
+  });
 }
 
 function getReenrollmentPricing(applicant, config) {
@@ -1404,6 +1468,10 @@ function generateRegistrationNumber(year) {
 }
 
 function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
+  const availableDocuments = new Set(uploadedFiles);
+  JSON.parse(applicant.physical_documents_json || '[]').forEach(function (key) {
+    availableDocuments.add(key);
+  });
   const customData = JSON.parse(applicant.custom_data_json || '{}');
   const activeFields = config.formFields.filter(function (field) { return field.active; });
   const missingRequiredField = activeFields.some(function (field) {
@@ -1418,12 +1486,12 @@ function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
     return field.required || Boolean(value);
   }).map(function (field) { return field.key; });
   const applicableDocuments = config.documentRequirements.filter(function (document) {
-    return document.active && (document.required || uploadedFiles.has(document.key)) &&
+    return document.active && (document.required || availableDocuments.has(document.key)) &&
       (!document.wave || document.wave === applicant.wave) &&
       (!document.registrationPath || document.registrationPath === applicant.registration_path);
   });
   const missingRequiredDocument = applicableDocuments.some(function (document) {
-    return document.required && !uploadedFiles.has(document.key);
+    return document.required && !availableDocuments.has(document.key);
   });
   applicableDocuments.forEach(function (document) { reviewableKeys.push(document.key); });
   const statuses = reviewableKeys.map(function (key) { return reviews[key] && reviews[key].status; });
@@ -1434,6 +1502,23 @@ function calculateDocumentStatus(applicant, config, reviews, uploadedFiles) {
       : statuses.length > 0 && statuses.every(function (status) { return status === 'verified'; })
         ? 'Berkas Terverifikasi'
         : 'Menunggu Verifikasi';
+}
+
+function sanitizePhysicalDocumentKeys(input, existing) {
+  const source = input === undefined
+    ? JSON.parse(existing.physical_documents_json || '[]')
+    : input;
+  if (!Array.isArray(source) || source.length > 100) {
+    throw new Error('Daftar berkas yang diterima secara fisik tidak valid.');
+  }
+  const keys = [];
+  source.forEach(function (value) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,80}$/.test(value)) {
+      throw new Error('Jenis berkas yang diterima secara fisik tidak valid.');
+    }
+    if (!keys.includes(value)) keys.push(value);
+  });
+  return keys;
 }
 
 function isApplicantVerifiedForSelection(applicant, config) {
@@ -1774,7 +1859,10 @@ const adminConfigPermissionGroups = {
   timeline: ['brochureImageUrl', 'brochureImageUrls', 'timelineEvents', 'faqs', 'schoolLocation'],
   googleIntegration: ['googleIntegration'],
   payment: ['paymentSettings'],
-  documents: ['schoolDocuments', 'registrationLetterheadUrl']
+  documents: [
+    'schoolDocuments', 'registrationLetterheadUrl', 'registrationLetterheadMode',
+    'registrationLetterheadLogoUrl', 'registrationLetterheadLines', 'registrationPrintTitleLines'
+  ]
 };
 
 function sanitizeRolePermissions(input) {
@@ -4517,7 +4605,8 @@ app.post('/api/admin/assets/:type', requireAdmin, function (request, response) {
     paymentQr: { key: 'qrisImageUrl', section: 'paymentSettings', image: true, maxBytes: 2 * 1024 * 1024, permission: 'payment' },
     brochureImage: { key: 'brochureImageUrl', replaceArrayKey: 'brochureImageUrls', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'brosur-spmb', permission: 'timeline' },
     brochureSlide: { arrayKey: 'brochureImageUrls', maxItems: 6, image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'spmb-slide', permission: 'timeline' },
-    registrationLetterhead: { key: 'registrationLetterheadUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'kop-pendaftaran', permission: 'documents' }
+    registrationLetterhead: { key: 'registrationLetterheadUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'kop-pendaftaran', permission: 'documents' },
+    registrationLetterheadLogo: { key: 'registrationLetterheadLogoUrl', image: true, maxBytes: 5 * 1024 * 1024, filePrefix: 'logo-kop-pendaftaran', permission: 'documents' }
   };
   const asset = assetTypes[request.params.type];
   if (!asset) return response.status(400).json({ message: 'Jenis file tidak dikenali.' });
@@ -4747,6 +4836,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
         mother_phone: maskSensitiveValue(applicant.mother_phone),
         address: applicant.address,
         custom_data: JSON.parse(applicant.custom_data_json || '{}'),
+        physical_document_keys: JSON.parse(applicant.physical_documents_json || '[]'),
         field_reviews: JSON.parse(applicant.field_reviews_json || '{}'),
         files: getFiles.all(applicant.id).map(function (file) {
           const requirement = getDocumentRequirement(file.field_key, config);
@@ -4814,6 +4904,10 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
     reviewConfig: isViewer ? null : {
       academicYear: config.academicYear,
       registrationLetterheadUrl: config.registrationLetterheadUrl,
+      registrationLetterheadMode: config.registrationLetterheadMode,
+      registrationLetterheadLogoUrl: config.registrationLetterheadLogoUrl,
+      registrationLetterheadLines: config.registrationLetterheadLines,
+      registrationPrintTitleLines: config.registrationPrintTitleLines,
       formFields: config.formFields,
       documentRequirements: config.documentRequirements,
       classes: config.classes,
@@ -5473,6 +5567,10 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
     `).get(updated.nisn, updated.nisn, updated.studentNik, updated.studentNik, existing.id);
     if (duplicate) return response.status(409).json({ message: 'NISN atau NIK tersebut sudah dipakai pendaftar lain.' });
     const config = getConfig();
+    const physicalDocumentKeys = sanitizePhysicalDocumentKeys(
+      request.body && request.body.physicalDocumentKeys,
+      existing
+    );
     const reviews = JSON.parse(existing.field_reviews_json || '{}');
     const existingCustomData = JSON.parse(existing.custom_data_json || '{}');
     config.formFields.filter(function (field) { return field.active; }).forEach(function (field) {
@@ -5490,12 +5588,14 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
       updatedApplicant[column] = updated[key];
     });
     updatedApplicant.custom_data_json = JSON.stringify(updated.customData);
+    updatedApplicant.physical_documents_json = JSON.stringify(physicalDocumentKeys);
     const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
       .all(existing.id).map(function (file) { return file.field_key; }));
     const documentStatus = calculateDocumentStatus(updatedApplicant, config, reviews, uploadedFiles);
     const updateValues = Object.assign({}, updated, {
       id: existing.id,
       customDataJson: JSON.stringify(updated.customData),
+      physicalDocumentsJson: JSON.stringify(physicalDocumentKeys),
       fieldReviewsJson: JSON.stringify(reviews),
       documentStatus: documentStatus,
       updatedAt: new Date().toISOString()
@@ -5511,7 +5611,8 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
         father_occupation = @fatherOccupation, father_income = @fatherIncome, father_phone = @fatherPhone,
         mother_nik = @motherNik, mother_name = @motherName, mother_education = @motherEducation,
         mother_occupation = @motherOccupation, mother_income = @motherIncome, mother_phone = @motherPhone,
-        address = @address, custom_data_json = @customDataJson, field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
+        address = @address, custom_data_json = @customDataJson, physical_documents_json = @physicalDocumentsJson,
+        field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
         status_updated_at = @updatedAt
       WHERE id = @id
     `).run(updateValues);

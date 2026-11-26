@@ -22,11 +22,26 @@ test('manual registration may omit required uploads without weakening public reg
   assert.match(serverJs, /const result = createApplicantRegistration\(request\.body\);/);
 });
 
-test('school letterhead can be uploaded and is included in public registration configuration', function () {
+test('school letterhead supports a reusable image and five-line manual design', function () {
   assert.match(adminHtml, /id="registration-letterhead-file"/);
   assert.match(adminHtml, /data-asset="registrationLetterhead"/);
+  assert.match(adminHtml, /id="registration-letterhead-mode"/);
+  assert.match(adminHtml, /id="registration-letterhead-logo-file"/);
+  assert.match(adminHtml, /data-asset="registrationLetterheadLogo"/);
+  assert.match(adminHtml, /function getRegistrationLetterheadLines\(\)/);
   assert.match(serverJs, /registrationLetterheadUrl: String\(input\.registrationLetterheadUrl \|\| ''\)\.trim\(\)/);
   assert.match(serverJs, /registrationLetterhead: \{ key: 'registrationLetterheadUrl'/);
+  assert.match(serverJs, /registrationLetterheadLogo: \{ key: 'registrationLetterheadLogoUrl'/);
+  assert.match(serverJs, /sanitizeRegistrationLetterheadLines\(input\.registrationLetterheadLines\)/);
+  assert.match(serverJs, /registrationLetterheadLines: config\.registrationLetterheadLines/);
+  assert.match(adminHtml, /id="registration-print-title-line-1"/);
+  assert.match(adminHtml, /id="print-summary-title"/);
+  assert.match(indexHtml, /id="biodata-print-title"/);
+  assert.match(serverJs, /'SISTEM PENERIMAAN MURID BARU \(SPMB\)'/);
+  assert.match(serverJs, /'TAHUN PELAJARAN 2027\/2028'/);
+  assert.match(serverJs, /sanitizeRegistrationPrintTitleLines\(input\.registrationPrintTitleLines\)/);
+  assert.match(adminHtml, /print-summary-manual-letterhead/);
+  assert.match(indexHtml, /biodata-manual-letterhead/);
 });
 
 test('form-field editor groups additions and ordering by the same four student steps', function () {
@@ -84,22 +99,34 @@ test('new and edited applicants use every active configured field, including cus
   assert.match(serverJs, /custom_data_json = @customDataJson/);
 });
 
-test('student and admin biodata print use 12-point text and expose the school letterhead setting', function () {
-  assert.match(adminHtml, /#print-applicant-summary \{[^}]*font-size: 12pt/);
-  assert.match(adminHtml, /#print-applicant-summary \.print-summary-table \{[^}]*font-size: 12pt/);
-  assert.match(adminHtml, /#print-applicant-summary p \{ margin: 2px 0; font-size: 12pt; line-height: 1\.3; \}/);
-  assert.match(indexHtml, /#print-biodata \{ font-size: 12pt; \}/);
-  assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 12pt/);
+test('student and admin biodata print use readable multi-page A4 layout', function () {
+  assert.match(adminHtml, /#print-applicant-summary \{[^}]*font-size: 14pt/);
+  assert.match(adminHtml, /#print-applicant-summary \.print-summary-table \{[^}]*font-size: 14pt/);
+  assert.match(adminHtml, /#print-applicant-summary p \{ margin: 2px 0; font-size: 14pt; line-height: 1\.4; \}/);
+  assert.match(indexHtml, /#print-biodata \{ font-size: 14pt; \}/);
+  assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 14pt/);
   assert.match(indexHtml, /@page \{ size: A4 portrait; margin: 15mm; \}/);
   assert.match(indexHtml, /biodata-section \{ break-inside: auto; page-break-inside: auto; \}/);
+  assert.match(indexHtml, /biodata-section\[data-print-group="Data Orang Tua\/Wali"\] \{ break-before: page; page-break-before: always; \}/);
   assert.match(indexHtml, /biodata-table tr \{ break-inside: avoid; page-break-inside: avoid; \}/);
   assert.match(indexHtml, /biodata-heading p \{ margin: 2px 0; line-height: 1\.25; \}/);
   assert.match(indexHtml, /biodata-signature \{ margin-top: 12px; line-height: 1\.25; \}/);
   assert.match(adminHtml, /@page \{ size: A4 portrait; margin: 12mm; \}/);
   assert.match(adminHtml, /print-summary-section \{ break-inside: auto; page-break-inside: auto; \}/);
+  assert.match(adminHtml, /print-summary-section\[data-print-group="Data Orang Tua\/Wali"\] \{ break-before: page; page-break-before: always; \}/);
   assert.match(adminHtml, /print-summary-table tr \{ break-inside: avoid; page-break-inside: avoid; \}/);
+});
+
+test('admin can mark physically received documents and print them as present', function () {
+  assert.match(adminHtml, /id="edit-documents"/);
+  assert.match(adminHtml, /data-physical-document-key/);
+  assert.match(adminHtml, /payload\.physicalDocumentKeys =/);
+  assert.match(adminHtml, /physical_document_keys \|\| \[\]\)\.forEach\(function \(key\) \{ uploadedDocumentKeys\.add\(key\); \}\)/);
+  assert.match(serverJs, /physical_documents_json TEXT NOT NULL DEFAULT '\[\]'/);
+  assert.match(serverJs, /sanitizePhysicalDocumentKeys\(/);
+  assert.match(serverJs, /physical_documents_json = @physicalDocumentsJson/);
   assert.match(adminHtml, /print-summary-signature \{[^}]*margin: 8mm 0 0 auto/);
-  assert.match(adminHtml, /Kop sekolah untuk formulir dan biodata/);
+  assert.match(adminHtml, /Mode kop biodata/);
   assert.match(adminHtml, /id="master-documents"[^>]*>Dokumen Sekolah/);
 });
 

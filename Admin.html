@@ -302,12 +302,20 @@
     #print-applicant-card .print-card-photo, #print-applicant-card .print-card-photo-empty { width: 120px; height: 160px; border: 1px solid #94a3b8; border-radius: 8px; object-fit: cover; }
     #print-applicant-card .print-card-photo-empty { display: grid; place-items: center; padding: 8px; color: #64748b; background: #f8fafc; font-size: 11px; text-align: center; }
     #print-applicant-card .print-card-photo[hidden], #print-applicant-card .print-card-photo-empty[hidden] { display: none !important; }
-    #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; font-size: 12pt; }
-    #print-applicant-summary p { margin: 2px 0; font-size: 12pt; line-height: 1.3; }
+    #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; font-size: 14pt; }
+    #print-applicant-summary p { margin: 2px 0; font-size: 14pt; line-height: 1.4; }
     #print-applicant-summary .print-summary-letterhead { margin-bottom: 14px; text-align: center; }
     #print-applicant-summary .print-summary-letterhead img { display: block; width: 100%; max-height: 44mm; object-fit: contain; }
+    #print-applicant-summary .print-summary-manual-letterhead { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6mm; padding-bottom: 3mm; border-bottom: 2px solid #172033; }
+    #print-applicant-summary .print-summary-manual-letterhead[hidden] { display: none !important; }
+    #print-applicant-summary .print-summary-letterhead .print-summary-manual-logo { width: 24mm; height: 24mm; flex: 0 0 24mm; object-fit: contain; }
+    #print-applicant-summary .print-summary-manual-lines { flex: 1; text-align: center; line-height: 1.15; }
     #print-applicant-summary .print-summary-letterhead-fallback { padding-bottom: 8px; border-bottom: 2px solid #172033; font-weight: 700; }
-    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 12pt; line-height: 1.35; }
+    #print-applicant-summary .print-summary-title { margin: 0 0 4px; text-align: center; line-height: 1.2; }
+    #print-applicant-summary .print-summary-title div:first-child,
+    #print-applicant-summary .print-summary-title div:last-child { font-size: 13pt; font-weight: 700; }
+    #print-applicant-summary .print-summary-title div:nth-child(2) { font-size: 16pt; font-weight: 800; }
+    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 14pt; line-height: 1.4; }
     #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 5px 7px; vertical-align: top; }
     #print-applicant-summary .print-summary-table td:first-child { width: 34%; font-weight: 700; }
     #print-applicant-summary .print-summary-documents-table th,
@@ -316,10 +324,14 @@
     #print-applicant-summary .print-summary-documents-table td:first-child { width: 72%; }
     #print-applicant-summary .print-summary-documents-table th:last-child,
     #print-applicant-summary .print-summary-documents-table td:last-child { width: 28%; }
-    #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: avoid; page-break-inside: avoid; }
-    #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 12pt; }
-    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 8mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 12pt; }
+    #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: auto; page-break-inside: auto; }
+    #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
+    #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 14pt; }
+    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 8mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 14pt; }
     #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
+    .edit-documents { grid-column: 1 / -1; margin-top: 14px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
+    .edit-document-option { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; color: #344054; font-size: 13px; }
+    .edit-document-option input { width: auto; min-height: auto; margin: 2px 0 0; }
     @media print {
       @page { size: A4 portrait; margin: 12mm; }
       html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
@@ -330,7 +342,7 @@
       #print-applicant-card .print-card-shell { break-after: page; page-break-after: always; }
       #print-applicant-summary {
         display: block !important; position: static !important; width: 100% !important; max-width: none !important;
-        margin: 0 !important; padding: 0 !important; font-size: 12pt !important; zoom: 1 !important; transform: none !important;
+        margin: 0 !important; padding: 0 !important; font-size: 14pt !important; zoom: 1 !important; transform: none !important;
       }
       #print-applicant-summary p,
       #print-applicant-summary .print-summary-table,
@@ -338,9 +350,10 @@
       #print-applicant-summary .print-summary-documents-table th,
       #print-applicant-summary .print-summary-documents-table td,
       #print-applicant-summary .print-summary-section h3,
-      #print-applicant-summary .print-summary-signature { font-size: 12pt !important; }
+      #print-applicant-summary .print-summary-signature { font-size: 14pt !important; }
       #print-applicant-summary .print-summary-documents-table thead { display: table-header-group; }
       #print-applicant-summary .print-summary-section { break-inside: auto; page-break-inside: auto; }
+      #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
       #print-applicant-summary .print-summary-table tr { break-inside: avoid; page-break-inside: avoid; }
       #print-applicant-summary .print-summary-letterhead img[hidden],
       #print-applicant-summary .print-summary-letterhead-fallback[hidden] { display: none !important; }
@@ -887,13 +900,40 @@
               <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
               <div class="settings-grid">
                 <div class="wide">
-                  <label for="registration-letterhead-file">Kop sekolah untuk formulir dan biodata (PNG/JPG, maksimal 5 MB)</label>
-                  <div class="file-setting">
-                    <input id="registration-letterhead-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
-                    <button type="button" class="secondary upload-button" data-asset="registrationLetterhead">Unggah Kop Sekolah</button>
+                  <label for="registration-letterhead-mode">Mode kop biodata</label>
+                  <select id="registration-letterhead-mode">
+                    <option value="image">Gunakan gambar kop siap pakai</option>
+                    <option value="manual">Buat kop manual</option>
+                  </select>
+                  <p class="helper">Pilih gambar kop lama atau susun kop dari logo dan maksimal lima baris teks.</p>
+                  <div id="registration-letterhead-image-settings">
+                    <label for="registration-letterhead-file">Gambar kop siap pakai (PNG/JPG, maksimal 5 MB)</label>
+                    <div class="file-setting">
+                      <input id="registration-letterhead-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+                      <button type="button" class="secondary upload-button" data-asset="registrationLetterhead">Unggah Gambar Kop</button>
+                    </div>
+                    <a id="registration-letterhead-current" href="#" target="_blank" rel="noopener noreferrer">Lihat gambar kop saat ini</a>
                   </div>
-                  <a id="registration-letterhead-current" href="#" target="_blank" rel="noopener noreferrer">Lihat kop saat ini</a>
-                  <p class="helper">Gambar ini akan tampil pada biodata siap cetak setelah pendaftaran berhasil.</p>
+                  <div id="registration-letterhead-manual-settings" hidden>
+                    <label for="registration-letterhead-logo-file">Logo kop manual (PNG/JPG, maksimal 5 MB)</label>
+                    <div class="file-setting">
+                      <input id="registration-letterhead-logo-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
+                      <button type="button" class="secondary upload-button" data-asset="registrationLetterheadLogo">Unggah Logo Kop</button>
+                    </div>
+                    <a id="registration-letterhead-logo-current" href="#" target="_blank" rel="noopener noreferrer">Lihat logo saat ini</a>
+                    <div id="registration-letterhead-lines"></div>
+                  </div>
+                  <div class="wide">
+                    <p class="field-control-caption">Judul cetak (tiga baris)</p>
+                    <label for="registration-print-title-line-1">Baris 1</label>
+                    <input id="registration-print-title-line-1" type="text" maxlength="120">
+                    <label for="registration-print-title-line-2">Baris 2</label>
+                    <input id="registration-print-title-line-2" type="text" maxlength="120">
+                    <label for="registration-print-title-line-3">Baris 3</label>
+                    <input id="registration-print-title-line-3" type="text" maxlength="120">
+                    <p class="helper">Baris tahun pelajaran bawaan akan mengikuti tahun ajaran aktif selama teks default tidak diubah.</p>
+                  </div>
+                  <p class="helper">Ukuran isi cetak menggunakan 14 pt dan data akan mengalir ke halaman berikutnya bila diperlukan.</p>
                 </div>
               </div>
               <div id="school-documents-list"></div>
@@ -1095,6 +1135,11 @@
       </div>
       <form id="edit-form">
         <div id="edit-fields" class="edit-grid"></div>
+        <fieldset id="edit-documents" class="edit-documents" hidden>
+          <legend>Berkas diterima secara fisik</legend>
+          <p class="helper">Centang berkas yang sudah diterima panitia dalam bentuk fisik. Status ini akan tercetak sebagai “Ada”.</p>
+          <div id="edit-document-options"></div>
+        </fieldset>
         <p id="edit-status" class="status-line" role="status"></p>
         <div class="dialog-actions">
           <button id="cancel-edit-button" class="secondary" type="button">Batal</button>
@@ -1357,11 +1402,16 @@
     <section id="print-applicant-summary">
       <div class="print-summary-letterhead">
         <img id="print-summary-letterhead-image" alt="Kop sekolah" hidden>
+        <div id="print-summary-manual-letterhead" class="print-summary-manual-letterhead" hidden>
+          <img id="print-summary-manual-logo" class="print-summary-manual-logo" alt="Logo sekolah" hidden>
+          <div id="print-summary-manual-lines" class="print-summary-manual-lines"></div>
+        </div>
         <div id="print-summary-letterhead-fallback" class="print-summary-letterhead-fallback" hidden>
           SMK PGRI CIKONENG
         </div>
       </div>
       <header style="text-align:center">
+        <div id="print-summary-title" class="print-summary-title"></div>
         <h2>BIODATA MURID BARU</h2>
         <p>Nomor Pendaftaran: <strong id="print-summary-registration-number"></strong></p>
         <p>Tanggal Pendaftaran: <strong id="print-summary-registration-date"></strong></p>
@@ -2893,7 +2943,14 @@
 
     function showConfig(config) {
       siteConfig = config;
-      if (adminReviewConfig) adminReviewConfig.classes = (config.classes || []).slice();
+      if (adminReviewConfig) {
+        adminReviewConfig.classes = (config.classes || []).slice();
+        adminReviewConfig.registrationLetterheadUrl = config.registrationLetterheadUrl || '';
+        adminReviewConfig.registrationLetterheadMode = config.registrationLetterheadMode || 'image';
+        adminReviewConfig.registrationLetterheadLogoUrl = config.registrationLetterheadLogoUrl || '';
+        adminReviewConfig.registrationLetterheadLines = config.registrationLetterheadLines || [];
+        adminReviewConfig.registrationPrintTitleLines = config.registrationPrintTitleLines || [];
+      }
       document.getElementById('page-title').value = config.pageTitle || '';
       document.getElementById('academic-year').value = config.academicYear || '';
       document.getElementById('contact-label').value = config.contactLabel || '';
@@ -2948,6 +3005,19 @@
       setCurrentFile('form-pdf-current', config.formPdfUrl);
       setCurrentFile('scholarship-pdf-current', config.scholarshipPdfUrl);
       setCurrentFile('registration-letterhead-current', config.registrationLetterheadUrl);
+      setCurrentFile('registration-letterhead-logo-current', config.registrationLetterheadLogoUrl);
+      document.getElementById('registration-letterhead-mode').value =
+        config.registrationLetterheadMode === 'manual' ? 'manual' : 'image';
+      renderRegistrationLetterheadLines(config.registrationLetterheadLines || []);
+      const printTitleLines = config.registrationPrintTitleLines || [
+        'SISTEM PENERIMAAN MURID BARU (SPMB)',
+        'SMK PGRI CIKONENG',
+        'TAHUN PELAJARAN 2027/2028'
+      ];
+      printTitleLines.forEach(function (line, index) {
+        document.getElementById('registration-print-title-line-' + (index + 1)).value = line;
+      });
+      updateRegistrationLetterheadMode();
       const googleIntegration = config.googleIntegration || {};
       document.getElementById('google-spreadsheet-id').value = googleIntegration.spreadsheetId || '';
       document.getElementById('google-drive-folder-id').value = googleIntegration.driveFolderId || '';
@@ -3010,6 +3080,80 @@
       link.href = url;
       link.classList.toggle('hidden', !url);
     }
+
+    function renderRegistrationLetterheadLines(lines) {
+      const container = document.getElementById('registration-letterhead-lines');
+      container.replaceChildren();
+      Array.from({ length: 5 }, function (_, index) {
+        return (Array.isArray(lines) ? lines[index] : null) || {};
+      }).forEach(function (line, index) {
+        const row = document.createElement('div');
+        row.className = 'master-row';
+        row.dataset.registrationLetterheadLine = 'true';
+        const text = document.createElement('input');
+        text.type = 'text';
+        text.maxLength = 160;
+        text.placeholder = 'Teks kop baris ' + (index + 1);
+        text.dataset.letterheadText = 'true';
+        text.value = line.text || '';
+        const order = document.createElement('select');
+        order.dataset.letterheadOrder = 'true';
+        for (let value = 1; value <= 5; value += 1) {
+          order.appendChild(makeOption(String(value), 'Baris ' + value));
+        }
+        order.value = String(line.order || index + 1);
+        const fontSize = document.createElement('input');
+        fontSize.type = 'number';
+        fontSize.min = '8';
+        fontSize.max = '36';
+        fontSize.step = '1';
+        fontSize.dataset.letterheadFontSize = 'true';
+        fontSize.value = String(line.fontSize || 12);
+        const styles = document.createElement('div');
+        const stylesLabel = document.createElement('span');
+        stylesLabel.className = 'field-control-caption';
+        stylesLabel.textContent = 'Gaya teks';
+        const toggles = document.createElement('div');
+        toggles.className = 'field-toggle-setting';
+        ['bold', 'italic'].forEach(function (styleName) {
+          const label = document.createElement('label');
+          label.className = 'payment-check-control';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.dataset.letterheadStyle = styleName;
+          checkbox.checked = line[styleName] === true;
+          label.append(checkbox, document.createTextNode(styleName === 'bold' ? 'Tebal' : 'Miring'));
+          toggles.appendChild(label);
+        });
+        styles.append(stylesLabel, toggles);
+        row.append(
+          makeLabeledControl('Teks baris ' + (index + 1), text),
+          makeLabeledControl('Urutan tampil', order),
+          makeLabeledControl('Ukuran (pt)', fontSize),
+          styles
+        );
+        container.appendChild(row);
+      });
+    }
+
+    function getRegistrationLetterheadLines() {
+      return Array.from(document.querySelectorAll('[data-registration-letterhead-line]')).map(function (row) {
+        return {
+          text: row.querySelector('[data-letterhead-text]').value.trim(),
+          order: Number(row.querySelector('[data-letterhead-order]').value),
+          fontSize: Number(row.querySelector('[data-letterhead-font-size]').value),
+          bold: row.querySelector('[data-letterhead-style="bold"]').checked,
+          italic: row.querySelector('[data-letterhead-style="italic"]').checked
+        };
+      });
+    }
+
+    function updateRegistrationLetterheadMode() {
+      const isManual = document.getElementById('registration-letterhead-mode').value === 'manual';
+      document.getElementById('registration-letterhead-image-settings').hidden = isManual;
+      document.getElementById('registration-letterhead-manual-settings').hidden = !isManual;
+    }
+    document.getElementById('registration-letterhead-mode').addEventListener('change', updateRegistrationLetterheadMode);
 
     function updateWhatsAppProviderUI() {
       const provider = document.getElementById('whatsapp-provider').value;
@@ -4466,7 +4610,57 @@
       });
     }
 
+    function renderApplicantManualLetterhead(config) {
+      const wrapper = document.getElementById('print-summary-manual-letterhead');
+      const logo = document.getElementById('print-summary-manual-logo');
+      const linesContainer = document.getElementById('print-summary-manual-lines');
+      const logoUrl = config.registrationLetterheadLogoUrl || (siteConfig && siteConfig.registrationLetterheadLogoUrl) || '';
+      const lines = (config.registrationLetterheadLines || (siteConfig && siteConfig.registrationLetterheadLines) || [])
+        .map(function (line, index) { return Object.assign({ index: index }, line); })
+        .filter(function (line) { return String(line.text || '').trim(); })
+        .sort(function (a, b) { return Number(a.order) - Number(b.order) || a.index - b.index; });
+      logo.onerror = null;
+      if (logoUrl) {
+        logo.src = logoUrl;
+        logo.hidden = false;
+        logo.onerror = function () { logo.hidden = true; };
+      } else {
+        logo.removeAttribute('src');
+        logo.hidden = true;
+      }
+      linesContainer.replaceChildren();
+      lines.forEach(function (line) {
+        const element = document.createElement('div');
+        element.textContent = line.text;
+        element.style.fontSize = Number(line.fontSize || 12) + 'pt';
+        element.style.fontWeight = line.bold === true ? '700' : '400';
+        element.style.fontStyle = line.italic === true ? 'italic' : 'normal';
+        linesContainer.appendChild(element);
+      });
+      wrapper.hidden = !logoUrl && !lines.length;
+      return logo;
+    }
+
+    function renderApplicantPrintTitle(config) {
+      const container = document.getElementById('print-summary-title');
+      const defaultAcademicYearLine = 'TAHUN PELAJARAN 2027/2028';
+      const titleLines = config.registrationPrintTitleLines || (siteConfig && siteConfig.registrationPrintTitleLines) || [
+        'SISTEM PENERIMAAN MURID BARU (SPMB)',
+        'SMK PGRI CIKONENG',
+        defaultAcademicYearLine
+      ];
+      const academicYear = config.academicYear || (siteConfig && siteConfig.academicYear) || '';
+      container.replaceChildren();
+      titleLines.forEach(function (line) {
+        const element = document.createElement('div');
+        element.textContent = line === defaultAcademicYearLine && academicYear
+          ? 'TAHUN PELAJARAN ' + academicYear : line;
+        container.appendChild(element);
+      });
+    }
+
     function renderApplicantPrintSummary(applicant) {
+      renderApplicantPrintTitle(adminReviewConfig || siteConfig || {});
       const values = {
         'print-summary-registration-number': applicant.registration_number,
         'print-summary-registration-date': formatApplicantPrintDate(applicant.created_at),
@@ -4502,6 +4696,7 @@
         if (!rows.length) return;
         const section = document.createElement('section');
         section.className = 'print-summary-section';
+        section.dataset.printGroup = groupName;
         const heading = document.createElement('h3');
         heading.textContent = groupName.toLocaleUpperCase('id-ID');
         const table = document.createElement('table');
@@ -4528,6 +4723,7 @@
           (!item.registrationPath || item.registrationPath === applicant.registration_path);
       }).slice().sort(function (a, b) { return Number(a.order) - Number(b.order); });
       const uploadedDocumentKeys = new Set((applicant.files || []).map(function (file) { return file.key; }));
+      (applicant.physical_document_keys || []).forEach(function (key) { uploadedDocumentKeys.add(key); });
       const documentRows = document.getElementById('print-summary-document-rows');
       documentRows.replaceChildren();
       documentConfigs.forEach(function (documentConfig) {
@@ -4581,7 +4777,11 @@
 
         const letterhead = document.getElementById('print-summary-letterhead-image');
         const letterheadFallback = document.getElementById('print-summary-letterhead-fallback');
-        const letterheadUrl = config.registrationLetterheadUrl || (siteConfig && siteConfig.registrationLetterheadUrl) || '';
+        const letterheadMode = config.registrationLetterheadMode ||
+          (siteConfig && siteConfig.registrationLetterheadMode) || 'image';
+        const isManualLetterhead = letterheadMode === 'manual';
+        const letterheadUrl = isManualLetterhead ? '' :
+          (config.registrationLetterheadUrl || (siteConfig && siteConfig.registrationLetterheadUrl) || '');
         letterhead.onerror = null;
         if (letterheadUrl) {
           letterhead.hidden = false;
@@ -4590,17 +4790,26 @@
         } else {
           letterhead.removeAttribute('src');
           letterhead.hidden = true;
-          letterheadFallback.hidden = false;
+          letterheadFallback.hidden = isManualLetterhead;
         }
 
-        await Promise.all([waitForApplicantPrintImage(photo), waitForApplicantPrintImage(letterhead)]);
+        const manualLogo = isManualLetterhead ? renderApplicantManualLetterhead(config) : null;
+        if (!isManualLetterhead) {
+          document.getElementById('print-summary-manual-letterhead').hidden = true;
+          document.getElementById('print-summary-manual-logo').removeAttribute('src');
+        }
+        await Promise.all([
+          waitForApplicantPrintImage(photo),
+          waitForApplicantPrintImage(letterhead),
+          manualLogo ? waitForApplicantPrintImage(manualLogo) : Promise.resolve()
+        ]);
         if (photo.getAttribute('src') && !photo.naturalWidth) {
           photo.hidden = true;
           photoPlaceholder.hidden = false;
         }
         if (letterhead.getAttribute('src') && !letterhead.naturalWidth) {
           letterhead.hidden = true;
-          letterheadFallback.hidden = false;
+          letterheadFallback.hidden = isManualLetterhead;
         }
         const previousTitle = document.title;
         document.title = 'Pendaftaran SPMB - ' + applicant.registration_number;
@@ -4847,12 +5056,38 @@
         group.append(label, control);
         container.appendChild(group);
       });
+      renderEditPhysicalDocuments(applicant, config);
       const pathSelect = container.querySelector('[data-edit-field-key="registrationPath"]');
       if (pathSelect) {
         const waveSelect = container.querySelector('[data-edit-field-key="wave"]');
         updateEditRegistrationPaths(pathSelect, config, waveSelect ? waveSelect.value : applicant.wave,
           applicant.registration_path || '');
       }
+    }
+
+    function renderEditPhysicalDocuments(applicant, config) {
+      const section = document.getElementById('edit-documents');
+      const container = document.getElementById('edit-document-options');
+      const existingKeys = Array.isArray(applicant.physical_document_keys) ? applicant.physical_document_keys : [];
+      const documents = (config.documentRequirements || []).filter(function (item) {
+        return item.active && (!item.wave || item.wave === applicant.wave) &&
+          (!item.registrationPath || item.registrationPath === applicant.registration_path);
+      }).slice().sort(function (a, b) { return Number(a.order) - Number(b.order); });
+      section.dataset.existingKeys = JSON.stringify(existingKeys);
+      section.hidden = documents.length === 0;
+      container.replaceChildren();
+      documents.forEach(function (item) {
+        const label = document.createElement('label');
+        label.className = 'edit-document-option';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.dataset.physicalDocumentKey = item.key;
+        checkbox.checked = existingKeys.includes(item.key);
+        const text = document.createElement('span');
+        text.textContent = item.name + (item.required ? ' (wajib)' : ' (opsional)');
+        label.append(checkbox, text);
+        container.appendChild(label);
+      });
     }
 
     async function openEditDialog(applicant) {
@@ -5471,6 +5706,13 @@
             brochureImageUrls: siteConfig.brochureImageUrls || [],
             formPdfUrl: siteConfig.formPdfUrl,
             scholarshipPdfUrl: siteConfig.scholarshipPdfUrl,
+            registrationLetterheadUrl: siteConfig.registrationLetterheadUrl || '',
+            registrationLetterheadMode: document.getElementById('registration-letterhead-mode').value,
+            registrationLetterheadLogoUrl: siteConfig.registrationLetterheadLogoUrl || '',
+            registrationLetterheadLines: getRegistrationLetterheadLines(),
+            registrationPrintTitleLines: [1, 2, 3].map(function (lineNumber) {
+              return document.getElementById('registration-print-title-line-' + lineNumber).value.trim();
+            }),
             contactLabel: document.getElementById('contact-label').value.trim(),
             contactPersons: getContactPersonRows(),
             timelineEvents: getTimelineRows(),
@@ -5590,11 +5832,12 @@
         const input = document.getElementById(assetType === 'formPdf' ? 'form-pdf'
           : assetType === 'paymentQr' ? 'payment-qr-file'
             : assetType === 'registrationLetterhead' ? 'registration-letterhead-file'
+              : assetType === 'registrationLetterheadLogo' ? 'registration-letterhead-logo-file'
             : ['brochureImage', 'brochureSlide'].includes(assetType) ? 'brochure-image-file' : 'scholarship-pdf');
         const slideshowUpload = assetType === 'brochureSlide';
         const files = Array.from(input.files || []);
-        const imageUpload = ['paymentQr', 'brochureImage', 'brochureSlide', 'registrationLetterhead'].includes(assetType);
-        const maxImageBytes = ['brochureImage', 'brochureSlide', 'registrationLetterhead'].includes(assetType) ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
+        const imageUpload = ['paymentQr', 'brochureImage', 'brochureSlide', 'registrationLetterhead', 'registrationLetterheadLogo'].includes(assetType);
+        const maxImageBytes = ['brochureImage', 'brochureSlide', 'registrationLetterhead', 'registrationLetterheadLogo'].includes(assetType) ? 5 * 1024 * 1024 : 2 * 1024 * 1024;
         if (!files.length) return setStatus('settings-status', imageUpload ? 'Pilih gambar terlebih dahulu.' : 'Pilih PDF terlebih dahulu.', 'error');
         if (slideshowUpload && (siteConfig.brochureImageUrls || []).length + files.length > 6) {
           return setStatus('settings-status', 'Beranda dapat menampilkan maksimal 6 foto.', 'error');
@@ -5623,7 +5866,8 @@
           input.value = '';
           showConfig(latestConfig);
           const label = assetType === 'paymentQr' ? 'Gambar QRIS' :
-            assetType === 'registrationLetterhead' ? 'Kop sekolah' :
+            assetType === 'registrationLetterhead' ? 'Gambar kop sekolah' :
+            assetType === 'registrationLetterheadLogo' ? 'Logo kop sekolah' :
             ['brochureImage', 'brochureSlide'].includes(assetType) ? 'Foto beranda' : 'PDF';
           setStatus('settings-status', label + (slideshowUpload ? ' berhasil diunggah (' + files.length + ').' : ' berhasil diunggah.'), 'success');
         } catch (error) {
@@ -5742,6 +5986,15 @@
       const button = document.getElementById('save-edit-button');
       button.disabled = true;
       const payload = { customData: {} };
+      const physicalDocuments = document.getElementById('edit-documents');
+      const existingPhysicalKeys = JSON.parse(physicalDocuments.dataset.existingKeys || '[]');
+      const visiblePhysicalKeys = Array.from(document.querySelectorAll('[data-physical-document-key]'))
+        .map(function (checkbox) { return checkbox.dataset.physicalDocumentKey; });
+      const checkedPhysicalKeys = Array.from(document.querySelectorAll('[data-physical-document-key]:checked'))
+        .map(function (checkbox) { return checkbox.dataset.physicalDocumentKey; });
+      payload.physicalDocumentKeys = existingPhysicalKeys.filter(function (key) {
+        return !visiblePhysicalKeys.includes(key);
+      }).concat(checkedPhysicalKeys);
       event.currentTarget.querySelectorAll('[data-edit-field-key]').forEach(function (control) {
         const key = control.dataset.editFieldKey;
         if (control.dataset.editFieldCustom === 'true') payload.customData[key] = control.value;
