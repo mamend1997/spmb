@@ -83,7 +83,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-02">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-03">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -184,20 +184,26 @@
     </section>
 
     <section id="home-requirements" class="home-info-section no-print" aria-labelledby="requirements-title">
-      <header class="home-info-heading">
-        <h2 id="requirements-title">Persiapan Pendaftaran</h2>
-        <p>Gunakan checklist ini agar data dan berkas yang diminta sudah siap sebelum mengisi formulir.</p>
-      </header>
-      <div class="home-info-grid">
-        <article class="home-info-card">
-          <h3>Data yang perlu disiapkan</h3>
-          <ul id="required-data-list" class="home-checklist"></ul>
-        </article>
-        <article class="home-info-card">
-          <h3>Dokumen yang perlu diunggah</h3>
-          <ul id="required-document-list" class="home-checklist"></ul>
-        </article>
-      </div>
+      <details class="requirements-disclosure">
+        <summary class="requirements-summary">
+          <span class="requirements-summary-copy">
+            <span class="section-eyebrow">SEBELUM MENDAFTAR</span>
+            <h2 id="requirements-title" class="requirements-title">Persiapan Pendaftaran</h2>
+            <span class="requirements-description">Checklist data dan berkas yang perlu disiapkan.</span>
+          </span>
+          <span class="requirements-toggle" aria-hidden="true"></span>
+        </summary>
+        <div class="home-info-grid">
+          <article class="home-info-card">
+            <h3>Data yang perlu disiapkan</h3>
+            <ul id="required-data-list" class="home-checklist"></ul>
+          </article>
+          <article class="home-info-card">
+            <h3>Dokumen yang perlu diunggah</h3>
+            <ul id="required-document-list" class="home-checklist"></ul>
+          </article>
+        </div>
+      </details>
     </section>
 
     <section id="school-location-section" class="home-info-section no-print" aria-labelledby="school-location-title" hidden>
@@ -206,9 +212,42 @@
         <p>Informasi layanan tatap muka SPMB SMK PGRI Cikoneng.</p>
       </header>
       <div class="home-info-card location-card">
-        <p id="school-address-display" class="location-address"></p>
-        <p id="school-service-hours-display" class="location-hours"></p>
-        <a id="school-map-link" class="home-info-link" target="_blank" rel="noopener noreferrer" hidden>Lihat peta</a>
+        <div class="location-copy">
+          <span class="location-eyebrow">KUNJUNGI KAMI</span>
+          <h3>Panitia siap membantu</h3>
+          <div class="location-detail">
+            <span class="location-detail-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M19 10.1c0 5-7 11-7 11s-7-6-7-11a7 7 0 1 1 14 0Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.3" stroke="currentColor" stroke-width="1.8"/></svg>
+            </span>
+            <div class="location-detail-copy">
+              <span class="location-label">Alamat sekolah</span>
+              <p id="school-address-display" class="location-address"></p>
+            </div>
+          </div>
+          <div class="location-detail">
+            <span class="location-detail-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div class="location-detail-copy">
+              <span class="location-label">Jam layanan tatap muka</span>
+              <p id="school-service-hours-display" class="location-hours"></p>
+            </div>
+          </div>
+          <a id="school-map-link" class="home-info-link" target="_blank" rel="noopener noreferrer" hidden>Buka di Google Maps</a>
+        </div>
+        <div id="school-map-column" class="location-map-column" hidden>
+          <div class="location-map-caption">
+            <div>
+              <span class="location-label">Peta lokasi sekolah</span>
+              <p>Gunakan kontrol peta untuk memperbesar atau memperkecil.</p>
+            </div>
+            <span class="map-interactive-badge">Peta interaktif</span>
+          </div>
+          <div class="location-map-viewport">
+            <iframe id="school-map-frame" title="Peta interaktif lokasi sekolah" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade" allowfullscreen hidden></iframe>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -803,15 +842,43 @@
       const hasInformation = Boolean(info.address || info.mapUrl || info.serviceHours);
       const section = document.getElementById('school-location-section');
       section.hidden = !hasInformation;
+      const locationCard = section.querySelector('.location-card');
       document.getElementById('school-address-display').textContent = info.address || '';
       document.getElementById('school-address-display').hidden = !info.address;
       document.getElementById('school-service-hours-display').textContent =
-        info.serviceHours ? 'Jam layanan: ' + info.serviceHours : '';
+        info.serviceHours || '';
       document.getElementById('school-service-hours-display').hidden = !info.serviceHours;
       const mapLink = document.getElementById('school-map-link');
-      mapLink.hidden = !info.mapUrl;
-      if (info.mapUrl) mapLink.href = info.mapUrl;
-      else mapLink.removeAttribute('href');
+      const mapColumn = document.getElementById('school-map-column');
+      const mapFrame = document.getElementById('school-map-frame');
+      if (info.address) {
+        const embedUrl = new URL('https://www.google.com/maps');
+        embedUrl.searchParams.set('q', info.address);
+        embedUrl.searchParams.set('output', 'embed');
+        embedUrl.searchParams.set('z', '16');
+        mapFrame.src = embedUrl.toString();
+        mapFrame.hidden = false;
+        mapColumn.hidden = false;
+        locationCard.classList.add('has-map');
+      } else {
+        mapFrame.removeAttribute('src');
+        mapFrame.hidden = true;
+        mapColumn.hidden = true;
+        locationCard.classList.remove('has-map');
+      }
+      if (info.mapUrl) {
+        mapLink.href = info.mapUrl;
+        mapLink.textContent = 'Buka peta';
+      } else if (info.address) {
+        const searchUrl = new URL('https://www.google.com/maps/search/');
+        searchUrl.searchParams.set('api', '1');
+        searchUrl.searchParams.set('query', info.address);
+        mapLink.href = searchUrl.toString();
+        mapLink.textContent = 'Buka di Google Maps';
+      } else {
+        mapLink.removeAttribute('href');
+      }
+      mapLink.hidden = !info.mapUrl && !info.address;
     }
 
     function renderProgramDetails(config) {
@@ -1868,6 +1935,8 @@
       }
     });
 
+    const requirementsDisclosure = document.querySelector('.requirements-disclosure');
+    if (requirementsDisclosure) requirementsDisclosure.open = false;
     loadPublicConfig();
   </script>
 </body>
