@@ -42,6 +42,11 @@ function doPost(event) {
     if (!/^SPMB-\d{4}-(?:\d{6}|(?=[A-Z0-9]{8}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8})$/.test(String(registration.registrationNumber || ''))) {
       throw new Error('Nomor pendaftaran tidak valid.');
     }
+    const previousRegistrationNumber = String(registration.previousRegistrationNumber || '');
+    if (previousRegistrationNumber &&
+        !/^SPMB-\d{4}-(?:\d{6}|(?=[A-Z0-9]{8}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8})$/.test(previousRegistrationNumber)) {
+      throw new Error('Nomor pendaftaran sebelumnya tidak valid.');
+    }
 
     lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -51,9 +56,15 @@ function doPost(event) {
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
     const values = makeRowValues_(headers, registration);
     const registrationColumn = headers.indexOf('Nomor Pendaftaran') + 1;
-    const existingRow = findRegistrationRow_(sheet, registrationColumn, registration.registrationNumber);
+    const currentRow = findRegistrationRow_(sheet, registrationColumn, registration.registrationNumber);
+    const previousRow = previousRegistrationNumber &&
+      previousRegistrationNumber !== registration.registrationNumber
+      ? findRegistrationRow_(sheet, registrationColumn, previousRegistrationNumber)
+      : 0;
+    const existingRow = previousRow || currentRow;
     if (existingRow) {
       sheet.getRange(existingRow, 1, 1, headers.length).setValues([values]);
+      if (previousRow && currentRow && previousRow !== currentRow) sheet.deleteRow(currentRow);
     } else {
       sheet.appendRow(values);
     }

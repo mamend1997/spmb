@@ -1433,8 +1433,8 @@ function isApplicantVerifiedForSelection(applicant, config) {
   return calculateDocumentStatus(applicant, config, reviews, uploadedFiles) === 'Berkas Terverifikasi';
 }
 
-function makeSheetPayload(applicant) {
-  return {
+function makeSheetPayload(applicant, previousRegistrationNumber) {
+  const payload = {
     registrationNumber: applicant.registration_number,
     timestamp: applicant.created_at,
     wave: applicant.wave,
@@ -1477,6 +1477,10 @@ function makeSheetPayload(applicant) {
     paymentNote: applicant.payment_note,
     paymentReviewedAt: applicant.payment_reviewed_at
   };
+  if (previousRegistrationNumber && previousRegistrationNumber !== applicant.registration_number) {
+    payload.previousRegistrationNumber = previousRegistrationNumber;
+  }
+  return payload;
 }
 
 function enqueueSheetSync(applicant) {
@@ -2547,9 +2551,15 @@ function makePinHash(pin, salt) {
   return crypto.scryptSync(pin, salt, 64).toString('hex');
 }
 
-function queueSheetSync(applicantId) {
+function queueSheetSync(applicantId, previousRegistrationNumber) {
   const applicant = database.prepare('SELECT * FROM applicants WHERE id = ?').get(applicantId);
   const now = new Date().toISOString();
+  const pendingSync = database.prepare('SELECT payload_json FROM sheet_sync_queue WHERE applicant_id = ?')
+    .get(applicantId);
+  const retainedPreviousRegistrationNumber = pendingSync
+    ? JSON.parse(pendingSync.payload_json).previousRegistrationNumber
+    : '';
+  const sheetLookupRegistrationNumber = retainedPreviousRegistrationNumber || previousRegistrationNumber || '';
   database.prepare(`
     INSERT INTO sheet_sync_queue (applicant_id, payload_json, attempts, next_attempt_at, last_error, synced_at)
     VALUES (?, ?, 0, ?, '', NULL)
@@ -2558,7 +2568,7 @@ function queueSheetSync(applicantId) {
       next_attempt_at = excluded.next_attempt_at,
       last_error = '',
       synced_at = NULL
-  `).run(applicantId, JSON.stringify(makeSheetPayload(applicant)), now);
+  `).run(applicantId, JSON.stringify(makeSheetPayload(applicant, sheetLookupRegistrationNumber)), now);
   database.prepare('UPDATE applicants SET sheet_sync_status = ? WHERE id = ?').run('pending', applicantId);
 }
 
@@ -5290,7 +5300,7 @@ app.patch('/api/admin/applications/:registrationNumber/registration-number', req
         .run(newRegistrationNumber, applicant.id);
       database.prepare('DELETE FROM login_attempts WHERE registration_number = ?')
         .run(oldRegistrationNumber);
-      queueSheetSync(applicant.id);
+      queueSheetSync(applicant.id, oldRegistrationNumber);
     });
   } catch (error) {
     if (directoryMoved) {
