@@ -230,6 +230,15 @@ test('admin can upload replacement documents from the applicant edit form', func
   assert.match(serverJs, /reviews\[item\.key\] = \{ status: 'pending', note: '', updatedAt: now \}/);
 });
 
+test('admin can cancel document and field revision requests', function () {
+  assert.match(adminHtml, /button\.textContent = 'Batalkan Revisi'/);
+  assert.match(adminHtml, /cancelApplicantRevisions\(applicant, items, button\)/);
+  assert.match(adminHtml, /updateApplicantReview\(applicant, item\.key, item\.type, 'pending', ''\)/);
+  assert.match(adminHtml, /appendCancelRevisionButton\(revisionNotice, applicant, \[\{ key: config\.key, type: 'document' \}\]\)/);
+  assert.match(adminHtml, /appendCancelRevisionButton\(studentRevisionNotice, applicant, studentRevisionFields\.map/);
+  assert.match(adminHtml, /appendCancelRevisionButton\(parentRevisionNotice, applicant, parentRevisionFields\.map/);
+});
+
 test('edit icons use a white stroke and stay compact beside registration numbers', function () {
   assert.match(adminHtml, /\.registration-number-edit \{[^}]*width: 20px;[^}]*color: #fff !important/);
   assert.match(adminHtml, /\.registration-number-edit svg \{[^}]*stroke: #fff/);

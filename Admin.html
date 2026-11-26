@@ -3888,6 +3888,35 @@
       container.hidden = false;
     }
 
+    function appendCancelRevisionButton(container, applicant, items) {
+      if (!items.length || !canAdmin('applications', 'edit')) return;
+      const button = document.createElement('button');
+      button.className = 'secondary';
+      button.type = 'button';
+      button.textContent = 'Batalkan Revisi';
+      button.addEventListener('click', function () {
+        cancelApplicantRevisions(applicant, items, button);
+      });
+      container.appendChild(button);
+    }
+
+    async function cancelApplicantRevisions(applicant, items, button) {
+      if (!applicant || !items.length) return;
+      button.disabled = true;
+      try {
+        for (const item of items) {
+          await updateApplicantReview(applicant, item.key, item.type, 'pending', '');
+        }
+        if (!await loadApplications()) throw new Error('Revisi dibatalkan, tetapi halaman gagal dimuat ulang.');
+        setStatus('detail-status', 'Revisi dibatalkan. Admin dapat melanjutkan pemeriksaan atau mengedit data.', 'success');
+      } catch (error) {
+        await loadApplications();
+        setStatus('detail-status', error.message || 'Revisi gagal dibatalkan.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
     function normalizeWhatsAppLink(phone) {
       const digits = String(phone || '').replace(/\D/g, '');
       if (!digits) return '';
@@ -4027,6 +4056,12 @@
       const parentRevisionNotice = document.getElementById('detail-parent-revision-notice');
       renderRevisionNotice(studentRevisionNotice, studentRevisionFields, reviews, 'Menunggu perbaikan data dari pendaftar.');
       renderRevisionNotice(parentRevisionNotice, parentRevisionFields, reviews, 'Menunggu perbaikan data dari pendaftar.');
+      appendCancelRevisionButton(studentRevisionNotice, applicant, studentRevisionFields.map(function (field) {
+        return { key: field.key, type: 'field' };
+      }));
+      appendCancelRevisionButton(parentRevisionNotice, applicant, parentRevisionFields.map(function (field) {
+        return { key: field.key, type: 'field' };
+      }));
       studentVerifyButton.textContent = studentReviewStatus === 'Terverifikasi'
         ? '✓ Data telah diverifikasi valid' : '✓ Terima Data';
       parentVerifyButton.textContent = parentReviewStatus === 'Terverifikasi'
@@ -4106,6 +4141,7 @@
           revisionNotice.className = 'detail-revision-response';
           renderRevisionNotice(revisionNotice, [{ key: config.key }], reviews,
             file ? 'Menunggu upload ulang dari pendaftar.' : 'Menunggu unggah berkas dari pendaftar.');
+          appendCancelRevisionButton(revisionNotice, applicant, [{ key: config.key, type: 'document' }]);
           card.appendChild(revisionNotice);
         }
         if (!readOnly) {
