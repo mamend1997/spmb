@@ -100,21 +100,33 @@ test('new and edited applicants use every active configured field, including cus
 });
 
 test('student and admin biodata print use readable multi-page A4 layout', function () {
-  assert.match(adminHtml, /#print-applicant-summary \{[^}]*font-size: 14pt/);
-  assert.match(adminHtml, /#print-applicant-summary \.print-summary-table \{[^}]*font-size: 14pt/);
-  assert.match(adminHtml, /#print-applicant-summary p \{ margin: 2px 0; font-size: 14pt; line-height: 1\.4; \}/);
-  assert.match(indexHtml, /#print-biodata \{ font-size: 14pt; \}/);
-  assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 14pt/);
+  assert.match(adminHtml, /#print-applicant-summary \{[^}]*font-size: 16pt/);
+  assert.match(adminHtml, /#print-applicant-summary \.print-summary-table \{[^}]*font-size: 16pt/);
+  assert.match(indexHtml, /#print-biodata \{ font-size: 16pt; \}/);
+  assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 16pt/);
+  assert.match(indexHtml, /biodata-meta-item \{[^}]*border: 1px solid/);
+  assert.match(adminHtml, /print-summary-meta-item \{[^}]*border: 1px solid/);
+  assert.match(indexHtml, /biodata-table \{ width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed/);
+  assert.match(adminHtml, /print-summary-table \{ width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed/);
+  assert.match(indexHtml, /biodata-signature-location-date \{ display: block; min-width: 90mm; white-space: nowrap; \}/);
+  assert.match(adminHtml, /print-summary-signature-date \{ display: block; min-width: 90mm; white-space: nowrap; \}/);
   assert.match(indexHtml, /@page \{ size: A4 portrait; margin: 15mm; \}/);
   assert.match(indexHtml, /biodata-section \{ break-inside: auto; page-break-inside: auto; \}/);
   assert.match(indexHtml, /biodata-section\[data-print-group="Data Orang Tua\/Wali"\] \{ break-before: page; page-break-before: always; \}/);
   assert.match(indexHtml, /biodata-table tr \{ break-inside: avoid; page-break-inside: avoid; \}/);
   assert.match(indexHtml, /biodata-heading p \{ margin: 2px 0; line-height: 1\.25; \}/);
-  assert.match(indexHtml, /biodata-signature \{ margin-top: 12px; line-height: 1\.25; \}/);
+  assert.match(indexHtml, /biodata-signature \{ width: 90mm !important; margin-top: 12px; line-height: 1\.25; \}/);
   assert.match(adminHtml, /@page \{ size: A4 portrait; margin: 12mm; \}/);
   assert.match(adminHtml, /print-summary-section \{ break-inside: auto; page-break-inside: auto; \}/);
   assert.match(adminHtml, /print-summary-section\[data-print-group="Data Orang Tua\/Wali"\] \{ break-before: page; page-break-before: always; \}/);
   assert.match(adminHtml, /print-summary-table tr \{ break-inside: avoid; page-break-inside: avoid; \}/);
+});
+
+test('school NPSN prints immediately after the previous-school field', function () {
+  assert.match(indexHtml, /field\.key === 'schoolOrigin' \|\| \/npsn\/i\.test\(field\.key \+ ' ' \+ field\.label\)/);
+  assert.match(adminHtml, /field\.key === 'schoolOrigin' \|\| \/npsn\/i\.test\(field\.key \+ ' ' \+ field\.label\)/);
+  assert.match(indexHtml, /field\.key === 'schoolOrigin' \? 0 : \/npsn\/i\.test\(field\.key \+ ' ' \+ field\.label\) \? 1 : 2/);
+  assert.match(adminHtml, /field\.key === 'schoolOrigin' \? 0 : \/npsn\/i\.test\(field\.key \+ ' ' \+ field\.label\) \? 1 : 2/);
 });
 
 test('admin can mark physically received documents and print them as present', function () {

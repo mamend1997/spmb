@@ -315,19 +315,25 @@
     #print-applicant-summary .print-summary-title div:first-child,
     #print-applicant-summary .print-summary-title div:last-child { font-size: 13pt; font-weight: 700; }
     #print-applicant-summary .print-summary-title div:nth-child(2) { font-size: 16pt; font-weight: 800; }
-    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 14pt; line-height: 1.4; }
-    #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 5px 7px; vertical-align: top; }
-    #print-applicant-summary .print-summary-table td:first-child { width: 34%; font-weight: 700; }
+    #print-applicant-summary .print-summary-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm; width: 92%; margin: 8mm auto 0; }
+    #print-applicant-summary .print-summary-meta-item { min-width: 0; padding: 3mm; border: 1px solid #475569; text-align: left; }
+    #print-applicant-summary .print-summary-meta-item strong { display: block; font-size: 12pt; }
+    #print-applicant-summary .print-summary-meta-item span { display: block; margin-top: 2mm; font-size: 16pt; font-weight: 700; overflow-wrap: anywhere; }
+    #print-applicant-summary .print-summary-table { width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed; border-collapse: collapse; font-size: 16pt; line-height: 1.4; }
+    #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 6px 8px; vertical-align: top; overflow-wrap: anywhere; }
+    #print-applicant-summary .print-summary-table td:first-child { width: 42%; font-weight: 700; }
+    #print-applicant-summary .print-summary-documents-table { table-layout: fixed; }
     #print-applicant-summary .print-summary-documents-table th,
-    #print-applicant-summary .print-summary-documents-table td { border: 1px solid #94a3b8; padding: 5px 7px; text-align: left; vertical-align: top; }
+    #print-applicant-summary .print-summary-documents-table td { border: 1px solid #94a3b8; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     #print-applicant-summary .print-summary-documents-table th { background: #f8fafc; }
     #print-applicant-summary .print-summary-documents-table td:first-child { width: 72%; }
     #print-applicant-summary .print-summary-documents-table th:last-child,
     #print-applicant-summary .print-summary-documents-table td:last-child { width: 28%; }
     #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: auto; page-break-inside: auto; }
     #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
-    #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 14pt; }
-    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 8mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 14pt; }
+    #print-applicant-summary .print-summary-section h3 { width: 92%; margin: 0 auto 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 16pt; }
+    #print-applicant-summary .print-summary-signature { width: 90mm; margin: 8mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 16pt; }
+    #print-applicant-summary .print-summary-signature-date { display: block; min-width: 90mm; white-space: nowrap; }
     #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
     .edit-documents { grid-column: 1 / -1; margin-top: 14px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
     .edit-document-option { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; color: #344054; font-size: 13px; }
@@ -342,7 +348,7 @@
       #print-applicant-card .print-card-shell { break-after: page; page-break-after: always; }
       #print-applicant-summary {
         display: block !important; position: static !important; width: 100% !important; max-width: none !important;
-        margin: 0 !important; padding: 0 !important; font-size: 14pt !important; zoom: 1 !important; transform: none !important;
+        margin: 0 !important; padding: 0 !important; font-size: 16pt !important; zoom: 1 !important; transform: none !important;
       }
       #print-applicant-summary p,
       #print-applicant-summary .print-summary-table,
@@ -350,7 +356,7 @@
       #print-applicant-summary .print-summary-documents-table th,
       #print-applicant-summary .print-summary-documents-table td,
       #print-applicant-summary .print-summary-section h3,
-      #print-applicant-summary .print-summary-signature { font-size: 14pt !important; }
+      #print-applicant-summary .print-summary-signature { font-size: 16pt !important; }
       #print-applicant-summary .print-summary-documents-table thead { display: table-header-group; }
       #print-applicant-summary .print-summary-section { break-inside: auto; page-break-inside: auto; }
       #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
@@ -1410,11 +1416,13 @@
           SMK PGRI CIKONENG
         </div>
       </div>
-      <header style="text-align:center">
+      <header class="print-summary-heading" style="text-align:center">
         <div id="print-summary-title" class="print-summary-title"></div>
         <h2>BIODATA MURID BARU</h2>
-        <p>Nomor Pendaftaran: <strong id="print-summary-registration-number"></strong></p>
-        <p>Tanggal Pendaftaran: <strong id="print-summary-registration-date"></strong></p>
+        <div class="print-summary-meta">
+          <div class="print-summary-meta-item"><strong>Nomor Pendaftaran</strong><span id="print-summary-registration-number"></span></div>
+          <div class="print-summary-meta-item"><strong>Tanggal Pendaftaran</strong><span id="print-summary-registration-date"></span></div>
+        </div>
       </header>
       <div id="print-summary-groups"></div>
       <section id="print-summary-documents-section" class="print-summary-section" hidden>
@@ -1425,7 +1433,7 @@
         </table>
       </section>
       <div class="print-summary-signature">
-        <p id="print-summary-print-date"></p>
+        <p id="print-summary-print-date" class="print-summary-signature-date"></p>
         <p style="margin-top:8px">Calon Murid Baru,</p>
         <p id="print-summary-signature-name" class="print-summary-signature-name"></p>
       </div>
@@ -4681,7 +4689,7 @@
       fields.forEach(function (field) {
         const groupName = ['wave', 'registrationPath', 'major'].includes(field.key)
           ? 'Pendaftaran'
-          : field.key === 'schoolOrigin'
+          : field.key === 'schoolOrigin' || /npsn/i.test(field.key + ' ' + field.label)
             ? 'Asal Sekolah'
             : Number(field.step) === 3 || /^(father|mother)/.test(field.key)
               ? 'Data Orang Tua/Wali'
@@ -4694,6 +4702,14 @@
       groupNames.forEach(function (groupName) {
         const rows = groups.get(groupName);
         if (!rows.length) return;
+        if (groupName === 'Asal Sekolah') {
+          rows.sort(function (a, b) {
+            const priority = function (field) {
+              return field.key === 'schoolOrigin' ? 0 : /npsn/i.test(field.key + ' ' + field.label) ? 1 : 2;
+            };
+            return priority(a.field) - priority(b.field);
+          });
+        }
         const section = document.createElement('section');
         section.className = 'print-summary-section';
         section.dataset.printGroup = groupName;

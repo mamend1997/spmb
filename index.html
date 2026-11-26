@@ -66,8 +66,8 @@
       .section-banner { margin-left: 1rem !important; margin-right: 1rem !important; }
       .step-item { align-items: flex-start; padding: .55rem; }
     }
-      #print-biodata { font-size: 14pt; }
-      #print-biodata p { font-size: 14pt; }
+      #print-biodata { font-size: 16pt; }
+      #print-biodata p { font-size: 16pt; }
       #print-biodata .biodata-manual-letterhead { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6mm; padding-bottom: 3mm; border-bottom: 2px solid #172033; }
       #print-biodata .biodata-manual-letterhead[hidden] { display: none !important; }
       #print-biodata .biodata-manual-logo { width: 24mm; height: 24mm; flex: 0 0 24mm; object-fit: contain; }
@@ -76,16 +76,22 @@
       #print-biodata .biodata-print-title div:first-child,
       #print-biodata .biodata-print-title div:last-child { font-size: 13pt; font-weight: 700; }
       #print-biodata .biodata-print-title div:nth-child(2) { font-size: 16pt; font-weight: 800; }
-      #print-biodata .biodata-signature { margin-top: 24px; font-size: 14pt; break-inside: avoid; page-break-inside: avoid; }
+      #print-biodata .biodata-signature { width: 90mm; margin-top: 24px; font-size: 16pt; break-inside: avoid; page-break-inside: avoid; }
+      #print-biodata .biodata-signature-location-date { display: block; min-width: 90mm; white-space: nowrap; }
       #print-biodata .biodata-section { margin-top: 18px; break-inside: auto; page-break-inside: auto; }
       #print-biodata .biodata-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
-      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 14pt; font-weight: 800; }
-      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 14pt; line-height: 1.4; }
-      #print-biodata .biodata-table td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
-      #print-biodata .biodata-table td:first-child { width: 34%; font-weight: 700; }
-      #print-biodata .biodata-documents-table { width: 100%; border-collapse: collapse; font-size: 14pt; line-height: 1.4; }
-      #print-biodata .biodata-documents-table th, #print-biodata .biodata-documents-table td { border: 1px solid #cbd5e1; padding: 5px 7px; text-align: left; vertical-align: top; }
+      #print-biodata .biodata-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm; width: 92%; margin: 8mm auto 0; }
+      #print-biodata .biodata-meta-item { min-width: 0; padding: 3mm; border: 1px solid #475569; text-align: left; }
+      #print-biodata .biodata-meta-item strong { display: block; font-size: 12pt; }
+      #print-biodata .biodata-meta-item span { display: block; margin-top: 2mm; font-size: 16pt; font-weight: 700; overflow-wrap: anywhere; }
+      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 16pt; font-weight: 800; }
+      #print-biodata .biodata-table { width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed; border-collapse: collapse; font-size: 16pt; line-height: 1.4; }
+      #print-biodata .biodata-table td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; overflow-wrap: anywhere; }
+      #print-biodata .biodata-table td:first-child { width: 42%; font-weight: 700; }
+      #print-biodata .biodata-documents-table { width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed; border-collapse: collapse; font-size: 16pt; line-height: 1.4; }
+      #print-biodata .biodata-documents-table th, #print-biodata .biodata-documents-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
       #print-biodata .biodata-documents-table th { background: #f8fafc; }
+      #print-biodata .biodata-documents-table th:first-child, #print-biodata .biodata-documents-table td:first-child { width: 72%; }
       #print-biodata .biodata-documents-table th:last-child, #print-biodata .biodata-documents-table td:last-child { width: 28%; }
     @media print {
         @page { size: A4 portrait; margin: 15mm; }
@@ -110,7 +116,7 @@
           border: 1px solid #cbd5e1; background: white !important; color: #172033 !important;
         }
         body[data-print-target="biodata"] #print-biodata {
-          border: 0; padding: 0 !important; font-family: Arial, sans-serif; font-size: 14pt !important;
+          border: 0; padding: 0 !important; font-family: Arial, sans-serif; font-size: 16pt !important;
           width: 100% !important; max-width: none !important; zoom: 1 !important; transform: none !important;
         }
         body[data-print-target="biodata"] #print-biodata p,
@@ -118,12 +124,12 @@
         body[data-print-target="biodata"] #print-biodata .biodata-table td,
         body[data-print-target="biodata"] #print-biodata .biodata-documents-table,
         body[data-print-target="biodata"] #print-biodata .biodata-documents-table th,
-        body[data-print-target="biodata"] #print-biodata .biodata-documents-table td { font-size: 14pt !important; }
+        body[data-print-target="biodata"] #print-biodata .biodata-documents-table td { font-size: 16pt !important; }
         body[data-print-target="biodata"] #print-biodata h1 { font-size: 18pt !important; }
         body[data-print-target="biodata"] #print-biodata .biodata-heading { margin-bottom: 6px; line-height: 1.2; }
         body[data-print-target="biodata"] #print-biodata .biodata-heading h1 { margin: 0 0 4px; line-height: 1.15; }
         body[data-print-target="biodata"] #print-biodata .biodata-heading p { margin: 2px 0; line-height: 1.25; }
-        body[data-print-target="biodata"] #print-biodata .biodata-signature { margin-top: 12px; line-height: 1.25; }
+        body[data-print-target="biodata"] #print-biodata .biodata-signature { width: 90mm !important; margin-top: 12px; line-height: 1.25; }
         body[data-print-target="biodata"] #print-biodata .biodata-signature p { margin: 2px 0; line-height: 1.25; }
         body[data-print-target="biodata"] #print-biodata .biodata-signature-space { height: 50px; }
         body[data-print-target="biodata"] #print-biodata .biodata-section { break-inside: auto; page-break-inside: auto; }
@@ -673,8 +679,10 @@
           <div class="biodata-heading text-center">
             <div id="biodata-print-title" class="biodata-print-title"></div>
             <h1 class="text-lg font-extrabold">BIODATA MURID BARU</h1>
-            <p class="mt-2 text-sm"><strong>Nomor Pendaftaran:</strong> <span id="biodata-registration-number"></span></p>
-            <p class="text-sm"><strong>Tanggal Pendaftaran:</strong> <span id="biodata-registration-date"></span></p>
+            <div class="biodata-meta">
+              <div class="biodata-meta-item"><strong>Nomor Pendaftaran</strong><span id="biodata-registration-number"></span></div>
+              <div class="biodata-meta-item"><strong>Tanggal Pendaftaran</strong><span id="biodata-registration-date"></span></div>
+            </div>
           </div>
           <div id="biodata-groups"></div>
           <section id="biodata-documents-section" class="biodata-section" hidden>
@@ -685,7 +693,7 @@
             </table>
           </section>
           <div class="biodata-signature mt-8 ml-auto w-64 text-center">
-            <p id="biodata-print-location-date"></p>
+            <p id="biodata-print-location-date" class="biodata-signature-location-date"></p>
             <p class="mt-2">Calon Murid Baru,</p>
             <div class="biodata-signature-space"></div>
             <p id="biodata-signature-name" class="border-t border-slate-700 pt-1 font-bold"></p>
@@ -1855,7 +1863,7 @@
       }).forEach(function (field) {
         const group = ['wave', 'registrationPath', 'major'].includes(field.key)
           ? 'Pendaftaran'
-          : field.key === 'schoolOrigin'
+          : field.key === 'schoolOrigin' || /npsn/i.test(field.key + ' ' + field.label)
             ? 'Asal Sekolah'
             : Number(field.step) === 3 || /^(father|mother)/.test(field.key)
               ? 'Data Orang Tua/Wali'
@@ -1868,6 +1876,14 @@
       groupNames.forEach(function (groupName) {
         const rows = groups.get(groupName);
         if (!rows.length) return;
+        if (groupName === 'Asal Sekolah') {
+          rows.sort(function (a, b) {
+            const priority = function (field) {
+              return field.key === 'schoolOrigin' ? 0 : /npsn/i.test(field.key + ' ' + field.label) ? 1 : 2;
+            };
+            return priority(a.field) - priority(b.field);
+          });
+        }
         const section = document.createElement('section');
         section.className = 'biodata-section';
         section.dataset.printGroup = groupName;
