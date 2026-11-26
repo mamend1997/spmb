@@ -1154,10 +1154,13 @@
           <p id="detail-payment-proof"></p>
           <div class="detail-payment-actions" data-detail-edit-actions>
             <label class="payment-check-control"><input id="detail-payment-cash-toggle" type="checkbox"> Sudah membayar daftar ulang secara cash</label>
-            <textarea id="detail-payment-review-note" rows="2" maxlength="1000" placeholder="Catatan pembayaran untuk siswa"></textarea>
-            <div class="detail-card-actions">
-              <button id="detail-payment-revision" class="detail-revision" type="button">Minta Perbaikan Bukti</button>
-              <button id="detail-payment-approve" class="detail-verified" type="button">Setujui &amp; Selesaikan Daftar Ulang</button>
+            <p id="detail-payment-action-help" class="detail-status-banner" role="status"></p>
+            <div id="detail-payment-proof-actions">
+              <textarea id="detail-payment-review-note" rows="2" maxlength="1000" placeholder="Catatan pembayaran untuk siswa"></textarea>
+              <div class="detail-card-actions">
+                <button id="detail-payment-revision" class="detail-revision" type="button">Minta Perbaikan Bukti</button>
+                <button id="detail-payment-approve" class="detail-verified" type="button">Setujui &amp; Selesaikan Daftar Ulang</button>
+              </div>
             </div>
           </div>
         </section>
@@ -1259,11 +1262,14 @@
         <h3>Pembayaran Daftar Ulang</h3>
         <p id="payment-review-status"></p>
         <p id="payment-proof-link"></p>
-        <label for="payment-review-note">Catatan untuk siswa</label>
-        <textarea id="payment-review-note" rows="2" maxlength="1000"></textarea>
-        <div class="dialog-actions">
-          <button id="payment-revision-button" class="secondary" type="button">Minta Perbaikan Bukti</button>
-          <button id="payment-approve-button" type="button">Setujui & Selesaikan Daftar Ulang</button>
+        <p id="payment-review-action-help" class="detail-status-banner" role="status"></p>
+        <div id="payment-review-controls">
+          <label for="payment-review-note">Catatan untuk siswa</label>
+          <textarea id="payment-review-note" rows="2" maxlength="1000"></textarea>
+          <div class="dialog-actions">
+            <button id="payment-revision-button" class="secondary" type="button">Minta Perbaikan Bukti</button>
+            <button id="payment-approve-button" type="button">Setujui &amp; Selesaikan Daftar Ulang</button>
+          </div>
         </div>
       </section>
       <p id="review-status" class="status-line" role="status"></p>
@@ -4149,8 +4155,13 @@
 
       const paymentStatus = applicant.payment_status || applicant.reenrollment_status || 'Belum Daftar Ulang';
       setDetailStatusBadge('detail-payment-status', paymentStatus);
-      document.getElementById('detail-payment-cash-toggle').checked =
-        applicant.payment_status === 'Pembayaran Terverifikasi' && applicant.payment_method === 'Tunai';
+      const cashPaymentVerified = applicant.payment_status === 'Pembayaran Terverifikasi' &&
+        applicant.payment_method === 'Tunai';
+      const paymentVerified = applicant.payment_status === 'Pembayaran Terverifikasi' ||
+        applicant.reenrollment_status === 'Daftar Ulang Selesai';
+      const cashToggle = document.getElementById('detail-payment-cash-toggle');
+      cashToggle.checked = cashPaymentVerified;
+      cashToggle.disabled = paymentVerified && !cashPaymentVerified;
       const activeConfig = siteConfig || adminReviewConfig || {};
       const waveConfig = (activeConfig.registrationWaves || []).find(function (item) { return item.name === applicant.wave; });
       document.getElementById('detail-payment-info').textContent = applicant.reenrollment_fee_base >= 0
@@ -4181,7 +4192,16 @@
       } else {
         proofContainer.textContent = 'Belum ada bukti transfer yang diunggah.';
       }
+      document.getElementById('detail-payment-proof-actions').hidden = paymentVerified;
+      document.getElementById('detail-payment-revision').hidden = !paymentProof;
       document.getElementById('detail-payment-approve').disabled = !paymentProof;
+      document.getElementById('detail-payment-action-help').textContent = cashPaymentVerified
+        ? 'Pembayaran cash sudah dikonfirmasi. Daftar ulang selesai; persetujuan atau revisi bukti transfer tidak diperlukan.'
+        : paymentVerified
+          ? 'Pembayaran sudah terverifikasi.'
+          : paymentProof
+            ? 'Periksa bukti pembayaran sebelum menyetujui atau meminta perbaikan.'
+            : 'Tombol persetujuan aktif setelah bukti pembayaran diunggah. Untuk pembayaran cash, tandai checkbox di atas agar daftar ulang langsung selesai.';
       document.querySelector('.detail-payment-actions').hidden = readOnly ||
         !['Diterima', 'Diterima / Lulus'].includes(applicant.selection_status);
       reviewingApplicant = applicant;
@@ -4981,6 +5001,9 @@
       const accepted = ['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status);
       document.getElementById('payment-review-section').hidden = !accepted;
       document.getElementById('payment-review-status').textContent = applicant.payment_status || 'Belum Daftar Ulang';
+      const paymentVerified = applicant.payment_status === 'Pembayaran Terverifikasi' ||
+        applicant.reenrollment_status === 'Daftar Ulang Selesai';
+      document.getElementById('payment-review-controls').hidden = paymentVerified;
       const proofLink = document.getElementById('payment-proof-link');
       proofLink.replaceChildren();
       if (proof) {
@@ -4993,7 +5016,15 @@
       } else {
         proofLink.textContent = 'Belum ada bukti pembayaran.';
       }
+      document.getElementById('payment-revision-button').hidden = !proof;
       document.getElementById('payment-approve-button').disabled = !proof;
+      document.getElementById('payment-review-action-help').textContent = paymentVerified
+        ? applicant.payment_method === 'Tunai'
+          ? 'Pembayaran cash sudah dikonfirmasi. Daftar ulang selesai; persetujuan atau revisi bukti transfer tidak diperlukan.'
+          : 'Pembayaran sudah terverifikasi.'
+        : proof
+          ? 'Periksa bukti pembayaran sebelum menyetujui atau meminta perbaikan.'
+          : 'Belum ada bukti pembayaran. Persetujuan dan revisi bukti tersedia setelah siswa mengunggah bukti; pembayaran cash dapat ditandai dari detail siswa.';
       setStatus('review-status', '', '');
       reviewDialog.showModal();
       if (focusTarget) window.setTimeout(function () {

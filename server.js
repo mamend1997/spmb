@@ -6169,6 +6169,10 @@ app.patch('/api/admin/applications/:registrationNumber/payment', requireAdmin, r
   if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
     return response.status(400).json({ message: 'Daftar ulang hanya tersedia bagi siswa yang diterima.' });
   }
+  if (applicant.payment_status === 'Pembayaran Terverifikasi' ||
+      applicant.reenrollment_status === 'Daftar Ulang Selesai') {
+    return response.status(409).json({ message: 'Pembayaran sudah terverifikasi; perubahan metode pembayaran tidak dapat dilakukan melalui pemeriksaan bukti.' });
+  }
   const decision = request.body && request.body.decision;
   const note = typeof (request.body && request.body.note) === 'string'
     ? request.body.note.trim().slice(0, 1000)

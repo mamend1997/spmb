@@ -29,6 +29,16 @@ test('admin can toggle and persist cash re-enrollment payments', function () {
   assert.match(googleAppsScript, /'Metode Pembayaran Daftar Ulang': data\.paymentMethod/);
 });
 
+test('cash confirmation completes enrollment and replaces proof actions with a clear status', function () {
+  assert.match(adminHtml, /id="detail-payment-proof-actions"/);
+  assert.match(adminHtml, /id="detail-payment-action-help"/);
+  assert.match(adminHtml, /detail-payment-proof-actions'\)\.hidden = paymentVerified/);
+  assert.match(adminHtml, /detail-payment-revision'\)\.hidden = !paymentProof/);
+  assert.match(adminHtml, /detail-payment-approve'\)\.disabled = !paymentProof/);
+  assert.match(adminHtml, /Pembayaran cash sudah dikonfirmasi/);
+  assert.match(serverJs, /applicant\.payment_status === 'Pembayaran Terverifikasi'[\s\S]*?perubahan metode pembayaran tidak dapat dilakukan melalui pemeriksaan bukti/);
+});
+
 test('student can cancel pending Kasera payments and select cash without marking it paid', function () {
   assert.match(portalHtml, /id="kasera-cancel-button"/);
   assert.match(portalHtml, /id="cash-payment-select-button"/);
