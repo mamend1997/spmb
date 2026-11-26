@@ -2274,6 +2274,7 @@ async function postWhatsAppWebhook(gateway, eventName, recipient, message, data)
       body: JSON.stringify({
         event: eventName,
         to: recipient,
+        phone: recipient,
         message: message,
         data: data
       }),

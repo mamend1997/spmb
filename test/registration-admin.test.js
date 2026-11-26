@@ -156,6 +156,10 @@ test('WhatsApp Gateway uses a separate settings page from the registration form'
   assert.match(adminHtml, /function adminPageFromPath\(pathname\)[\s\S]*?masterEntry === 'whatsapp'\) return \{ pageId: 'whatsapp-page' \}/);
 });
 
+test('custom WhatsApp webhook payload supports phone-based gateways', function () {
+  assert.match(serverJs, /body: JSON\.stringify\(\{\s*event: eventName,\s*to: recipient,\s*phone: recipient,\s*message: message,/);
+});
+
 test('school letterhead supports a reusable image and five-line manual design', function () {
   assert.match(adminHtml, /id="registration-letterhead-file"/);
   assert.match(adminHtml, /data-asset="registrationLetterhead"/);
