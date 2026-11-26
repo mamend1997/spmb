@@ -156,6 +156,8 @@
       @page { size: A4 portrait; margin: 12mm; }
       html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
       body * { visibility: hidden !important; }
+      body[data-print-target="card"] > :not(#print-card),
+      body[data-print-target="biodata"] > :not(#print-applicant-summary) { display: none !important; }
       body[data-print-target="card"] #print-card, body[data-print-target="card"] #print-card * { visibility: visible !important; }
       body[data-print-target="card"] #print-card { display: block !important; position: absolute; inset: 0 auto auto 0; width: 100%; padding: 22px; border: 1px solid #cbd5e1; border-radius: 12px; background: white !important; color: #172033 !important; }
       body[data-print-target="biodata"] #print-applicant-summary,

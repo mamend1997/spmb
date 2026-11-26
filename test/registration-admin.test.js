@@ -72,6 +72,7 @@ test('student can print biodata using the admin registration-summary layout', fu
   assert.match(portalHtml, /application\.fields \|\| \[\][\s\S]*?print-summary-groups/);
   assert.match(portalHtml, /id="print-summary-documents-section"/);
   assert.match(portalHtml, /body\.dataset\.printTarget = 'biodata'/);
+  assert.match(portalHtml, /body\[data-print-target="biodata"\] > :not\(#print-applicant-summary\) \{ display: none !important; \}/);
   assert.match(portalHtml, /print-summary-manual-letterhead/);
   assert.match(portalHtml, /document\.getElementById\('print-biodata-button'\)\.addEventListener\('click', printPortalBiodata\)/);
 });
