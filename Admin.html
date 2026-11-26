@@ -2048,6 +2048,10 @@
     function renderWaveRows(waves) {
       const list = document.getElementById('wave-list');
       list.replaceChildren();
+      const sortedWaves = waves.slice().sort(function (a, b) {
+        return Number(a.order || 0) - Number(b.order || 0);
+      });
+      const firstWave = sortedWaves[0] || null;
       waves.forEach(function (wave) {
         const row = document.createElement('div');
         row.className = 'wave-row';
@@ -2099,7 +2103,12 @@
         reenrollmentDiscount.step = '1';
         reenrollmentDiscount.dataset.waveDiscount = 'true';
         reenrollmentDiscount.placeholder = '0';
-        reenrollmentDiscount.value = wave.reenrollmentDiscountPercent || 0;
+        const isFirstWave = Boolean(firstWave && firstWave.name === wave.name);
+        reenrollmentDiscount.value = isFirstWave ? (wave.reenrollmentDiscountPercent || 0) : 0;
+        reenrollmentDiscount.disabled = !isFirstWave;
+        if (!isFirstWave) {
+          reenrollmentDiscount.title = 'Diskon daftar ulang hanya berlaku untuk gelombang pertama.';
+        }
         const announcementDate = document.createElement('input');
         announcementDate.type = 'date';
         announcementDate.dataset.waveAnnouncement = 'true';
@@ -2138,7 +2147,10 @@
           makeLabeledControl('Kuota', quota),
           feeGroup,
           makeLabeledControl('Biaya daftar ulang (Rp)', reenrollmentFee),
-          makeLabeledControl('Diskon gelombang daftar ulang (%)', reenrollmentDiscount),
+          makeLabeledControl(
+            isFirstWave ? 'Diskon daftar ulang gelombang pertama (%)' : 'Diskon daftar ulang (%)',
+            reenrollmentDiscount
+          ),
           makeLabeledControl('Pengumuman', announcementDate),
           statusGroup,
           makeLabeledControl('Catatan', notes),

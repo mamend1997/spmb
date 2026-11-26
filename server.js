@@ -788,6 +788,12 @@ function getConfig() {
   return sanitizeConfig(JSON.parse(saved.value));
 }
 
+function getFirstRegistrationWave(waves) {
+  return (waves || []).slice().sort(function (a, b) {
+    return Number(a.order || 0) - Number(b.order || 0);
+  })[0] || null;
+}
+
 function normalizeGoogleResourceId(value, label, urlPattern) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -831,11 +837,14 @@ function sanitizeConfig(input) {
   if (majorField) majorField.options = configuredPrograms.slice();
   const registrationWaves = sanitizeWaves(input.registrationWaves);
   const reenrollmentPromotion = sanitizeReenrollmentPromotion(input.reenrollmentPromotion);
+  const firstWave = getFirstRegistrationWave(registrationWaves);
   registrationWaves.forEach(function (wave) {
-    const earlyBirdPercent = reenrollmentPromotion.earlyBirdCount > 0
+    const isFirstWave = firstWave && wave.name === firstWave.name;
+    if (!isFirstWave) wave.reenrollmentDiscountPercent = 0;
+    const earlyBirdPercent = isFirstWave && reenrollmentPromotion.earlyBirdCount > 0
       ? reenrollmentPromotion.earlyBirdPercent : 0;
     if (wave.reenrollmentDiscountPercent + earlyBirdPercent > 99) {
-      throw new Error('Total potongan daftar ulang untuk setiap gelombang maksimal 99%.');
+      throw new Error('Total potongan daftar ulang untuk gelombang pertama maksimal 99%.');
     }
   });
   const registrationPaths = sanitizePaths(input.registrationPaths, registrationWaves);
@@ -941,25 +950,33 @@ function sanitizeRegistrationPrintTitleLines(lines) {
 
 function getReenrollmentPricing(applicant, config) {
   const wave = config.registrationWaves.find(function (item) { return item.name === applicant.wave; });
+  const firstWave = getFirstRegistrationWave(config.registrationWaves);
+  const isFirstWave = Boolean(wave && firstWave && wave.name === firstWave.name);
   let baseAmount = Number(applicant.reenrollment_fee_base);
   let earlyBirdDiscountPercent = Number(applicant.early_bird_discount_percent);
   let waveDiscountPercent = Number(applicant.wave_discount_percent);
-  if (baseAmount < 0 || earlyBirdDiscountPercent < 0 || waveDiscountPercent < 0) {
+  const invalidateNonFirstWaveDiscount = !isFirstWave &&
+    (earlyBirdDiscountPercent !== 0 || waveDiscountPercent !== 0);
+  if (baseAmount < 0 || earlyBirdDiscountPercent < 0 || waveDiscountPercent < 0 ||
+      invalidateNonFirstWaveDiscount) {
     const promotion = config.reenrollmentPromotion;
     if (baseAmount < 0) {
       baseAmount = wave && wave.reenrollmentFee ? Number(wave.reenrollmentFee) : -1;
     }
-    if (earlyBirdDiscountPercent < 0 || waveDiscountPercent < 0) {
+    if (isFirstWave && (earlyBirdDiscountPercent < 0 || waveDiscountPercent < 0)) {
       const registrationRank = Number(database.prepare(
-        'SELECT COUNT(*) AS count FROM applicants WHERE academic_year = ? AND id <= ?'
-      ).get(applicant.academic_year || config.academicYear, applicant.id).count);
+        'SELECT COUNT(*) AS count FROM applicants WHERE academic_year = ? AND wave = ? AND id <= ?'
+      ).get(applicant.academic_year || config.academicYear, firstWave.name, applicant.id).count);
       if (earlyBirdDiscountPercent < 0) {
         earlyBirdDiscountPercent = promotion.earlyBirdCount > 0 && registrationRank <= promotion.earlyBirdCount
           ? promotion.earlyBirdPercent : 0;
       }
       if (waveDiscountPercent < 0) {
-        waveDiscountPercent = wave ? wave.reenrollmentDiscountPercent : 0;
+        waveDiscountPercent = wave.reenrollmentDiscountPercent;
       }
+    } else if (!isFirstWave) {
+      earlyBirdDiscountPercent = 0;
+      waveDiscountPercent = 0;
     }
     if (!Number.isSafeInteger(baseAmount) || baseAmount < -1 ||
         !Number.isSafeInteger(earlyBirdDiscountPercent) || earlyBirdDiscountPercent < 0 ||
@@ -2747,9 +2764,10 @@ app.get('/healthz', function (request, response) {
 
 app.get('/api/public-config', function (request, response) {
   const config = getConfig();
-  const registeredThisYear = Number(database.prepare(
-    'SELECT COUNT(*) AS count FROM applicants WHERE academic_year = ?'
-  ).get(config.academicYear).count);
+  const firstWave = getFirstRegistrationWave(config.registrationWaves);
+  const registeredThisYear = firstWave ? Number(database.prepare(
+    'SELECT COUNT(*) AS count FROM applicants WHERE academic_year = ? AND wave = ?'
+  ).get(config.academicYear, firstWave.name).count) : 0;
   config.reenrollmentPromotion.earlyBirdRemaining = Math.max(
     0,
     config.reenrollmentPromotion.earlyBirdCount - registeredThisYear

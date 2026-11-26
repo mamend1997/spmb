@@ -1030,7 +1030,9 @@
       const waves = (config.registrationWaves || []).filter(function (wave) {
         return !wave.academicYear || wave.academicYear === config.academicYear;
       }).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); });
+      const firstWave = waves[0] || null;
       waves.forEach(function (wave) {
+        const isFirstWave = Boolean(firstWave && wave.name === firstWave.name);
         const card = document.createElement('article');
         const isOpen = wave.status === 'open';
         card.className = 'wave-info-card' + (isOpen ? ' is-open' : '');
@@ -1060,25 +1062,57 @@
           card.appendChild(registrationFee);
         }
         if (wave.reenrollmentFee) {
+          const baseAmount = Number(wave.reenrollmentFee);
+          const earlyBird = config.reenrollmentPromotion || {};
+          const earlyBirdActive = isFirstWave && Number(earlyBird.earlyBirdCount) > 0 &&
+            Number(earlyBird.earlyBirdPercent) > 0 && Number(earlyBird.earlyBirdRemaining) > 0;
+          const wavePercent = isFirstWave ? Number(wave.reenrollmentDiscountPercent || 0) : 0;
+          const earlyBirdPercent = earlyBirdActive ? Number(earlyBird.earlyBirdPercent) : 0;
+          const discountPercent = earlyBirdPercent + wavePercent;
           const reenrollmentFee = document.createElement('p');
-          reenrollmentFee.className = 'wave-info-fee is-secondary';
-          reenrollmentFee.textContent = 'Biaya daftar ulang sebelum promo: Rp ' +
-            Number(wave.reenrollmentFee).toLocaleString('id-ID');
+          reenrollmentFee.className = 'wave-info-fee' + (discountPercent ? ' is-secondary is-struck' : '');
+          reenrollmentFee.textContent = (discountPercent ? 'Sebelum potongan: ' : 'Biaya daftar ulang: ') +
+            'Rp ' + baseAmount.toLocaleString('id-ID');
           card.appendChild(reenrollmentFee);
+          if (discountPercent) {
+            const discountAmount = Math.round(baseAmount * discountPercent / 100);
+            const price = document.createElement('div');
+            price.className = 'wave-info-price-highlight';
+            const priceLabel = document.createElement('span');
+            priceLabel.textContent = earlyBirdActive
+              ? 'Harga promo untuk ' + earlyBird.earlyBirdCount + ' pendaftar pertama'
+              : 'Harga setelah potongan';
+            const finalPrice = document.createElement('strong');
+            finalPrice.textContent = 'Rp ' + (baseAmount - discountAmount).toLocaleString('id-ID');
+            const saving = document.createElement('small');
+            saving.textContent = 'Hemat Rp ' + discountAmount.toLocaleString('id-ID') +
+              ' (' + discountPercent + '%)';
+            price.append(priceLabel, finalPrice, saving);
+            card.appendChild(price);
+            if (earlyBirdActive && wavePercent) {
+              const regularPromoPrice = document.createElement('p');
+              regularPromoPrice.className = 'wave-info-fee is-secondary';
+              const regularDiscount = Math.round(baseAmount * wavePercent / 100);
+              regularPromoPrice.textContent = 'Setelah kuota promo: Rp ' +
+                (baseAmount - regularDiscount).toLocaleString('id-ID') +
+                ' (potongan ' + wavePercent + '% Gelombang 1).';
+              card.appendChild(regularPromoPrice);
+            }
+          }
         }
         const earlyBird = config.reenrollmentPromotion || {};
-        const earlyBirdActive = Number(earlyBird.earlyBirdCount) > 0 &&
+        const earlyBirdActive = isFirstWave && Number(earlyBird.earlyBirdCount) > 0 &&
           Number(earlyBird.earlyBirdPercent) > 0 && Number(earlyBird.earlyBirdRemaining) > 0;
-        const wavePercent = Number(wave.reenrollmentDiscountPercent || 0);
-        if (earlyBirdActive || wavePercent) {
+        const wavePercent = isFirstWave ? Number(wave.reenrollmentDiscountPercent || 0) : 0;
+        if (isFirstWave && (earlyBirdActive || wavePercent)) {
           const promotion = document.createElement('p');
           promotion.className = 'wave-info-promotion';
           const parts = [];
           if (earlyBirdActive) parts.push(earlyBird.earlyBirdPercent + '% untuk ' +
-            earlyBird.earlyBirdCount + ' pendaftar pertama');
-          if (wavePercent) parts.push(wavePercent + '% promo ' + wave.name);
-          promotion.textContent = 'Potongan biaya daftar ulang: ' + parts.join(' + ') +
-            (parts.length > 1 ? ' (dapat digabung bagi yang memenuhi syarat).' : '.');
+            earlyBird.earlyBirdCount + ' pendaftar pertama Gelombang 1');
+          if (wavePercent) parts.push(wavePercent + '% khusus Gelombang 1');
+          promotion.textContent = 'Promo daftar ulang: ' + parts.join(' + ') +
+            (parts.length > 1 ? ' (potongan digabung).' : '.');
           card.appendChild(promotion);
         }
         const callToAction = document.createElement(isOpen ? 'a' : 'span');
@@ -1107,8 +1141,8 @@
           ? Number(promotion.earlyBirdRemaining) : promotion.earlyBirdCount;
         summary.textContent = remaining > 0
           ? 'Promo daftar ulang ' + promotion.earlyBirdPercent + '% untuk ' + promotion.earlyBirdCount +
-            ' pendaftar pertama tahun ajaran ini. Kuota promo tersisa ' + remaining + ' pendaftar.'
-          : 'Kuota promo ' + promotion.earlyBirdCount + ' pendaftar pertama telah terpenuhi.';
+            ' pendaftar pertama Gelombang 1. Kuota promo tersisa ' + remaining + ' pendaftar.'
+          : 'Kuota promo ' + promotion.earlyBirdCount + ' pendaftar pertama Gelombang 1 telah terpenuhi.';
       } else {
         summary.textContent = '';
       }
@@ -1126,7 +1160,11 @@
           question.textContent = item.question;
           const answer = document.createElement('p');
           answer.textContent = item.answer;
-          details.append(question, answer);
+          answer.className = 'faq-answer-inner';
+          const answerWrapper = document.createElement('div');
+          answerWrapper.className = 'faq-answer';
+          answerWrapper.appendChild(answer);
+          details.append(question, answerWrapper);
           container.appendChild(details);
         });
       document.getElementById('faq-section').hidden = !container.children.length;

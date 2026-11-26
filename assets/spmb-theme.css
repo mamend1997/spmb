@@ -1330,6 +1330,11 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
 .wave-info-card .wave-info-date-range { margin: 0; color: #334155; font-size: 13px; font-weight: 700; line-height: 1.5; }
 .wave-info-card .wave-info-fee { margin: 6px 0 0; color: #475569; font-size: 13px; line-height: 1.5; }
 .wave-info-card .wave-info-fee.is-secondary { color: #64748b; font-size: 12px; }
+.wave-info-fee.is-struck { text-decoration: line-through; text-decoration-color: #94a3b8; }
+.wave-info-price-highlight { display: grid; gap: 3px; margin-top: 9px; padding: 12px 14px; border: 1px solid #fed7aa; border-radius: 14px; background: linear-gradient(115deg, #fff7ed, #fff1f2); }
+.wave-info-price-highlight span { color: #9a3412; font-size: 11px; font-weight: 800; }
+.wave-info-price-highlight strong { color: #c2410c; font-size: 22px; font-weight: 800; letter-spacing: -.025em; line-height: 1.2; }
+.wave-info-price-highlight small { color: #9a3412; font-size: 11px; font-weight: 700; }
 .wave-info-card .wave-info-promotion { margin: 13px 0 17px; padding: 11px 13px; border: 1px solid #ffedd5; border-radius: 13px; background: linear-gradient(110deg, #fff7ed, #fffaf5); color: #9a3412; font-size: 12px; font-weight: 750; line-height: 1.5; }
 .wave-info-cta { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; margin-top: auto; padding: 7px 8px 7px 17px; border: 1px solid transparent; border-radius: 999px; background: linear-gradient(105deg, #f97316, #f43f5e); box-shadow: 0 8px 18px rgb(249 115 22 / 20%); color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease; }
 .wave-info-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 22px rgb(249 115 22 / 25%); }
@@ -1341,6 +1346,9 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
 .faq-list-public { display: grid; gap: 10px; }
 .faq-item { padding: 17px 20px; border: 1px solid #e8eaf2; border-radius: 16px; background: #fff; }
 .faq-item summary { color: #1e293b; cursor: pointer; font-size: 14px; font-weight: 800; }
+.faq-item > .faq-answer { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .28s ease, opacity .22s ease; }
+.faq-item[open] > .faq-answer { grid-template-rows: 1fr; opacity: 1; }
+.faq-answer-inner { min-height: 0; overflow: hidden; }
 .faq-item p { margin: 12px 0 0; color: #64748b; font-size: 13px; line-height: 1.75; }
 
 .timeline-heading h2 span { color: #ea580c; }
@@ -1626,6 +1634,7 @@ a[href]:hover {
     transition-duration: .01ms !important;
   }
   .reveal-on-scroll { opacity: 1; transform: none; }
+  .faq-item > .faq-answer { transition: none; }
 }
 
 html[data-spmb-page="home"] #formulir { display: none !important; }

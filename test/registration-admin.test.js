@@ -65,6 +65,34 @@ test('portal separates document verification, payment, and unpaid cash selection
   assert.match(serverJs, /physicalDocumentKeys: JSON\.parse\(applicant\.physical_documents_json/);
 });
 
+test('reenrollment discounts and early-bird quota apply only to the first wave', function () {
+  assert.match(serverJs, /function getFirstRegistrationWave\(waves\)/);
+  assert.match(serverJs, /if \(!isFirstWave\) wave\.reenrollmentDiscountPercent = 0/);
+  assert.match(serverJs, /invalidateNonFirstWaveDiscount[\s\S]*?earlyBirdDiscountPercent = 0;[\s\S]*?waveDiscountPercent = 0;/);
+  assert.match(serverJs, /WHERE academic_year = \? AND wave = \? AND id <= \?/);
+  assert.match(serverJs, /WHERE academic_year = \? AND wave = \?/);
+  assert.match(indexHtml, /isFirstWave && Number\(earlyBird\.earlyBirdCount\)/);
+  assert.match(indexHtml, /Harga setelah potongan/);
+  assert.match(adminHtml, /reenrollmentDiscount\.disabled = !isFirstWave/);
+});
+
+test('public FAQ opens with reduced-motion-aware animation', function () {
+  assert.match(indexHtml, /answerWrapper\.className = 'faq-answer'/);
+  assert.match(indexHtml, /answerWrapper\.appendChild\(answer\)/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'assets', 'spmb-theme.css'), 'utf8'),
+    /\.faq-item\[open\] > \.faq-answer[\s\S]*?grid-template-rows: 1fr/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'assets', 'spmb-theme.css'), 'utf8'),
+    /prefers-reduced-motion: reduce[\s\S]*?\.faq-item > \.faq-answer \{ transition: none; \}/);
+});
+
+test('public applicant search uses a centered compact responsive layout', function () {
+  const searchHtml = fs.readFileSync(path.join(__dirname, '..', 'search.html'), 'utf8');
+  assert.match(searchHtml, /\.search-main \{ width: min\(760px, calc\(100% - 32px\)\)/);
+  assert.match(searchHtml, /\.search-input \{ box-sizing: border-box; width: 100%/);
+  assert.match(searchHtml, /\.search-help \{/);
+  assert.match(searchHtml, /@media \(max-width: 560px\)[\s\S]*?\.result-grid \{ grid-template-columns: 1fr; \}/);
+});
+
 test('student can print biodata using the admin registration-summary layout', function () {
   assert.match(portalHtml, /id="print-biodata-button"/);
   assert.match(portalHtml, /id="print-applicant-summary"/);

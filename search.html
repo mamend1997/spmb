@@ -13,29 +13,43 @@
   <style>
     body { font-family: "Plus Jakarta Sans", Arial, sans-serif; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-    .search-main { width: min(100% - 32px, 960px); margin: 0 auto; padding: 64px 0; }
-    .search-panel { padding: clamp(20px, 4vw, 32px); border: 1px solid #dbe3ec; border-radius: 12px; background: white; box-shadow: 0 2px 5px #1725540a; }
-    .search-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 5px; border-radius: 9px; background: #f1f5f9; }
-    .search-tab { min-height: 42px; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: #475569; font: inherit; font-size: 14px; cursor: pointer; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
-    .search-tab[aria-selected="true"] { background: white; color: #0f172a; box-shadow: 0 1px 3px #0f172a12; }
+    .search-main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0; }
+    .search-panel { padding: clamp(20px, 3.5vw, 28px); border: 1px solid #e2e8f0; border-radius: 20px; background: white; box-shadow: 0 16px 42px #1725540d; }
+    .search-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 5px; border: 1px solid #e8edf5; border-radius: 12px; background: #f8fafc; }
+    .search-tab { min-height: 40px; padding: 8px 12px; border: 0; border-radius: 9px; background: transparent; color: #475569; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
+    .search-tab[aria-selected="true"] { background: white; color: #0f172a; box-shadow: 0 2px 7px #0f172a12; }
     .search-tab:focus-visible { outline: 3px solid #bfdbfe; outline-offset: 2px; }
     .search-submit:focus-visible { outline: 3px solid #fdba74; outline-offset: 2px; }
-    .search-label { display: block; margin: 30px 0 8px; color: #0f172a; font-size: 14px; font-weight: 700; }
-    .search-input { width: 100%; min-height: 50px; padding: 12px 15px; border: 1px solid #dbe3ec; border-radius: 8px; color: #172033; outline: none; transition: border-color .15s, box-shadow .15s; }
+    .search-label { display: block; margin: 22px 0 8px; color: #0f172a; font-size: 13px; font-weight: 700; }
+    .search-input { box-sizing: border-box; width: 100%; min-height: 46px; padding: 11px 14px; border: 1px solid #dbe3ec; border-radius: 11px; color: #172033; font: inherit; font-size: 14px; outline: none; transition: border-color .15s, box-shadow .15s; }
     .search-input:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px #dbeafe; }
-    .search-submit { display: flex; width: 100%; min-height: 54px; align-items: center; justify-content: center; gap: 12px; margin-top: 30px; border: 0; border-radius: 8px; background: #ea580c; color: white; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s ease, opacity .15s ease; }
+    .search-help { margin: 7px 0 0; color: #64748b; font-size: 12px; line-height: 1.5; }
+    .search-submit { display: flex; width: 100%; min-height: 48px; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; border: 0; border-radius: 11px; background: #ea580c; color: white; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s ease, opacity .15s ease; }
+    .search-submit svg { width: 18px; height: 18px; }
     .search-submit:hover { background: #c2410c; }
     .search-submit:disabled { cursor: wait; opacity: .7; }
-    .search-message { margin-top: 16px; font-size: 13px; line-height: 1.6; }
-    .search-result { margin-top: 20px; padding: 20px; border: 1px solid #dbeafe; border-radius: 10px; background: #f8fbff; }
-    .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-    .result-item { padding: 13px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; }
+    .search-message { margin: 14px 0 0; font-size: 12px; line-height: 1.6; }
+    .search-message.is-error { color: #b91c1c; }
+    .search-message.is-success { color: #047857; }
+    .search-result { margin-top: 18px; padding: 18px; border: 1px solid #dbeafe; border-radius: 15px; background: #f8fbff; }
+    .search-result h2 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 800; }
+    .search-result > p { margin: 5px 0 0; color: #64748b; font-size: 12px; line-height: 1.5; }
+    .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .result-item { min-width: 0; padding: 12px 13px; border: 1px solid #e2e8f0; border-radius: 11px; background: white; }
     .result-item span { display: block; color: #64748b; font-size: 11px; }
-    .result-item strong { display: block; margin-top: 5px; color: #172033; font-size: 14px; }
+    .result-item strong { display: block; margin-top: 5px; color: #172033; font-size: 13px; line-height: 1.45; }
+    .search-note { max-width: 620px; margin: 14px auto 0; color: #64748b; text-align: center; font-size: 12px; line-height: 1.7; }
+    .search-note a { color: #c2410c; font-weight: 700; text-decoration: none; }
+    .search-note a:hover { text-decoration: underline; }
+    .hidden { display: none !important; }
     @media (max-width: 560px) {
-      .search-main { padding: 34px 0; }
-      .search-tab { font-size: 12px; }
+      .search-main { width: calc(100% - 28px); padding: 28px 0; }
+      .search-panel { padding: 18px; border-radius: 16px; }
+      .search-label { margin-top: 19px; }
       .result-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .search-tab, .search-input, .search-submit { transition: none; }
     }
   </style>
 </head>
@@ -65,7 +79,7 @@
         </div>
         <label id="search-label" class="search-label" for="search-input">Masukkan NISN</label>
         <input id="search-input" class="search-input" name="identifier" type="text" inputmode="numeric" autocomplete="off" placeholder="Contoh: 0051234567" maxlength="10" aria-describedby="search-help" required>
-        <p id="search-help" class="mt-2 text-xs text-slate-500">Masukkan NISN 10 digit sesuai data pendaftaran.</p>
+        <p id="search-help" class="search-help">Masukkan NISN 10 digit sesuai data pendaftaran.</p>
         <button id="search-submit" class="search-submit" type="submit">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
           <span id="search-submit-label">Cari Data Pendaftar</span>
@@ -73,15 +87,15 @@
       </form>
       <p id="search-message" class="search-message hidden" role="status" aria-live="polite"></p>
       <section id="search-result" class="search-result hidden" aria-labelledby="result-title" aria-live="polite">
-        <h2 id="result-title" class="text-base font-extrabold text-slate-900">Hasil pencarian</h2>
-        <p class="mt-1 text-xs text-slate-500">Informasi yang ditampilkan terbatas pada status pendaftaran.</p>
+        <h2 id="result-title">Hasil pencarian</h2>
+        <p>Informasi yang ditampilkan terbatas pada status pendaftaran.</p>
         <div class="result-grid">
           <div class="result-item"><span>Verifikasi berkas</span><strong id="result-documents"></strong></div>
           <div class="result-item"><span>Hasil seleksi</span><strong id="result-selection"></strong></div>
         </div>
       </section>
     </section>
-    <p class="mt-4 text-center text-xs leading-5 text-slate-500">Pencarian ini hanya menampilkan status berkas dan hasil seleksi, bukan rincian data pribadi. Untuk melihat data lengkap, gunakan <a class="font-bold text-orange-700 hover:underline" href="/portal">Login Siswa</a>.</p>
+    <p class="search-note">Pencarian ini hanya menampilkan status berkas dan hasil seleksi, bukan rincian data pribadi. Untuk melihat data lengkap, gunakan <a href="/portal">Login Siswa</a>.</p>
   </main>
   <script>
     (function () {
@@ -144,7 +158,7 @@
         const identifier = input.value.trim();
         if (!identifier) {
           message.textContent = 'Masukkan ' + searchTypes[activeType].label + ' terlebih dahulu.';
-          message.className = 'search-message text-red-600';
+          message.className = 'search-message is-error';
           input.focus();
           return;
         }
@@ -162,10 +176,10 @@
           document.getElementById('result-selection').textContent = data.selectionStatus || 'Belum tersedia';
           result.classList.remove('hidden');
           message.textContent = 'Data pendaftar ditemukan.';
-          message.className = 'search-message text-emerald-700';
+          message.className = 'search-message is-success';
         } catch (error) {
           message.textContent = error.message || 'Pencarian gagal. Periksa koneksi lalu coba kembali.';
-          message.className = 'search-message text-red-600';
+          message.className = 'search-message is-error';
         } finally {
           submit.disabled = false;
           submitLabel.textContent = 'Cari Data Pendaftar';
