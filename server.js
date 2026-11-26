@@ -13,6 +13,7 @@ const {
 } = require('./registration-identifiers');
 const { sanitizeContactPersons } = require('./contact-persons');
 const { calculateReenrollmentPricing } = require('./reenrollment-pricing');
+const { getJakartaDate, isOpen: isRegistrationWaveOpen } = require('./assets/registration-waves');
 
 const app = express();
 const publicLookupRequests = new Map();
@@ -2395,9 +2396,9 @@ function runStudentReminders() {
     schedule(applicant, 'reenrollment', applicant.status_updated_at,
       'Pengingat daftar ulang SPMB SMK PGRI Cikoneng: silakan cek informasi dan biaya daftar ulang pada portal siswa, atau hubungi panitia jika sudah melakukan pembayaran.');
   });
-  const today = new Date(now).toISOString().slice(0, 10);
+  const today = getJakartaDate(now);
   const closingWaves = config.registrationWaves.filter(function (wave) {
-    if (wave.status !== 'open' || !/^\d{4}-\d{2}-\d{2}$/.test(wave.closeDate)) return false;
+    if (!isRegistrationWaveOpen(wave, today) || !/^\d{4}-\d{2}-\d{2}$/.test(wave.closeDate)) return false;
     const daysUntilClose = (Date.parse(wave.closeDate + 'T00:00:00.000Z') -
       Date.parse(today + 'T00:00:00.000Z')) / (24 * 60 * 60 * 1000);
     return daysUntilClose >= 0 && daysUntilClose <= 3;
@@ -2416,11 +2417,13 @@ function runStudentReminders() {
 function validateRegistration(payload) {
   const config = getConfig();
   if (!payload || typeof payload !== 'object') throw new Error('Data pendaftaran tidak valid.');
-  const openWaves = config.registrationWaves.filter(function (item) { return item.status === 'open'; });
+  const openWaves = config.registrationWaves.filter(function (item) { return isRegistrationWaveOpen(item); });
   const waveField = getConfiguredField(config, 'wave');
   const waveName = configuredFieldValue(payload, waveField, 40, waveField.active ? '' : (openWaves[0] && openWaves[0].name));
-  const wave = config.registrationWaves.find(function (item) { return item.name === waveName && item.status === 'open'; });
-  if (!wave) throw new Error('Gelombang pendaftaran yang dipilih sudah ditutup atau tidak tersedia.');
+  const wave = config.registrationWaves.find(function (item) {
+    return item.name === waveName && isRegistrationWaveOpen(item);
+  });
+  if (!wave) throw new Error('Gelombang pendaftaran yang dipilih belum dibuka, sudah ditutup, atau tidak tersedia.');
   const pathField = getConfiguredField(config, 'registrationPath');
   const availablePaths = config.registrationPaths.filter(function (item) {
     return item.active && (!item.wave || item.wave === wave.name);

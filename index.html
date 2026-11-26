@@ -141,6 +141,7 @@
     }
   </style>
   <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-03">
+  <script src="/assets/registration-waves.js?v=20261127-01"></script>
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -208,6 +209,29 @@
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         </div>
+      </div>
+    </section>
+
+    <section class="document-preview-section no-print" aria-labelledby="document-preview-title">
+      <header class="document-preview-heading">
+        <h2 id="document-preview-title">Pratinjau Dokumen</h2>
+        <p>Lihat isi formulir pendaftaran dan informasi beasiswa langsung di halaman ini.</p>
+      </header>
+      <div class="document-preview-grid">
+        <article class="document-preview-card">
+          <div class="document-preview-card-heading">
+            <h3>Formulir Offline</h3>
+            <a id="form-pdf-preview-link" href="/assets/spmb-formulir-offline.pdf" target="_blank" rel="noopener noreferrer">Buka PDF</a>
+          </div>
+          <iframe id="form-pdf-preview" src="/assets/spmb-formulir-offline.pdf" title="Pratinjau Formulir Offline SPMB" loading="lazy"></iframe>
+        </article>
+        <article class="document-preview-card">
+          <div class="document-preview-card-heading">
+            <h3>Informasi Beasiswa</h3>
+            <a id="scholarship-pdf-preview-link" href="/assets/informasi-beasiswa.pdf" target="_blank" rel="noopener noreferrer">Buka PDF</a>
+          </div>
+          <iframe id="scholarship-pdf-preview" src="/assets/informasi-beasiswa.pdf" title="Pratinjau Informasi Beasiswa" loading="lazy"></iframe>
+        </article>
       </div>
     </section>
 
@@ -791,12 +815,16 @@
       select.replaceChildren(new Option('Pilih Gelombang Pendaftaran...', ''));
       let openWaves = 0;
       waves.filter(function (wave) { return wave.active !== false; }).forEach(function (wave) {
-        const option = new Option(wave.name + (wave.status === 'open' ? '' : ' (Ditutup)'), wave.name);
-        option.disabled = wave.status !== 'open';
+        const status = SpmbRegistrationWaves.getStatus(wave);
+        const label = status === 'upcoming' ? ' (Belum Dibuka)' : status === 'closed' ? ' (Ditutup)' : '';
+        const option = new Option(wave.name + label, wave.name);
+        option.disabled = status !== 'open';
         select.appendChild(option);
-        if (wave.status === 'open') openWaves += 1;
+        if (status === 'open') openWaves += 1;
       });
-      if (selectedValue && waves.some(function (wave) { return wave.name === selectedValue && wave.status === 'open'; })) {
+      if (selectedValue && waves.some(function (wave) {
+        return wave.name === selectedValue && SpmbRegistrationWaves.isOpen(wave);
+      })) {
         select.value = selectedValue;
       }
       renderRegistrationPaths();
@@ -810,7 +838,7 @@
 
     function updateWaveFee() {
       const wave = siteConfig.registrationWaves.find(function (item) {
-        return item.name === document.getElementById('wave').value && item.status === 'open';
+        return item.name === document.getElementById('wave').value && SpmbRegistrationWaves.isOpen(item);
       });
       document.getElementById('wave-fee-label').textContent = !wave
         ? 'Pilih gelombang yang masih dibuka.'
@@ -1037,7 +1065,8 @@
       waves.forEach(function (wave) {
         const isFirstWave = Boolean(firstWave && wave.name === firstWave.name);
         const card = document.createElement('article');
-        const isOpen = wave.status === 'open';
+        const waveStatus = SpmbRegistrationWaves.getStatus(wave);
+        const isOpen = waveStatus === 'open';
         card.className = 'wave-info-card' + (isOpen ? ' is-open' : '');
         const header = document.createElement('div');
         header.className = 'wave-info-header';
@@ -1045,7 +1074,7 @@
         title.textContent = wave.name;
         const status = document.createElement('span');
         status.className = 'wave-info-status' + (isOpen ? ' is-open' : '');
-        status.textContent = isOpen ? 'Dibuka' : 'Ditutup';
+        status.textContent = isOpen ? 'Dibuka' : waveStatus === 'upcoming' ? 'Segera Dibuka' : 'Ditutup';
         header.append(title, status);
         card.appendChild(header);
         const dates = document.createElement('div');
@@ -1120,7 +1149,10 @@
         }
         container.appendChild(card);
       });
-      const hasOpenWave = waves.some(function (wave) { return wave.status === 'open'; });
+      const hasOpenWave = waves.some(function (wave) { return SpmbRegistrationWaves.isOpen(wave); });
+      const hasUpcomingWave = waves.some(function (wave) {
+        return SpmbRegistrationWaves.getStatus(wave) === 'upcoming';
+      });
       const callToAction = document.createElement(hasOpenWave ? 'a' : 'span');
       callToAction.className = 'wave-info-cta' + (hasOpenWave ? '' : ' is-closed');
       if (hasOpenWave) {
@@ -1130,7 +1162,8 @@
         callToAction.setAttribute('aria-disabled', 'true');
       }
       const callToActionText = document.createElement('span');
-      callToActionText.textContent = hasOpenWave ? 'Daftar sekarang' : 'Pendaftaran ditutup';
+      callToActionText.textContent = hasOpenWave ? 'Daftar sekarang'
+        : hasUpcomingWave ? 'Pendaftaran segera dibuka' : 'Pendaftaran ditutup';
       const callToActionArrow = document.createElement('span');
       callToActionArrow.className = 'wave-info-cta-arrow';
       callToActionArrow.setAttribute('aria-hidden', 'true');
@@ -1240,6 +1273,10 @@
       document.getElementById('academic-year-footer').textContent = 'SPMB Online · Tahun Ajaran ' + siteConfig.academicYear;
       document.getElementById('form-pdf-link').href = siteConfig.formPdfUrl;
       document.getElementById('scholarship-pdf-link').href = siteConfig.scholarshipPdfUrl;
+      document.getElementById('form-pdf-preview-link').href = siteConfig.formPdfUrl;
+      document.getElementById('form-pdf-preview').src = siteConfig.formPdfUrl;
+      document.getElementById('scholarship-pdf-preview-link').href = siteConfig.scholarshipPdfUrl;
+      document.getElementById('scholarship-pdf-preview').src = siteConfig.scholarshipPdfUrl;
       const brochureUrls = Array.isArray(siteConfig.brochureImageUrls)
         ? siteConfig.brochureImageUrls
         : (siteConfig.brochureImageUrl ? [siteConfig.brochureImageUrl] : []);

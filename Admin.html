@@ -1529,6 +1529,7 @@
     </div>
   </dialog>
 
+  <script src="/assets/registration-waves.js?v=20261127-01"></script>
   <script>
     const loginCard = document.getElementById('login-card');
     const adminSessionLoading = document.getElementById('admin-session-loading');
@@ -2879,7 +2880,8 @@
             let options = field.options || [];
             if (field.key === 'wave') {
               options = (siteConfig.registrationWaves || []).filter(function (wave) {
-                return wave.status === 'open' && (!wave.academicYear || wave.academicYear === siteConfig.academicYear);
+                return SpmbRegistrationWaves.isOpen(wave) &&
+                  (!wave.academicYear || wave.academicYear === siteConfig.academicYear);
               }).map(function (wave) { return wave.name; });
             } else if (field.key === 'registrationPath') {
               options = adminRegistrationPathsForWave('');
