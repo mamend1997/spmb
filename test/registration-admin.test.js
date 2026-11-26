@@ -66,3 +66,10 @@ test('student photo upload is part of step four rather than step two', function 
   assert.doesNotMatch(stepTwo[0], /id="studentPhoto"/);
   assert.match(stepFour[0], /id="studentPhoto" data-upload-key="studentPhoto"/);
 });
+
+test('numeric custom fields with choices render as dropdowns and reject nonnumeric values', function () {
+  assert.match(indexHtml, /field\.type === 'select' \|\| \(field\.type === 'number' && field\.options\.length > 0\)/);
+  assert.match(adminHtml, /field\.type === 'select' \|\| \(field\.type === 'number' && field\.options\.length > 0\)/);
+  assert.ok(serverJs.includes('return !/^\\d+$/.test(option);'));
+  assert.ok(serverJs.includes("field.type === 'number' && !/^\\d+$/.test(value)"));
+});

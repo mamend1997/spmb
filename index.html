@@ -1420,7 +1420,7 @@
       if (field.type === 'textarea') {
         control = document.createElement('textarea');
         control.rows = 3;
-      } else if (field.type === 'select') {
+      } else if (field.type === 'select' || (field.type === 'number' && field.options.length > 0)) {
         control = document.createElement('select');
         control.className = 'field-control field-select';
         control.appendChild(new Option(field.placeholder || 'Pilih ' + field.label + '...', ''));

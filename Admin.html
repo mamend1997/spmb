@@ -2721,7 +2721,7 @@
         const grid = document.createElement('div');
         grid.className = 'edit-grid';
         stepFields.forEach(function (field) {
-          const control = field.type === 'select'
+          const control = field.type === 'select' || (field.type === 'number' && field.options.length > 0)
             ? document.createElement('select')
             : field.type === 'textarea'
               ? document.createElement('textarea')

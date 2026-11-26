@@ -1260,6 +1260,9 @@ function sanitizeFormFields(fields) {
       : Array.isArray(field.options)
       ? field.options.map(function (option) { return String(option).trim().slice(0, 100); }).filter(Boolean).slice(0, 50)
       : (baseline && baseline.options) || [];
+    if (type === 'number' && options.some(function (option) { return !/^\d+$/.test(option); })) {
+      throw new Error('Pilihan field angka hanya boleh berisi angka bulat.');
+    }
     if (type === 'select' && !options.length && !['wave', 'registrationPath', 'major'].includes(key)) {
       throw new Error('Field dropdown harus memiliki minimal satu pilihan.');
     }
@@ -2331,6 +2334,9 @@ function validateRegistration(payload) {
     const value = typeof raw === 'string' ? raw.trim() : raw == null ? '' : String(raw).trim();
     if (!value && field.required) throw new Error('Data ' + field.label + ' wajib diisi.');
     if (value.length > 2000) throw new Error('Data ' + field.label + ' terlalu panjang.');
+    if (value && field.type === 'number' && !/^\d+$/.test(value)) {
+      throw new Error('Data ' + field.label + ' hanya boleh berisi angka.');
+    }
     if (value && field.options.length && !field.options.includes(value)) throw new Error('Pilihan ' + field.label + ' tidak valid.');
     customData[field.key] = value;
   });
@@ -3444,6 +3450,9 @@ app.patch('/api/portal/fields/:key', requirePortal, function (request, response)
   if (field.custom) {
     if (!value && field.required) return response.status(400).json({ message: 'Data ' + field.label + ' wajib diisi.' });
     if (value.length > 2000) return response.status(400).json({ message: 'Data ' + field.label + ' terlalu panjang.' });
+    if (value && field.type === 'number' && !/^\d+$/.test(value)) {
+      return response.status(400).json({ message: 'Data ' + field.label + ' hanya boleh berisi angka.' });
+    }
     if (value && field.options.length && !field.options.includes(value)) {
       return response.status(400).json({ message: 'Pilihan ' + field.label + ' tidak valid.' });
     }
