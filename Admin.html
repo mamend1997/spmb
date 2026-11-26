@@ -303,26 +303,36 @@
     #print-applicant-card .print-card-photo-empty { display: grid; place-items: center; padding: 8px; color: #64748b; background: #f8fafc; font-size: 11px; text-align: center; }
     #print-applicant-card .print-card-photo[hidden], #print-applicant-card .print-card-photo-empty[hidden] { display: none !important; }
     #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; font-size: 12pt; }
-    #print-applicant-summary p { font-size: 12pt; }
+    #print-applicant-summary p { margin: 2px 0; font-size: 12pt; line-height: 1.3; }
     #print-applicant-summary .print-summary-letterhead { margin-bottom: 14px; text-align: center; }
     #print-applicant-summary .print-summary-letterhead img { display: block; width: 100%; max-height: 44mm; object-fit: contain; }
     #print-applicant-summary .print-summary-letterhead-fallback { padding-bottom: 8px; border-bottom: 2px solid #172033; font-weight: 700; }
-    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 12pt; }
-    #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 4px 6px; vertical-align: top; }
+    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 12pt; line-height: 1.35; }
+    #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 5px 7px; vertical-align: top; }
     #print-applicant-summary .print-summary-table td:first-child { width: 34%; font-weight: 700; }
     #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: avoid; page-break-inside: avoid; }
     #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 12pt; }
-    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 12mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 12pt; }
+    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 8mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 12pt; }
     #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
     @media print {
-      @page { size: A4; margin: 12mm; }
+      @page { size: A4 portrait; margin: 12mm; }
       html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
       body * { visibility: hidden !important; }
       body > :not(#print-applicant-card) { display: none !important; }
       #print-applicant-card, #print-applicant-card * { visibility: visible !important; }
       #print-applicant-card { display: block !important; position: static !important; inset: auto !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
       #print-applicant-card .print-card-shell { break-after: page; page-break-after: always; }
-      #print-applicant-summary { display: block !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      #print-applicant-summary {
+        display: block !important; position: static !important; width: 100% !important; max-width: none !important;
+        margin: 0 !important; padding: 0 !important; font-size: 12pt !important; zoom: 1 !important; transform: none !important;
+      }
+      #print-applicant-summary p,
+      #print-applicant-summary .print-summary-table,
+      #print-applicant-summary .print-summary-table td,
+      #print-applicant-summary .print-summary-section h3,
+      #print-applicant-summary .print-summary-signature { font-size: 12pt !important; }
+      #print-applicant-summary .print-summary-section { break-inside: auto; page-break-inside: auto; }
+      #print-applicant-summary .print-summary-table tr { break-inside: avoid; page-break-inside: avoid; }
       #print-applicant-summary .print-summary-letterhead img[hidden],
       #print-applicant-summary .print-summary-letterhead-fallback[hidden] { display: none !important; }
     }

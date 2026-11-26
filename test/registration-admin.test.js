@@ -85,9 +85,18 @@ test('new and edited applicants use every active configured field, including cus
 test('student and admin biodata print use 12-point text and expose the school letterhead setting', function () {
   assert.match(adminHtml, /#print-applicant-summary \{[^}]*font-size: 12pt/);
   assert.match(adminHtml, /#print-applicant-summary \.print-summary-table \{[^}]*font-size: 12pt/);
-  assert.match(adminHtml, /#print-applicant-summary p \{ font-size: 12pt; \}/);
+  assert.match(adminHtml, /#print-applicant-summary p \{ margin: 2px 0; font-size: 12pt; line-height: 1\.3; \}/);
   assert.match(indexHtml, /#print-biodata \{ font-size: 12pt; \}/);
   assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 12pt/);
+  assert.match(indexHtml, /@page \{ size: A4 portrait; margin: 15mm; \}/);
+  assert.match(indexHtml, /biodata-section \{ break-inside: auto; page-break-inside: auto; \}/);
+  assert.match(indexHtml, /biodata-table tr \{ break-inside: avoid; page-break-inside: avoid; \}/);
+  assert.match(indexHtml, /biodata-heading p \{ margin: 2px 0; line-height: 1\.25; \}/);
+  assert.match(indexHtml, /biodata-signature \{ margin-top: 12px; line-height: 1\.25; \}/);
+  assert.match(adminHtml, /@page \{ size: A4 portrait; margin: 12mm; \}/);
+  assert.match(adminHtml, /print-summary-section \{ break-inside: auto; page-break-inside: auto; \}/);
+  assert.match(adminHtml, /print-summary-table tr \{ break-inside: avoid; page-break-inside: avoid; \}/);
+  assert.match(adminHtml, /print-summary-signature \{[^}]*margin: 8mm 0 0 auto/);
   assert.match(adminHtml, /Kop sekolah untuk formulir dan biodata/);
   assert.match(adminHtml, /id="master-documents"[^>]*>Dokumen Sekolah/);
 });

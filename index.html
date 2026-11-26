@@ -68,13 +68,14 @@
     }
       #print-biodata { font-size: 12pt; }
       #print-biodata p { font-size: 12pt; }
-      #print-biodata .biodata-section { margin-top: 18px; break-inside: avoid; }
+      #print-biodata .biodata-signature { margin-top: 24px; font-size: 12pt; break-inside: avoid; page-break-inside: avoid; }
+      #print-biodata .biodata-section { margin-top: 18px; break-inside: auto; page-break-inside: auto; }
       #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 12pt; font-weight: 800; }
-      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 12pt; }
+      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 12pt; line-height: 1.35; }
       #print-biodata .biodata-table td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
       #print-biodata .biodata-table td:first-child { width: 34%; font-weight: 700; }
     @media print {
-        @page { size: A4; margin: 15mm; }
+        @page { size: A4 portrait; margin: 15mm; }
       body { background: white !important; }
       .no-print, header, footer, #help-card { display: none !important; }
       main { padding: 0 !important; }
@@ -95,7 +96,22 @@
           display: block !important; position: static; width: 100%; max-width: none;
           border: 1px solid #cbd5e1; background: white !important; color: #172033 !important;
         }
-        body[data-print-target="biodata"] #print-biodata { border: 0; padding: 0 !important; font-family: Arial, sans-serif; }
+        body[data-print-target="biodata"] #print-biodata {
+          border: 0; padding: 0 !important; font-family: Arial, sans-serif; font-size: 12pt !important;
+          width: 100% !important; max-width: none !important; zoom: 1 !important; transform: none !important;
+        }
+        body[data-print-target="biodata"] #print-biodata p,
+        body[data-print-target="biodata"] #print-biodata .biodata-table,
+        body[data-print-target="biodata"] #print-biodata .biodata-table td { font-size: 12pt !important; }
+        body[data-print-target="biodata"] #print-biodata h1 { font-size: 16pt !important; }
+        body[data-print-target="biodata"] #print-biodata .biodata-heading { margin-bottom: 6px; line-height: 1.2; }
+        body[data-print-target="biodata"] #print-biodata .biodata-heading h1 { margin: 0 0 4px; line-height: 1.15; }
+        body[data-print-target="biodata"] #print-biodata .biodata-heading p { margin: 2px 0; line-height: 1.25; }
+        body[data-print-target="biodata"] #print-biodata .biodata-signature { margin-top: 12px; line-height: 1.25; }
+        body[data-print-target="biodata"] #print-biodata .biodata-signature p { margin: 2px 0; line-height: 1.25; }
+        body[data-print-target="biodata"] #print-biodata .biodata-signature-space { height: 50px; }
+        body[data-print-target="biodata"] #print-biodata .biodata-section { break-inside: auto; page-break-inside: auto; }
+        body[data-print-target="biodata"] #print-biodata .biodata-table tr { break-inside: avoid; page-break-inside: avoid; }
         body[data-print-target="biodata"] #biodata-letterhead { display: block; width: 100%; max-height: 150px; object-fit: contain; }
     }
   </style>
@@ -631,16 +647,16 @@
           <div id="biodata-letterhead-wrap" class="hidden mb-4">
             <img id="biodata-letterhead" alt="Kop sekolah" class="block w-full object-contain">
           </div>
-          <div class="text-center">
+          <div class="biodata-heading text-center">
             <h1 class="text-lg font-extrabold">BIODATA MURID BARU</h1>
             <p class="mt-2 text-sm"><strong>Nomor Pendaftaran:</strong> <span id="biodata-registration-number"></span></p>
             <p class="text-sm"><strong>Tanggal Pendaftaran:</strong> <span id="biodata-registration-date"></span></p>
           </div>
           <div id="biodata-groups"></div>
-          <div class="mt-8 ml-auto w-64 text-center text-sm">
+          <div class="biodata-signature mt-8 ml-auto w-64 text-center">
             <p id="biodata-print-location-date"></p>
             <p class="mt-2">Calon Murid Baru,</p>
-            <div class="h-20"></div>
+            <div class="biodata-signature-space"></div>
             <p id="biodata-signature-name" class="border-t border-slate-700 pt-1 font-bold"></p>
           </div>
         </div>
