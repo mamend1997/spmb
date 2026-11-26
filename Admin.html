@@ -717,8 +717,16 @@
               <div id="brochure-slides-preview" class="brochure-slides-admin"></div>
               <p id="brochure-image-empty">Belum ada foto. Unggah foto untuk menampilkannya di beranda.</p>
             </div>
-            <div data-master-section="form"><label for="contact-label">Nama Contact Person</label><input id="contact-label" maxlength="60" required></div>
-            <div class="wide" data-master-section="form"><label for="contact-url">Tautan Contact Person</label><input id="contact-url" type="url" required></div>
+            <div data-master-section="form"><label for="contact-label">Nama tombol Contact Person</label><input id="contact-label" maxlength="60" required></div>
+            <div class="wide" data-master-section="form"><label for="contact-url">Tautan Saluran Resmi WhatsApp</label><input id="contact-url" type="url" required></div>
+            <div class="wide master-group" data-master-section="form">
+              <div class="section-heading">
+                <div><h2>Daftar Contact Person WhatsApp</h2><p>Nama dan nomor ini muncul sebagai pilihan saat tombol Contact Person ditekan.</p></div>
+                <button id="add-contact-person-button" class="secondary" type="button">Tambah Contact Person</button>
+              </div>
+              <div id="contact-person-rows"></div>
+              <p id="contact-person-rows-empty" class="muted">Belum ada Contact Person. Tautan Saluran Resmi tetap ditampilkan di pop-up.</p>
+            </div>
             <div class="wide" data-master-section="form">
               <label>Formulir Offline (PDF)</label>
               <div class="file-setting"><input id="form-pdf" type="file" accept="application/pdf,.pdf"><button type="button" class="secondary upload-button" data-asset="formPdf">Unggah PDF</button></div>
@@ -2451,6 +2459,60 @@
       });
     }
 
+    function renderContactPersonRows(contacts) {
+      const container = document.getElementById('contact-person-rows');
+      container.replaceChildren();
+      const rows = Array.isArray(contacts) ? contacts : [];
+      rows.forEach(function (contact) {
+        const row = document.createElement('div');
+        row.className = 'master-row contact-person-row';
+        const name = document.createElement('input');
+        name.type = 'text';
+        name.maxLength = 60;
+        name.required = true;
+        name.placeholder = 'Nama panitia';
+        name.dataset.contactPersonName = 'true';
+        name.value = contact.name || '';
+        const phone = document.createElement('input');
+        phone.type = 'tel';
+        phone.maxLength = 20;
+        phone.required = true;
+        phone.inputMode = 'tel';
+        phone.placeholder = '08xxxxxxxxxx atau +628xxxxxxxxxx';
+        phone.dataset.contactPersonPhone = 'true';
+        phone.value = contact.phone || '';
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'secondary field-delete';
+        remove.textContent = 'Hapus';
+        remove.dataset.permissionAction = 'delete';
+        remove.hidden = !canAdmin('form', 'delete');
+        remove.disabled = remove.hidden;
+        remove.addEventListener('click', function () {
+          const currentContacts = getContactPersonRows();
+          const index = Array.prototype.indexOf.call(container.children, row);
+          currentContacts.splice(index, 1);
+          renderContactPersonRows(currentContacts);
+        });
+        row.append(
+          makeLabeledControl('Nama Contact Person', name),
+          makeLabeledControl('Nomor WhatsApp', phone),
+          remove
+        );
+        container.appendChild(row);
+      });
+      document.getElementById('contact-person-rows-empty').hidden = rows.length > 0;
+    }
+
+    function getContactPersonRows() {
+      return Array.from(document.querySelectorAll('.contact-person-row')).map(function (row) {
+        return {
+          name: row.querySelector('[data-contact-person-name]').value.trim(),
+          phone: row.querySelector('[data-contact-person-phone]').value.trim()
+        };
+      });
+    }
+
     function showConfig(config) {
       siteConfig = config;
       if (adminReviewConfig) adminReviewConfig.classes = (config.classes || []).slice();
@@ -2458,6 +2520,7 @@
       document.getElementById('academic-year').value = config.academicYear || '';
       document.getElementById('contact-label').value = config.contactLabel || '';
       document.getElementById('contact-url').value = config.contactUrl || '';
+      renderContactPersonRows(config.contactPersons || []);
       renderTimelineRows(config.timelineEvents || []);
       renderWaveRows(config.registrationWaves || []);
       renderRegistrationPathsAdmin(config.registrationPaths || []);
@@ -4759,6 +4822,7 @@
             scholarshipPdfUrl: siteConfig.scholarshipPdfUrl,
             contactLabel: document.getElementById('contact-label').value.trim(),
             contactUrl: document.getElementById('contact-url').value.trim(),
+            contactPersons: getContactPersonRows(),
             timelineEvents: getTimelineRows(),
             registrationWaves: getWaveRows(),
             registrationPaths: getRegistrationPathRows(),
@@ -4989,6 +5053,12 @@
         order: documents.length + 1
       });
       renderSchoolDocumentRows(documents);
+    });
+    document.getElementById('add-contact-person-button').addEventListener('click', function () {
+      const contacts = getContactPersonRows();
+      if (contacts.length >= 20) return setStatus('settings-status', 'Maksimal 20 Contact Person.', 'error');
+      contacts.push({ name: '', phone: '' });
+      renderContactPersonRows(contacts);
     });
 
     document.getElementById('edit-form').addEventListener('submit', async function (event) {

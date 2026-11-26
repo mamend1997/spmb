@@ -567,7 +567,8 @@ main > div[role="tablist"] a:hover {
   box-shadow: 0 14px 34px rgb(124 58 237 / 7%) !important;
 }
 
-#help-card a {
+#help-card a,
+#help-card button {
   min-height: 48px;
   border-radius: 999px;
   background: linear-gradient(105deg, #f97316, #f43f5e) !important;

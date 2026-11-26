@@ -43,6 +43,8 @@
     .radio-option { display: inline-flex; align-items: center; gap: .55rem; cursor: pointer; color: #4b5563; }
     .radio-option input { accent-color: #ea580c; width: 1rem; height: 1rem; }
     .helper { margin-top: .4rem; font-size: .75rem; color: #8a929e; }
+    #contact-dialog { width: min(calc(100% - 2rem), 34rem); max-height: min(82vh, 42rem); margin: auto; padding: 0; overflow: hidden; border: 0; border-radius: 1rem; }
+    #contact-dialog::backdrop { background: rgb(15 23 42 / 55%); }
     .error-text { color: #dc2626; }
     .field-error { grid-column: 1 / -1; margin-top: -.75rem; color: #b91c1c; font-size: .75rem; line-height: 1.4; }
     .upload-status { margin-top: .35rem; font-size: .75rem; color: #64748b; overflow-wrap: anywhere; }
@@ -81,7 +83,7 @@
       #print-card { position: static; width: 100%; border: 1px solid #cbd5e1; background: white !important; color: #172033 !important; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-11">
+  <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261126-01">
 </head>
 <body class="min-h-screen bg-[#F8F9FA] text-slate-800">
   <header id="site-header" class="no-print site-header">
@@ -455,13 +457,32 @@
         <h2 class="mt-1 text-lg font-bold text-slate-900">Butuh Bantuan atau Informasi SPMB?</h2>
         <p class="mt-1 max-w-xl text-sm leading-6 text-slate-500">Hubungi panitia penerima siswa baru SMK PGRI Cikoneng melalui Contact Person / Saluran Resmi.</p>
       </div>
-      <a id="contact-link" href="https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&amp;utm_medium=social&amp;utm_content=link_in_bio&amp;fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ" target="_blank" rel="noopener noreferrer" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700">
+      <button id="contact-open-button" type="button" aria-haspopup="dialog" aria-controls="contact-dialog" class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-700">
         <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.52 3.48A11.82 11.82 0 0 0 12.1 0C5.55 0 .22 5.33.22 11.9c0 2.1.55 4.15 1.6 5.96L.12 24l6.3-1.65a11.87 11.87 0 0 0 5.68 1.45h.01c6.56 0 11.89-5.34 11.89-11.9 0-3.18-1.24-6.17-3.48-8.42ZM12.1 21.78a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.85 9.85 0 0 1-1.52-5.25c0-5.46 4.45-9.9 9.91-9.9a9.83 9.83 0 0 1 7.01 2.9 9.84 9.84 0 0 1 2.9 7.01c0 5.46-4.45 9.9-9.92 9.9Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.88-.78-1.48-1.75-1.65-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.48.71.31 1.26.5 1.69.64.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg>
         <span id="contact-label">Contact Person SPMB</span>
-      </a>
+      </button>
     </section>
     </section>
   </main>
+
+  <dialog id="contact-dialog" aria-labelledby="contact-dialog-title">
+    <div class="p-5 sm:p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-extrabold tracking-[.14em] text-orange-600">LAYANAN INFORMASI</p>
+          <h2 id="contact-dialog-title" class="mt-1 text-xl font-extrabold text-slate-900">Hubungi Contact Person</h2>
+        </div>
+        <button id="contact-dialog-close" type="button" aria-label="Tutup pilihan Contact Person" class="rounded-full bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200">Tutup</button>
+      </div>
+      <p class="mt-2 text-sm leading-6 text-slate-500">Pilih panitia yang ingin dihubungi melalui WhatsApp.</p>
+      <div id="contact-person-list" class="mt-4 grid max-h-[50vh] gap-3 overflow-y-auto"></div>
+      <p id="contact-person-empty" hidden class="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Belum ada nomor Contact Person yang ditambahkan.</p>
+      <a id="contact-official-link" href="#" target="_blank" rel="noopener noreferrer" class="mt-4 inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-700 hover:bg-orange-100">
+        <span id="contact-official-label">Saluran Resmi SPMB</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </dialog>
 
   <footer class="no-print border-t border-slate-200 bg-white">
     <div class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -527,6 +548,7 @@
       formPdfUrl: '/assets/spmb-formulir-offline.pdf',
       scholarshipPdfUrl: '/assets/informasi-beasiswa.pdf',
       contactLabel: 'Contact Person SPMB',
+      contactPersons: [],
       contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
       timelineEvents: [],
       registrationWaves: [{ name: 'Gelombang 1', fee: '', status: 'open' }],
@@ -694,12 +716,45 @@
         });
     }
 
+    function renderContactPersons(contacts) {
+      const list = document.getElementById('contact-person-list');
+      list.replaceChildren();
+      (Array.isArray(contacts) ? contacts : []).forEach(function (contact) {
+        const digits = String(contact.phone || '').replace(/\D/g, '');
+        if (!/^62\d{8,13}$/.test(digits)) return;
+        const row = document.createElement('div');
+        row.className = 'flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between';
+        const details = document.createElement('div');
+        details.className = 'min-w-0';
+        const name = document.createElement('p');
+        name.className = 'font-bold text-slate-900';
+        name.textContent = contact.name || 'Contact Person';
+        const phone = document.createElement('p');
+        phone.className = 'mt-1 text-sm text-slate-600';
+        phone.textContent = contact.phone;
+        details.append(name, phone);
+        const link = document.createElement('a');
+        link.className = 'inline-flex shrink-0 items-center justify-center rounded-full bg-green-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-green-700';
+        link.href = 'https://wa.me/' + digits;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = 'Hubungi';
+        row.append(details, link);
+        list.appendChild(row);
+      });
+      document.getElementById('contact-person-empty').hidden = list.children.length > 0;
+      const officialLink = document.getElementById('contact-official-link');
+      officialLink.hidden = !siteConfig.contactUrl;
+      officialLink.href = siteConfig.contactUrl || '#';
+    }
+
     function applySpmbSiteConfig(config) {
       if (!config || typeof config !== 'object') return;
       siteConfig = Object.assign({}, DEFAULT_SITE_CONFIG, config);
       if (!Array.isArray(siteConfig.registrationWaves)) siteConfig.registrationWaves = DEFAULT_SITE_CONFIG.registrationWaves;
       if (!Array.isArray(siteConfig.timelineEvents)) siteConfig.timelineEvents = DEFAULT_SITE_CONFIG.timelineEvents;
       if (!Array.isArray(siteConfig.programs)) siteConfig.programs = DEFAULT_SITE_CONFIG.programs;
+      if (!Array.isArray(siteConfig.contactPersons)) siteConfig.contactPersons = DEFAULT_SITE_CONFIG.contactPersons;
       document.getElementById('timeline-academic-year').textContent = siteConfig.academicYear;
       document.getElementById('page-title').textContent = siteConfig.pageTitle;
       document.getElementById('academic-year').textContent = 'SMK PGRI CIKONENG TAHUN AJARAN ' + siteConfig.academicYear;
@@ -711,7 +766,7 @@
         : (siteConfig.brochureImageUrl ? [siteConfig.brochureImageUrl] : []);
       initializeBrochureSlideshow(brochureUrls);
       renderTimelineEvents(siteConfig.timelineEvents);
-      document.getElementById('contact-link').href = siteConfig.contactUrl;
+      renderContactPersons(siteConfig.contactPersons);
       document.getElementById('contact-label').textContent = siteConfig.contactLabel;
       const registrationPage = document.documentElement.dataset.spmbPage === 'registration';
       document.title = registrationPage
@@ -1443,6 +1498,15 @@
       modal.classList.add('hidden');
       modal.classList.remove('flex');
       form.requestSubmit();
+    });
+    document.getElementById('contact-open-button').addEventListener('click', function () {
+      document.getElementById('contact-dialog').showModal();
+    });
+    document.getElementById('contact-dialog-close').addEventListener('click', function () {
+      document.getElementById('contact-dialog').close();
+    });
+    document.getElementById('contact-dialog').addEventListener('click', function (event) {
+      if (event.target === event.currentTarget) event.currentTarget.close();
     });
 
     document.querySelectorAll('.digit-field').forEach(function (input) {

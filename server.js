@@ -10,6 +10,7 @@ const {
   findDuplicateRegistrationIdentifier,
   normalizeWhatsAppPhone
 } = require('./registration-identifiers');
+const { sanitizeContactPersons } = require('./contact-persons');
 
 const app = express();
 const publicLookupRequests = new Map();
@@ -94,6 +95,7 @@ const initialConfig = {
   ],
   contactLabel: 'Contact Person SPMB',
   contactUrl: 'https://www.whatsapp.com/channel/0029Vb5vsTk5q08lostxZx0a?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0DMTAwAHBkb2YCc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGnKRlnQlTl8Zcwxrv9_-3NNu7NbBwsiozxyRkf11nbPc6pCFDrXC0vCUiQIdk_aem_RMLiN4am9xgR0uZPPY41IQ',
+  contactPersons: [],
   timelineEvents: [
     { title: 'Pra SPMB', description: 'Sosialisasi program dan informasi pendaftaran.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 1 },
     { title: 'Persiapan', description: 'Persiapkan dokumen dan data calon peserta didik.', dateLabel: 'Jadwal segera diumumkan', status: 'upcoming', order: 2 },
@@ -785,6 +787,7 @@ function sanitizeConfig(input) {
     timelineEvents: sanitizeTimelineEvents(input.timelineEvents),
     contactLabel: String(input.contactLabel || '').trim(),
     contactUrl: String(input.contactUrl || '').trim(),
+    contactPersons: sanitizeContactPersons(input.contactPersons),
     registrationWaves: registrationWaves,
     registrationPaths: registrationPaths,
     formFields: formFields,
@@ -1553,7 +1556,7 @@ function defaultRolePermissions() {
 }
 
 const adminConfigPermissionGroups = {
-  form: ['pageTitle', 'contactLabel', 'contactUrl', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
+  form: ['pageTitle', 'contactLabel', 'contactUrl', 'contactPersons', 'formPdfUrl', 'scholarshipPdfUrl', 'formFields', 'documentRequirements'],
   academicYear: ['academicYear'],
   programs: ['programs'],
   classes: ['classes'],
@@ -4013,7 +4016,7 @@ app.put('/api/admin/config', requireAdmin, function (request, response) {
       throw new Error('Gunakan Mulai Tahun Pelajaran Baru agar pendaftar tahun sebelumnya diarsipkan.');
     }
     const deletions = {
-      form: [['formFields', 'key'], ['documentRequirements', 'key']],
+      form: [['formFields', 'key'], ['documentRequirements', 'key'], ['contactPersons', 'phone']],
       waves: [['registrationWaves', 'name']],
       paths: [['registrationPaths', 'name']],
       timeline: [['timelineEvents', 'title']],
