@@ -6,6 +6,7 @@ const test = require('node:test');
 const adminHtml = fs.readFileSync(path.join(__dirname, '..', 'Admin.html'), 'utf8');
 const googleAppsScript = fs.readFileSync(path.join(__dirname, '..', 'Code.gs'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const portalHtml = fs.readFileSync(path.join(__dirname, '..', 'portal.html'), 'utf8');
 const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
 test('admin can add applicants through the edit-protected registration flow', function () {
@@ -26,6 +27,20 @@ test('admin can toggle and persist cash re-enrollment payments', function () {
   assert.match(serverJs, /paymentMethod: cashPaid \? 'Tunai' : ''/);
   assert.match(serverJs, /payment_method !== 'Tunai'/);
   assert.match(googleAppsScript, /'Metode Pembayaran Daftar Ulang': data\.paymentMethod/);
+});
+
+test('student can cancel pending Kasera payments and select cash without marking it paid', function () {
+  assert.match(portalHtml, /id="kasera-cancel-button"/);
+  assert.match(portalHtml, /id="cash-payment-select-button"/);
+  assert.match(portalHtml, /id="cash-payment-cancel-button"/);
+  assert.match(portalHtml, /\/api\/portal\/payment\/kasera\/cancel/);
+  assert.match(portalHtml, /\/api\/portal\/payment\/cash/);
+  assert.match(portalHtml, /Pembayaran belum lunas sampai dikonfirmasi panitia/);
+  assert.match(serverJs, /app\.post\('\/api\/portal\/payment\/kasera\/cancel', requirePortal/);
+  assert.match(serverJs, /UPDATE kasera_transactions SET status = 'cancelled'[\s\S]*?status = 'pending'/);
+  assert.match(serverJs, /app\.patch\('\/api\/portal\/payment\/cash', requirePortal/);
+  assert.match(serverJs, /'Menunggu Pembayaran Tunai'/);
+  assert.match(serverJs, /paymentStatus: paymentDetails\.payment_status,[\s\S]*?paymentMethod: paymentDetails\.payment_method/);
 });
 
 test('manual registration may omit required uploads without weakening public registration', function () {

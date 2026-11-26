@@ -3122,7 +3122,7 @@ async function createQiospayInvoice(applicant, amount) {
     payUrl, qrImageUrl, new Date(parsedExpiry).toISOString(), createdAt
   );
   database.prepare(`
-    UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
+    UPDATE applicants SET payment_status = ?, payment_method = 'QiosPay', payment_note = '', payment_reviewed_at = '',
       status_updated_at = ? WHERE id = ?
   `).run('Menunggu Pembayaran QiosPay', createdAt, applicant.id);
   queueSheetSync(applicant.id);
@@ -3150,7 +3150,7 @@ function getQiospayTransactionForApplicant(applicant) {
     database.prepare("UPDATE qiospay_invoices SET status = 'expired' WHERE id = ? AND status = 'pending'")
       .run(invoice.id);
     database.prepare(`
-      UPDATE applicants SET payment_status = ?, status_updated_at = ?
+      UPDATE applicants SET payment_status = ?, payment_method = '', status_updated_at = ?
       WHERE id = ? AND payment_status = 'Menunggu Pembayaran QiosPay'
     `).run('Belum Daftar Ulang', now, applicant.id);
     queueSheetSync(applicant.id);
@@ -3271,7 +3271,7 @@ async function createKaseraTransaction(applicant, amount) {
     new Date(parsedExpiry).toISOString(), credentials.livemode ? 1 : 0, createdAt
   );
   database.prepare(`
-    UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
+    UPDATE applicants SET payment_status = ?, payment_method = 'Kasera', payment_note = '', payment_reviewed_at = '',
       status_updated_at = ? WHERE id = ?
   `).run('Menunggu Pembayaran Kasera', createdAt, applicant.id);
   queueSheetSync(applicant.id);
@@ -3301,7 +3301,7 @@ function getKaseraTransactionForApplicant(applicant) {
     database.prepare("UPDATE kasera_transactions SET status = 'expired' WHERE id = ? AND status = 'pending'")
       .run(transaction.id);
     database.prepare(`
-      UPDATE applicants SET payment_status = ?, status_updated_at = ?
+      UPDATE applicants SET payment_status = ?, payment_method = '', status_updated_at = ?
       WHERE id = ? AND payment_status = 'Menunggu Pembayaran Kasera'
     `).run('Belum Daftar Ulang', now, applicant.id);
     queueSheetSync(applicant.id);
@@ -3337,7 +3337,7 @@ function buildPortalApplication(applicant, config) {
   const qiospayTransaction = getQiospayTransactionForApplicant(applicant);
   const kaseraTransaction = getKaseraTransactionForApplicant(applicant);
   const paymentDetails = database.prepare(`
-    SELECT payment_status, payment_note, reenrollment_status
+    SELECT payment_status, payment_method, payment_note, reenrollment_status
     FROM applicants WHERE id = ?
   `).get(applicant.id) || applicant;
   function portalFile(document) {
@@ -3432,6 +3432,7 @@ function buildPortalApplication(applicant, config) {
     selectionNote: applicant.selection_note,
     reenrollmentStatus: paymentDetails.reenrollment_status,
     paymentStatus: paymentDetails.payment_status,
+    paymentMethod: paymentDetails.payment_method,
     paymentNote: paymentDetails.payment_note,
     paymentFee: reenrollmentPricing.amount,
     paymentFeeConfigured: reenrollmentPricing.baseAmount >= 0,
@@ -3801,6 +3802,9 @@ app.post('/api/portal/payment/qiospay', requirePortal, async function (request, 
   if (applicant.payment_status === 'Menunggu Verifikasi Pembayaran') {
     return response.status(409).json({ message: 'Bukti pembayaran manual sedang menunggu verifikasi panitia.' });
   }
+  if (applicant.payment_status === 'Menunggu Pembayaran Tunai') {
+    return response.status(409).json({ message: 'Batalkan pilihan pembayaran cash terlebih dahulu sebelum membuat tagihan QiosPay.' });
+  }
   const activeKaseraTransaction = database.prepare(`
     SELECT 1 FROM kasera_transactions
     WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
@@ -3840,6 +3844,9 @@ app.post('/api/portal/payment/kasera', requirePortal, async function (request, r
   if (applicant.payment_status === 'Menunggu Verifikasi Pembayaran') {
     return response.status(409).json({ message: 'Bukti pembayaran manual sedang menunggu verifikasi panitia.' });
   }
+  if (applicant.payment_status === 'Menunggu Pembayaran Tunai') {
+    return response.status(409).json({ message: 'Batalkan pilihan pembayaran cash terlebih dahulu sebelum membuat tagihan Kasera.' });
+  }
   if (!config.paymentSettings.gatewayEnabled) {
     return response.status(403).json({ message: 'Pembayaran otomatis saat ini dinonaktifkan oleh panitia.' });
   }
@@ -3853,6 +3860,112 @@ app.post('/api/portal/payment/kasera', requirePortal, async function (request, r
     console.error('Kasera transaction creation failed:', applicant.registration_number, error.message);
     response.status(502).json({ message: error.message || 'Tagihan Kasera gagal dibuat. Silakan coba kembali.' });
   }
+});
+
+app.post('/api/portal/payment/kasera/cancel', requirePortal, function (request, response) {
+  const applicant = request.portalApplicant;
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(403).json({ message: 'Pembayaran daftar ulang hanya tersedia bagi siswa yang diterima.' });
+  }
+  const now = new Date().toISOString();
+  const transaction = database.prepare(`
+    SELECT * FROM kasera_transactions
+    WHERE applicant_id = ? AND status = 'pending'
+    ORDER BY id DESC LIMIT 1
+  `).get(applicant.id);
+  if (!transaction) {
+    return response.status(409).json({ message: 'Tidak ada tagihan Kasera aktif yang dapat dibatalkan.' });
+  }
+  if (Date.parse(transaction.expires_at) <= Date.now()) {
+    withTransaction(function () {
+      database.prepare("UPDATE kasera_transactions SET status = 'expired' WHERE id = ? AND status = 'pending'")
+        .run(transaction.id);
+      database.prepare(`
+        UPDATE applicants SET payment_status = ?, payment_method = '', status_updated_at = ?
+        WHERE id = ? AND payment_status = 'Menunggu Pembayaran Kasera'
+      `).run('Belum Daftar Ulang', now, applicant.id);
+      queueSheetSync(applicant.id);
+    });
+    setImmediate(syncQueuedApplications);
+    return response.json({ status: 'success', transactionStatus: 'expired' });
+  }
+  let cancelled = false;
+  withTransaction(function () {
+    const result = database.prepare(`
+      UPDATE kasera_transactions SET status = 'cancelled'
+      WHERE id = ? AND status = 'pending'
+    `).run(transaction.id);
+    cancelled = result.changes === 1;
+    if (!cancelled) return;
+    database.prepare(`
+      UPDATE applicants SET payment_status = ?, payment_method = '', payment_note = '',
+        payment_reviewed_at = '', status_updated_at = ?
+      WHERE id = ? AND payment_status = 'Menunggu Pembayaran Kasera'
+    `).run('Belum Daftar Ulang', now, applicant.id);
+    queueSheetSync(applicant.id);
+  });
+  if (!cancelled) {
+    return response.status(409).json({ message: 'Tagihan Kasera sudah berubah status dan tidak dapat dibatalkan.' });
+  }
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', transactionStatus: 'cancelled' });
+});
+
+app.patch('/api/portal/payment/cash', requirePortal, function (request, response) {
+  const applicant = request.portalApplicant;
+  if (!['Diterima / Lulus', 'Diterima'].includes(applicant.selection_status)) {
+    return response.status(403).json({ message: 'Pembayaran daftar ulang hanya tersedia bagi siswa yang diterima.' });
+  }
+  const selected = request.body && request.body.selected;
+  if (typeof selected !== 'boolean') {
+    return response.status(400).json({ message: 'Pilihan pembayaran cash tidak valid.' });
+  }
+  if (applicant.payment_status === 'Pembayaran Terverifikasi' ||
+      applicant.reenrollment_status === 'Daftar Ulang Selesai') {
+    return response.status(409).json({ message: 'Pembayaran daftar ulang sudah terverifikasi.' });
+  }
+  if (selected) {
+    if (applicant.payment_status === 'Menunggu Verifikasi Pembayaran') {
+      return response.status(409).json({ message: 'Bukti pembayaran sedang menunggu verifikasi panitia.' });
+    }
+    const now = new Date().toISOString();
+    const activeInvoice = database.prepare(`
+      SELECT 1 FROM qiospay_invoices
+      WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
+    `).get(applicant.id, now);
+    const activeKaseraTransaction = database.prepare(`
+      SELECT 1 FROM kasera_transactions
+      WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
+    `).get(applicant.id, now);
+    if (activeInvoice || activeKaseraTransaction) {
+      return response.status(409).json({ message: 'Batalkan atau selesaikan tagihan otomatis yang masih aktif sebelum memilih pembayaran cash.' });
+    }
+    if (applicant.payment_status === 'Menunggu Pembayaran Tunai' && applicant.payment_method === 'Tunai') {
+      return response.json({ status: 'success', paymentStatus: applicant.payment_status, paymentMethod: 'Tunai' });
+    }
+    database.prepare(`
+      UPDATE applicants SET payment_status = ?, payment_method = 'Tunai', payment_note = '',
+        payment_reviewed_at = '', reenrollment_status = ?, status_updated_at = ? WHERE id = ?
+    `).run('Menunggu Pembayaran Tunai', 'Belum Daftar Ulang', now, applicant.id);
+    queueSheetSync(applicant.id);
+    setImmediate(syncQueuedApplications);
+    return response.json({
+      status: 'success',
+      paymentStatus: 'Menunggu Pembayaran Tunai',
+      paymentMethod: 'Tunai'
+    });
+  }
+  if (applicant.payment_status !== 'Menunggu Pembayaran Tunai' || applicant.payment_method !== 'Tunai') {
+    return response.status(409).json({ message: 'Tidak ada pilihan pembayaran cash yang dapat dibatalkan.' });
+  }
+  const now = new Date().toISOString();
+  database.prepare(`
+    UPDATE applicants SET payment_status = ?, payment_method = '', payment_note = '',
+      payment_reviewed_at = '', reenrollment_status = ?, status_updated_at = ? WHERE id = ?
+  `).run('Belum Daftar Ulang', 'Belum Daftar Ulang', now, applicant.id);
+  queueSheetSync(applicant.id);
+  setImmediate(syncQueuedApplications);
+  response.json({ status: 'success', paymentStatus: 'Belum Daftar Ulang', paymentMethod: '' });
 });
 
 function verifyKaseraWebhookSignature(rawBody, signatureHeader, secret) {
@@ -3964,7 +4077,7 @@ app.post('/api/payments/kasera/callback', function (request, response) {
       WHERE id = ? AND status NOT IN ('paid', 'test_paid')
     `).run(expectedStatus, transaction.id);
     database.prepare(`
-      UPDATE applicants SET payment_status = ?, status_updated_at = ?
+      UPDATE applicants SET payment_status = ?, payment_method = '', status_updated_at = ?
       WHERE id = ? AND payment_status = 'Menunggu Pembayaran Kasera'
     `).run('Belum Daftar Ulang', new Date().toISOString(), applicant.id);
     queueSheetSync(applicant.id);
@@ -4064,6 +4177,9 @@ app.post('/api/portal/payment-proof', requirePortal, function (request, response
       applicant.reenrollment_status === 'Daftar Ulang Selesai') {
     return response.status(409).json({ message: 'Pembayaran daftar ulang sudah terverifikasi.' });
   }
+  if (applicant.payment_status === 'Menunggu Pembayaran Tunai') {
+    return response.status(409).json({ message: 'Batalkan pilihan pembayaran cash terlebih dahulu sebelum mengirim bukti pembayaran.' });
+  }
   const activeQiospayInvoice = database.prepare(`
     SELECT 1 FROM qiospay_invoices
     WHERE applicant_id = ? AND status = 'pending' AND expires_at > ? LIMIT 1
@@ -4109,7 +4225,7 @@ app.post('/api/portal/payment-proof', requirePortal, function (request, response
       `).run(applicant.id, storedName, decoded.originalName, decoded.type, decoded.bytes.length, now);
       queueDriveSync(applicant.id, 'paymentProof');
       database.prepare(`
-        UPDATE applicants SET payment_status = ?, payment_note = '', payment_reviewed_at = '',
+        UPDATE applicants SET payment_status = ?, payment_method = '', payment_note = '', payment_reviewed_at = '',
           reenrollment_status = ?, status_updated_at = ?
         WHERE id = ?
       `).run('Menunggu Verifikasi Pembayaran', 'Belum Daftar Ulang', now, applicant.id);
@@ -4756,6 +4872,7 @@ function buildApplicantReportFilter(query, config) {
     'Menunggu Verifikasi Pembayaran',
     'Menunggu Pembayaran QiosPay',
     'Menunggu Pembayaran Kasera',
+    'Menunggu Pembayaran Tunai',
     'Pembayaran Terverifikasi',
     'Perlu Perbaikan'
   ];
@@ -4891,7 +5008,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
       SUM(CASE WHEN document_status = 'Perlu Perbaikan' THEN 1 ELSE 0 END) AS revisions,
       SUM(CASE WHEN selection_status IN ('Diterima', 'Diterima / Lulus') THEN 1 ELSE 0 END) AS accepted,
       SUM(CASE WHEN selection_status = 'Cadangan' THEN 1 ELSE 0 END) AS reserves,
-      SUM(CASE WHEN payment_status IN ('Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay', 'Menunggu Pembayaran Kasera') THEN 1 ELSE 0 END) AS paymentPending,
+      SUM(CASE WHEN payment_status IN ('Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay', 'Menunggu Pembayaran Kasera', 'Menunggu Pembayaran Tunai') THEN 1 ELSE 0 END) AS paymentPending,
       SUM(CASE WHEN payment_status = 'Menunggu Verifikasi Pembayaran' THEN 1 ELSE 0 END) AS paymentReviewPending,
       SUM(CASE WHEN reenrollment_status = 'Daftar Ulang Selesai' THEN 1 ELSE 0 END) AS reEnrolled,
       SUM(CASE WHEN sheet_sync_status = 'pending' THEN 1 ELSE 0 END) AS sheetPending
@@ -6117,8 +6234,12 @@ app.patch('/api/admin/applications/:registrationNumber/payment/cash', requireAdm
   if (cashPaid && applicant.payment_status === 'Pembayaran Terverifikasi' && applicant.payment_method !== 'Tunai') {
     return response.status(409).json({ message: 'Pembayaran sudah terverifikasi dengan metode lain.' });
   }
-  if (!cashPaid && applicant.payment_method !== 'Tunai') {
+  if (!cashPaid && (applicant.payment_method !== 'Tunai' ||
+      applicant.payment_status !== 'Pembayaran Terverifikasi')) {
     return response.status(409).json({ message: 'Status pembayaran siswa bukan pembayaran cash.' });
+  }
+  if (cashPaid && applicant.payment_status === 'Menunggu Verifikasi Pembayaran') {
+    return response.status(409).json({ message: 'Bukti pembayaran sedang menunggu verifikasi panitia.' });
   }
   const now = new Date().toISOString();
   const paymentStatus = cashPaid ? 'Pembayaran Terverifikasi' : 'Belum Daftar Ulang';

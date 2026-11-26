@@ -673,6 +673,7 @@
             <option>Menunggu Verifikasi Pembayaran</option>
             <option>Menunggu Pembayaran QiosPay</option>
             <option>Menunggu Pembayaran Kasera</option>
+            <option>Menunggu Pembayaran Tunai</option>
             <option>Pembayaran Terverifikasi</option>
             <option>Perlu Perbaikan</option>
             <option>Belum Daftar Ulang</option>
@@ -3803,6 +3804,9 @@
         applicant.reenrollment_status === 'Daftar Ulang Selesai';
       if (complete) return { label: 'Daftar Ulang Selesai', official: true };
       if (!accepted) return { label: 'Belum Daftar Ulang', official: false };
+      if (applicant.payment_status === 'Menunggu Pembayaran Tunai') {
+        return { label: 'Menunggu Pembayaran Tunai', official: false };
+      }
       if (['Menunggu Verifikasi Pembayaran', 'Perlu Perbaikan'].includes(applicant.payment_status)) {
         return { label: applicant.payment_status, official: false };
       }
@@ -4145,7 +4149,8 @@
 
       const paymentStatus = applicant.payment_status || applicant.reenrollment_status || 'Belum Daftar Ulang';
       setDetailStatusBadge('detail-payment-status', paymentStatus);
-      document.getElementById('detail-payment-cash-toggle').checked = applicant.payment_method === 'Tunai';
+      document.getElementById('detail-payment-cash-toggle').checked =
+        applicant.payment_status === 'Pembayaran Terverifikasi' && applicant.payment_method === 'Tunai';
       const activeConfig = siteConfig || adminReviewConfig || {};
       const waveConfig = (activeConfig.registrationWaves || []).find(function (item) { return item.name === applicant.wave; });
       document.getElementById('detail-payment-info').textContent = applicant.reenrollment_fee_base >= 0
