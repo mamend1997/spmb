@@ -98,6 +98,38 @@
     .reenrollment-verified-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; background: #10b981; color: white; }
     .reenrollment-proof-link { flex: 0 0 auto; border: 1px solid #dbe3ec; border-radius: 9px; padding: 8px 11px; color: #334155; background: white; font-size: 11px; font-weight: 800; text-decoration: none; }
     #print-card { display: none; }
+    #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; font-size: 14pt; }
+    #print-applicant-summary p { margin: 2px 0; font-size: 14pt; line-height: 1.4; }
+    #print-applicant-summary .print-summary-letterhead { margin-bottom: 14px; text-align: center; }
+    #print-applicant-summary .print-summary-letterhead img { display: block; width: 100%; max-height: 44mm; object-fit: contain; }
+    #print-applicant-summary .print-summary-manual-letterhead { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6mm; padding-bottom: 3mm; border-bottom: 2px solid #172033; }
+    #print-applicant-summary .print-summary-manual-letterhead[hidden] { display: none !important; }
+    #print-applicant-summary .print-summary-letterhead .print-summary-manual-logo { width: 24mm; height: 24mm; flex: 0 0 24mm; object-fit: contain; }
+    #print-applicant-summary .print-summary-manual-lines { flex: 1; text-align: center; line-height: 1.15; }
+    #print-applicant-summary .print-summary-letterhead-fallback { padding-bottom: 8px; border-bottom: 2px solid #172033; font-weight: 700; }
+    #print-applicant-summary .print-summary-title { margin: 0 0 4px; text-align: center; line-height: 1.2; }
+    #print-applicant-summary .print-summary-title div:first-child,
+    #print-applicant-summary .print-summary-title div:last-child { font-size: 13pt; font-weight: 700; }
+    #print-applicant-summary .print-summary-title div:nth-child(2) { font-size: 16pt; font-weight: 800; }
+    #print-applicant-summary .print-summary-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm; width: 92%; margin: 8mm auto 0; }
+    #print-applicant-summary .print-summary-meta-item { min-width: 0; padding: 3mm; border: 1px solid #475569; text-align: left; }
+    #print-applicant-summary .print-summary-meta-item strong { display: block; font-size: 12pt; }
+    #print-applicant-summary .print-summary-meta-item span { display: block; margin-top: 2mm; font-size: 16pt; font-weight: 700; overflow-wrap: anywhere; }
+    #print-applicant-summary .print-summary-table { width: 92%; max-width: 100%; margin: 0 auto; table-layout: fixed; border-collapse: collapse; font-size: 16pt; line-height: 1.4; }
+    #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 6px 8px; vertical-align: top; overflow-wrap: anywhere; }
+    #print-applicant-summary .print-summary-table td:first-child { width: 42%; font-weight: 700; }
+    #print-applicant-summary .print-summary-documents-table { table-layout: fixed; }
+    #print-applicant-summary .print-summary-documents-table th,
+    #print-applicant-summary .print-summary-documents-table td { border: 1px solid #94a3b8; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+    #print-applicant-summary .print-summary-documents-table th { background: #f8fafc; }
+    #print-applicant-summary .print-summary-documents-table col:first-child { width: 60%; }
+    #print-applicant-summary .print-summary-documents-table col:last-child { width: 40%; }
+    #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: auto; page-break-inside: auto; }
+    #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
+    #print-applicant-summary .print-summary-section h3 { width: 92%; margin: 0 auto 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 16pt; }
+    #print-applicant-summary .print-summary-signature { width: 90mm; margin: 8mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 16pt; }
+    #print-applicant-summary .print-summary-signature-date { display: block; min-width: 90mm; white-space: nowrap; }
+    #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
     #print-student-photo[hidden], #print-pin-field[hidden] { display: none !important; }
     .print-card-body { display: grid; grid-template-columns: minmax(0, 1fr) 120px; align-items: start; gap: 18px; margin-top: 14px; border: 1px solid #64748b; padding: 18px; }
     .print-card-details { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -121,10 +153,27 @@
       .reenrollment-verified { align-items: flex-start; flex-direction: column; }
     }
     @media print {
-      @page { size: A4; margin: 16mm; }
+      @page { size: A4 portrait; margin: 12mm; }
+      html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
       body * { visibility: hidden !important; }
-      #print-card, #print-card * { visibility: visible !important; }
-      #print-card { display: block !important; position: absolute; inset: 0 auto auto 0; width: 100%; padding: 22px; border: 1px solid #cbd5e1; border-radius: 12px; background: white !important; color: #172033 !important; }
+      body[data-print-target="card"] #print-card, body[data-print-target="card"] #print-card * { visibility: visible !important; }
+      body[data-print-target="card"] #print-card { display: block !important; position: absolute; inset: 0 auto auto 0; width: 100%; padding: 22px; border: 1px solid #cbd5e1; border-radius: 12px; background: white !important; color: #172033 !important; }
+      body[data-print-target="biodata"] #print-applicant-summary,
+      body[data-print-target="biodata"] #print-applicant-summary * { visibility: visible !important; }
+      body[data-print-target="biodata"] #print-applicant-summary { display: block !important; position: static !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; font-size: 16pt !important; }
+      #print-applicant-summary p,
+      #print-applicant-summary .print-summary-table,
+      #print-applicant-summary .print-summary-table td,
+      #print-applicant-summary .print-summary-documents-table th,
+      #print-applicant-summary .print-summary-documents-table td,
+      #print-applicant-summary .print-summary-section h3,
+      #print-applicant-summary .print-summary-signature { font-size: 16pt !important; }
+      #print-applicant-summary .print-summary-documents-table thead { display: table-header-group; }
+      #print-applicant-summary .print-summary-section { break-inside: auto; page-break-inside: auto; }
+      #print-applicant-summary .print-summary-section[data-print-group="Data Orang Tua/Wali"] { break-before: page; page-break-before: always; }
+      #print-applicant-summary .print-summary-table tr { break-inside: avoid; page-break-inside: avoid; }
+      #print-applicant-summary .print-summary-letterhead img[hidden],
+      #print-applicant-summary .print-summary-letterhead-fallback[hidden] { display: none !important; }
     }
   </style>
   <link rel="stylesheet" href="/assets/spmb-theme.css?v=20261125-6">
@@ -194,6 +243,9 @@
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
             Unduh Kartu (PDF)
           </button>
+          <button id="print-biodata-button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50" type="button">
+            Cetak Biodata
+          </button>
           <button id="logout-button" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50" type="button">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
             Keluar
@@ -229,7 +281,7 @@
 
       <section class="panel portal-status-panel mt-5">
         <div class="portal-status-heading flex flex-wrap items-center justify-between gap-3">
-          <div><h2 class="text-lg font-extrabold text-slate-900">Alur & Status Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Pantau proses pendaftaran dari portal ini.</p></div>
+          <div><h2 class="text-lg font-extrabold text-slate-900">Alur & Status Pendaftaran</h2><p class="mt-1 text-sm text-slate-500">Status verifikasi data/dokumen, hasil seleksi, dan pembayaran ditampilkan pada tahap masing-masing.</p></div>
           <span id="overall-status" class="portal-state-pill pending" aria-live="polite"></span>
         </div>
         <div class="portal-status-cards grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -310,7 +362,7 @@
         <div id="payment-verified-banner" class="reenrollment-verified" hidden>
           <div class="reenrollment-verified-copy">
             <span class="reenrollment-verified-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div><p class="text-sm font-extrabold text-slate-900">Daftar Ulang Telah Terverifikasi</p><p class="text-xs text-slate-500">Pembayaran dan berkas daftar ulang telah diverifikasi oleh panitia sekolah.</p></div>
+            <div><p id="payment-verified-title" class="text-sm font-extrabold text-slate-900">Daftar Ulang Telah Terverifikasi</p><p id="payment-verified-description" class="text-xs text-slate-500">Pembayaran dan berkas daftar ulang telah diverifikasi oleh panitia sekolah.</p></div>
           </div>
           <a id="payment-proof-view-link" class="reenrollment-proof-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Lihat Bukti Bayar</a>
         </div>
@@ -356,8 +408,9 @@
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <a id="kasera-pay-link" class="hidden rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white" href="#" target="_blank" rel="noopener noreferrer">Buka halaman pembayaran Kasera</a>
             <button id="kasera-create-button" class="rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" type="button">Buat Tagihan Kasera</button>
-            <button id="kasera-cancel-button" class="hidden rounded-lg border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60" type="button">Batalkan pembayaran</button>
+            <button id="kasera-cancel-button" class="hidden rounded-lg border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60" type="button">Batalkan tagihan Kasera yang belum dibayar</button>
           </div>
+          <p id="kasera-cancel-help" class="mt-2 text-xs leading-5 text-slate-600" hidden>Tombol ini hanya membatalkan tagihan yang belum dibayar, bukan mengembalikan dana. Jika Anda sudah membayar, jangan batalkan tagihan; tunggu sampai status pembayaran diperbarui otomatis.</p>
           <p id="kasera-payment-expiry" class="mt-2 text-xs text-slate-500"></p>
           <p id="kasera-payment-status" class="mt-2 text-sm text-slate-600" role="status" aria-live="polite"></p>
         </div>
@@ -433,6 +486,39 @@
       <img id="print-student-photo" alt="Foto calon peserta didik" hidden>
     </div>
     <p style="margin-top:14px;font-size:11px">Simpan kartu ini. Gunakan nomor pendaftaran dan PIN untuk masuk ke Portal Calon Siswa.</p>
+  </section>
+
+  <section id="print-applicant-summary" aria-hidden="true">
+    <div class="print-summary-letterhead">
+      <img id="print-summary-letterhead-image" alt="Kop sekolah" hidden>
+      <div id="print-summary-manual-letterhead" class="print-summary-manual-letterhead" hidden>
+        <img id="print-summary-manual-logo" class="print-summary-manual-logo" alt="Logo sekolah" hidden>
+        <div id="print-summary-manual-lines" class="print-summary-manual-lines"></div>
+      </div>
+      <div id="print-summary-letterhead-fallback" class="print-summary-letterhead-fallback" hidden>SMK PGRI CIKONENG</div>
+    </div>
+    <header class="print-summary-heading" style="text-align:center">
+      <div id="print-summary-title" class="print-summary-title"></div>
+      <h2>BIODATA MURID BARU</h2>
+      <div class="print-summary-meta">
+        <div class="print-summary-meta-item"><strong>Nomor Pendaftaran</strong><span id="print-summary-registration-number"></span></div>
+        <div class="print-summary-meta-item"><strong>Tanggal Pendaftaran</strong><span id="print-summary-registration-date"></span></div>
+      </div>
+    </header>
+    <div id="print-summary-groups"></div>
+    <section id="print-summary-documents-section" class="print-summary-section" hidden>
+      <h3>BERKAS PENDAFTARAN</h3>
+      <table class="print-summary-table print-summary-documents-table">
+        <colgroup><col><col></colgroup>
+        <thead><tr><th>Nama Berkas</th><th>Keterangan</th></tr></thead>
+        <tbody id="print-summary-document-rows"></tbody>
+      </table>
+    </section>
+    <div class="print-summary-signature">
+      <p id="print-summary-print-date" class="print-summary-signature-date"></p>
+      <p style="margin-top:8px">Calon Murid Baru,</p>
+      <p id="print-summary-signature-name" class="print-summary-signature-name"></p>
+    </div>
   </section>
 
   <script>
@@ -703,14 +789,21 @@
       document.getElementById('selection-note-text').textContent = application.selectionNote || '';
       const reenrollmentCta = document.getElementById('reenrollment-cta');
       const reenrollmentComplete = application.reenrollmentStatus === 'Daftar Ulang Selesai';
+      const cashPaymentSelected = application.paymentStatus === 'Menunggu Pembayaran Tunai' &&
+        application.paymentMethod === 'Tunai';
       reenrollmentCta.hidden = !application.canPay || reenrollmentComplete;
-      setPortalStatePill('overall-status', application.documentStatus, documentTone);
+      setPortalStatePill('overall-status', 'Verifikasi data & dokumen: ' + application.documentStatus, documentTone);
       setPortalStatePill('document-status-pill', application.documentStatus, documentTone);
-      setPortalStatePill('overall-status-details', application.documentStatus, documentTone);
+      setPortalStatePill('overall-status-details', 'Verifikasi data & dokumen: ' + application.documentStatus, documentTone);
       setPortalStateText('document-status', application.documentStatus, documentTone);
       setPortalStateText('selection-status', decision, selectionTone);
       const reenrollmentLabel = reenrollmentComplete ? application.reenrollmentStatus
-        : application.canPay ? application.reenrollmentStatus || 'Belum Daftar Ulang'
+        : application.canPay ? cashPaymentSelected
+          ? 'Bayar tunai dipilih — belum lunas'
+          : ['Menunggu Verifikasi Pembayaran', 'Menunggu Pembayaran QiosPay',
+            'Menunggu Pembayaran Kasera', 'Perlu Perbaikan'].includes(application.paymentStatus)
+            ? application.paymentStatus
+            : application.reenrollmentStatus || 'Belum Daftar Ulang'
           : isRejected ? 'Tidak diperlukan untuk hasil ini'
             : isReserve ? 'Menunggu keputusan seleksi' : 'Menunggu hasil seleksi';
       const reenrollmentTone = reenrollmentComplete ? 'verified'
@@ -779,10 +872,19 @@
         application.paymentMethod === 'Tunai';
       const paymentVerified = paymentStatus === 'Pembayaran Terverifikasi' &&
         application.reenrollmentStatus === 'Daftar Ulang Selesai';
+      const cashPaid = paymentVerified && application.paymentMethod === 'Tunai';
       const paymentTone = paymentVerified ? 'verified'
         : paymentStatus === 'Perlu Perbaikan' ? 'revision' : 'pending';
-      setPortalStatePill('payment-status', paymentStatus, paymentTone);
+      setPortalStatePill('payment-status', cashSelected
+        ? 'Bayar tunai dipilih — belum lunas'
+        : cashPaid ? 'Tunai sudah dibayar — daftar ulang selesai' : paymentStatus, paymentTone);
       document.getElementById('payment-verified-banner').hidden = !paymentVerified;
+      document.getElementById('payment-verified-title').textContent = cashPaid
+        ? 'Pembayaran tunai telah dikonfirmasi'
+        : 'Daftar Ulang Telah Terverifikasi';
+      document.getElementById('payment-verified-description').textContent = cashPaid
+        ? 'Panitia telah mengonfirmasi pembayaran tunai. Daftar ulang Anda selesai.'
+        : 'Pembayaran dan berkas daftar ulang telah diverifikasi oleh panitia sekolah.';
       document.getElementById('payment-action-content').hidden = paymentVerified;
       const paymentPending = paymentStatus === 'Menunggu Verifikasi Pembayaran' && Boolean(application.paymentProofUrl);
       document.getElementById('payment-verification-notice').hidden = !paymentPending;
@@ -888,6 +990,7 @@
       kaseraPayLink.classList.toggle('hidden', !activeKaseraTransaction);
       if (activeKaseraTransaction) kaseraPayLink.href = kaseraTransaction.checkoutUrl;
       document.getElementById('kasera-cancel-button').classList.toggle('hidden', !activeKaseraTransaction);
+      document.getElementById('kasera-cancel-help').hidden = !activeKaseraTransaction;
       const kaseraCreateButton = document.getElementById('kasera-create-button');
       kaseraCreateButton.classList.toggle('hidden', Boolean(activeKaseraTransaction) || !kaseraSelected ||
         !kaseraAvailable || Boolean(activeInvoice) || paymentPending);
@@ -917,7 +1020,7 @@
         cashSelected || pendingAutomaticPayment || paymentPending);
       document.getElementById('cash-payment-cancel-button').classList.toggle('hidden', !cashSelected);
       showText('cash-payment-description', cashSelected
-        ? 'Pilihan pembayaran cash tersimpan. Pembayaran belum lunas sampai dikonfirmasi panitia setelah Anda membayar di sekolah.'
+        ? 'Anda memilih membayar tunai di sekolah. Ini belum dianggap lunas; daftar ulang selesai setelah panitia menerima dan mengonfirmasi pembayaran.'
         : activeKaseraTransaction
           ? 'Ingin membayar cash? Batalkan tagihan Kasera terlebih dahulu, lalu pilih pembayaran cash.'
           : activeInvoice
@@ -940,6 +1043,193 @@
       if (!value) return '-';
       const date = new Date(value + 'T00:00:00');
       return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    }
+
+    function formatPortalPrintDate(value) {
+      if (!value) return '—';
+      const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+      const date = dateOnly
+        ? new Date(dateOnly[1] + '-' + dateOnly[2] + '-' + dateOnly[3] + 'T12:00:00+07:00')
+        : new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta'
+      }).format(date);
+    }
+
+    function waitForPortalPrintImage(image) {
+      if (image.hidden || !image.getAttribute('src') || image.complete) return Promise.resolve();
+      return new Promise(function (resolve) {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    }
+
+    function renderPortalPrintLetterhead(config) {
+      const wrapper = document.getElementById('print-summary-manual-letterhead');
+      const logo = document.getElementById('print-summary-manual-logo');
+      const linesContainer = document.getElementById('print-summary-manual-lines');
+      const logoUrl = config.registrationLetterheadLogoUrl || '';
+      const lines = (config.registrationLetterheadLines || [])
+        .map(function (line, index) { return Object.assign({ index: index }, line); })
+        .filter(function (line) { return String(line.text || '').trim(); })
+        .sort(function (a, b) { return Number(a.order) - Number(b.order) || a.index - b.index; });
+      if (logoUrl) {
+        logo.src = logoUrl;
+        logo.hidden = false;
+      } else {
+        logo.removeAttribute('src');
+        logo.hidden = true;
+      }
+      linesContainer.replaceChildren();
+      lines.forEach(function (line) {
+        const element = document.createElement('div');
+        element.textContent = line.text;
+        element.style.fontSize = Number(line.fontSize || 12) + 'pt';
+        element.style.fontWeight = line.bold === true ? '700' : '400';
+        element.style.fontStyle = line.italic === true ? 'italic' : 'normal';
+        linesContainer.appendChild(element);
+      });
+      wrapper.hidden = !logoUrl && !lines.length;
+      return logo;
+    }
+
+    function renderPortalPrintTitle(application) {
+      const container = document.getElementById('print-summary-title');
+      const defaultAcademicYearLine = 'TAHUN PELAJARAN 2027/2028';
+      const titleLines = application.registrationPrintTitleLines || [
+        'SISTEM PENERIMAAN MURID BARU (SPMB)',
+        'SMK PGRI CIKONENG',
+        defaultAcademicYearLine
+      ];
+      container.replaceChildren();
+      titleLines.forEach(function (line) {
+        const element = document.createElement('div');
+        element.textContent = line === defaultAcademicYearLine
+          ? 'TAHUN PELAJARAN ' + (application.academicYear || '2027/2028') : line;
+        container.appendChild(element);
+      });
+    }
+
+    function renderPortalPrintSummary(application) {
+      renderPortalPrintTitle(application);
+      document.getElementById('print-summary-registration-number').textContent = application.registrationNumber || '—';
+      document.getElementById('print-summary-registration-date').textContent = formatPortalPrintDate(application.registeredAt);
+      document.getElementById('print-summary-signature-name').textContent = application.student.name || '—';
+      document.getElementById('print-summary-print-date').textContent =
+        'Cikoneng, ' + formatPortalPrintDate(new Date().toISOString());
+
+      const fields = (application.fields || []).slice().sort(function (a, b) {
+        return Number(a.step) - Number(b.step) || Number(a.order) - Number(b.order);
+      });
+      const groupNames = ['Pendaftaran', 'Data Siswa', 'Asal Sekolah', 'Data Orang Tua/Wali'];
+      const groups = new Map(groupNames.map(function (name) { return [name, []]; }));
+      fields.forEach(function (field) {
+        const groupName = ['wave', 'registrationPath', 'major'].includes(field.key)
+          ? 'Pendaftaran'
+          : field.key === 'schoolOrigin' || /npsn/i.test(field.key + ' ' + field.label)
+            ? 'Asal Sekolah'
+            : Number(field.step) === 3 || /^(father|mother)/.test(field.key)
+              ? 'Data Orang Tua/Wali' : 'Data Siswa';
+        groups.get(groupName).push(field);
+      });
+      const groupContainer = document.getElementById('print-summary-groups');
+      groupContainer.replaceChildren();
+      groupNames.forEach(function (groupName) {
+        const rows = groups.get(groupName);
+        if (!rows.length) return;
+        if (groupName === 'Asal Sekolah') {
+          rows.sort(function (a, b) {
+            const priority = function (field) {
+              return field.key === 'schoolOrigin' ? 0 : /npsn/i.test(field.key + ' ' + field.label) ? 1 : 2;
+            };
+            return priority(a) - priority(b);
+          });
+        }
+        const section = document.createElement('section');
+        section.className = 'print-summary-section';
+        section.dataset.printGroup = groupName;
+        const heading = document.createElement('h3');
+        heading.textContent = groupName.toLocaleUpperCase('id-ID');
+        const table = document.createElement('table');
+        table.className = 'print-summary-table';
+        const body = document.createElement('tbody');
+        rows.forEach(function (field) {
+          const row = document.createElement('tr');
+          const label = document.createElement('td');
+          label.textContent = field.label;
+          const value = document.createElement('td');
+          value.textContent = field.type === 'date'
+            ? formatPortalPrintDate(field.value) : field.value || '—';
+          row.append(label, value);
+          body.appendChild(row);
+        });
+        table.appendChild(body);
+        section.append(heading, table);
+        groupContainer.appendChild(section);
+      });
+
+      const physicalDocuments = new Set(application.physicalDocumentKeys || []);
+      const documents = (application.files || []).filter(function (file) { return file.key !== 'paymentProof'; })
+        .slice().sort(function (a, b) { return Number(a.order) - Number(b.order); });
+      const documentRows = document.getElementById('print-summary-document-rows');
+      documentRows.replaceChildren();
+      documents.forEach(function (item) {
+        const row = document.createElement('tr');
+        const name = document.createElement('td');
+        name.textContent = item.label;
+        const status = document.createElement('td');
+        status.textContent = item.uploaded || physicalDocuments.has(item.key) ? 'Ada' : 'Tidak Ada';
+        row.append(name, status);
+        documentRows.appendChild(row);
+      });
+      document.getElementById('print-summary-documents-section').hidden = documents.length === 0;
+    }
+
+    async function printPortalBiodata() {
+      if (!activeApplication) return;
+      const application = activeApplication;
+      try {
+        renderPortalPrintSummary(application);
+        const config = application;
+        const letterhead = document.getElementById('print-summary-letterhead-image');
+        const fallback = document.getElementById('print-summary-letterhead-fallback');
+        const manual = config.registrationLetterheadMode === 'manual';
+        const letterheadUrl = manual ? '' : config.registrationLetterheadUrl || '';
+        if (letterheadUrl) {
+          letterhead.src = letterheadUrl;
+          letterhead.hidden = false;
+          fallback.hidden = true;
+        } else {
+          letterhead.removeAttribute('src');
+          letterhead.hidden = true;
+          fallback.hidden = manual;
+        }
+        const manualLogo = manual ? renderPortalPrintLetterhead(config) : null;
+        if (!manual) {
+          document.getElementById('print-summary-manual-letterhead').hidden = true;
+          document.getElementById('print-summary-manual-logo').removeAttribute('src');
+        }
+        await Promise.all([
+          waitForPortalPrintImage(letterhead),
+          manualLogo ? waitForPortalPrintImage(manualLogo) : Promise.resolve()
+        ]);
+        if (letterhead.getAttribute('src') && !letterhead.naturalWidth) {
+          letterhead.hidden = true;
+          fallback.hidden = !manual;
+        }
+        if (manualLogo && manualLogo.getAttribute('src') && !manualLogo.naturalWidth) manualLogo.hidden = true;
+        document.body.dataset.printTarget = 'biodata';
+        window.print();
+        delete document.body.dataset.printTarget;
+      } catch (error) {
+        const status = document.getElementById('portal-update-status');
+        status.textContent = error.message || 'Biodata gagal disiapkan untuk dicetak.';
+        status.classList.add('error');
+      }
     }
 
     function stopPortalRefresh() {
@@ -1363,7 +1653,7 @@
     });
 
     document.getElementById('kasera-cancel-button').addEventListener('click', async function () {
-      if (!window.confirm('Batalkan tagihan Kasera yang masih aktif? Jika pembayaran sudah berhasil, tunggu status diperbarui sebelum membayar dengan metode lain.')) return;
+      if (!window.confirm('Batalkan tagihan Kasera yang belum dibayar? Ini tidak membatalkan pembayaran yang sudah berhasil dan tidak mengembalikan dana. Jika Anda sudah membayar, jangan lanjutkan; tunggu status pembayaran diperbarui.')) return;
       const button = document.getElementById('kasera-cancel-button');
       button.disabled = true;
       showText('kasera-payment-status', 'Membatalkan tagihan Kasera...');
@@ -1396,7 +1686,7 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || 'Pilihan pembayaran cash gagal diperbarui.');
         await refreshPortalApplication(selected
-          ? 'Pilihan pembayaran cash tersimpan. Silakan bayar di sekolah.'
+          ? 'Pilihan pembayaran cash tersimpan, tetapi belum lunas. Bayar di sekolah dan tunggu konfirmasi panitia.'
           : 'Pilihan pembayaran cash dibatalkan.');
         showText('cash-payment-status', selected
           ? 'Pilihan cash tersimpan. Pembayaran akan dikonfirmasi panitia setelah Anda membayar di sekolah.'
@@ -1416,8 +1706,12 @@
     });
 
     document.getElementById('download-card-button').addEventListener('click', function () {
-      if (activeApplication) window.print();
+      if (!activeApplication) return;
+      document.body.dataset.printTarget = 'card';
+      window.print();
+      delete document.body.dataset.printTarget;
     });
+    document.getElementById('print-biodata-button').addEventListener('click', printPortalBiodata);
 
     restorePortalSession();
   </script>

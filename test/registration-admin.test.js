@@ -45,12 +45,35 @@ test('student can cancel pending Kasera payments and select cash without marking
   assert.match(portalHtml, /id="cash-payment-cancel-button"/);
   assert.match(portalHtml, /\/api\/portal\/payment\/kasera\/cancel/);
   assert.match(portalHtml, /\/api\/portal\/payment\/cash/);
-  assert.match(portalHtml, /Pembayaran belum lunas sampai dikonfirmasi panitia/);
+  assert.match(portalHtml, /Ini belum dianggap lunas; daftar ulang selesai setelah panitia menerima dan mengonfirmasi pembayaran/);
   assert.match(serverJs, /app\.post\('\/api\/portal\/payment\/kasera\/cancel', requirePortal/);
   assert.match(serverJs, /UPDATE kasera_transactions SET status = 'cancelled'[\s\S]*?status = 'pending'/);
   assert.match(serverJs, /app\.patch\('\/api\/portal\/payment\/cash', requirePortal/);
   assert.match(serverJs, /'Menunggu Pembayaran Tunai'/);
   assert.match(serverJs, /paymentStatus: paymentDetails\.payment_status,[\s\S]*?paymentMethod: paymentDetails\.payment_method/);
+});
+
+test('portal separates document verification, payment, and unpaid cash selection states', function () {
+  assert.match(portalHtml, /Status verifikasi data\/dokumen, hasil seleksi, dan pembayaran ditampilkan pada tahap masing-masing/);
+  assert.match(portalHtml, /Verifikasi data & dokumen: '\s*\+ application\.documentStatus/);
+  assert.match(portalHtml, /Bayar tunai dipilih — belum lunas/);
+  assert.match(portalHtml, /Tunai sudah dibayar — daftar ulang selesai/);
+  assert.match(portalHtml, /Panitia telah mengonfirmasi pembayaran tunai/);
+  assert.match(portalHtml, /Ini tidak membatalkan pembayaran yang sudah berhasil dan tidak mengembalikan dana/);
+  assert.match(portalHtml, /Batalkan tagihan Kasera yang belum dibayar/);
+  assert.match(serverJs, /registrationPrintTitleLines: config\.registrationPrintTitleLines/);
+  assert.match(serverJs, /physicalDocumentKeys: JSON\.parse\(applicant\.physical_documents_json/);
+});
+
+test('student can print biodata using the admin registration-summary layout', function () {
+  assert.match(portalHtml, /id="print-biodata-button"/);
+  assert.match(portalHtml, /id="print-applicant-summary"/);
+  assert.match(portalHtml, /function renderPortalPrintSummary\(application\)/);
+  assert.match(portalHtml, /application\.fields \|\| \[\][\s\S]*?print-summary-groups/);
+  assert.match(portalHtml, /id="print-summary-documents-section"/);
+  assert.match(portalHtml, /body\.dataset\.printTarget = 'biodata'/);
+  assert.match(portalHtml, /print-summary-manual-letterhead/);
+  assert.match(portalHtml, /document\.getElementById\('print-biodata-button'\)\.addEventListener\('click', printPortalBiodata\)/);
 });
 
 test('manual registration may omit required uploads without weakening public registration', function () {
