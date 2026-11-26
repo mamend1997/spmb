@@ -1475,12 +1475,6 @@
         document.getElementById('wave').focus();
       }
     });
-    modal.addEventListener('click', function (event) {
-      if (event.target === modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-    });
     confirmationBackButton.addEventListener('click', function () {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
@@ -1497,9 +1491,6 @@
     });
     document.getElementById('contact-dialog-close').addEventListener('click', function () {
       document.getElementById('contact-dialog').close();
-    });
-    document.getElementById('contact-dialog').addEventListener('click', function (event) {
-      if (event.target === event.currentTarget) event.currentTarget.close();
     });
 
     document.querySelectorAll('.digit-field').forEach(function (input) {

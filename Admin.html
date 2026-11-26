@@ -5489,9 +5489,6 @@
       menu.inert = !opening;
       this.setAttribute('aria-expanded', String(opening));
     });
-    document.addEventListener('click', function (event) {
-      if (!event.target.closest('.profile-control')) closeProfileMenu();
-    });
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') closeProfileMenu();
     });
