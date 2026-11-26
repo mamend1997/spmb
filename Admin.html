@@ -590,7 +590,7 @@
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5.5 12 2l9 3.5v13L12 22l-9-3.5v-13Z"/><path d="m3.5 6 8.5 3.5L20.5 6M12 9.5V22m-4-12v5m8-5v5"/></svg>
                 <span>Kelas</span>
               </button>
-              <button type="button" data-page-target="master-page" data-master-anchor="whatsapp" data-permission-menu="whatsapp">
+              <button type="button" data-page-target="whatsapp-page" data-permission-menu="whatsapp">
                 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-4.4A8.4 8.4 0 1 1 20 11.5Z"/><path d="M8 9c.7 2.5 2.5 4.3 5 5l1-1 2 1c-.2 1.2-1.2 2-2.4 2A8.5 8.5 0 0 1 7 9.4C7 8.2 7.8 7.2 9 7l1 2-1 1Z"/></svg>
                 <span>WA Gateway</span>
               </button>
@@ -897,38 +897,6 @@
               <div id="classes-list"></div>
               <button id="add-class-button" class="secondary" type="button" style="margin-top:10px">Tambah Kelas</button>
             </div>
-            <h2 class="wide" id="master-whatsapp" data-master-section="whatsapp">WhatsApp Gateway</h2>
-            <div class="wide master-group" data-master-section="whatsapp">
-              <p>Pilih Fonnte untuk mengirim langsung lewat API, atau Webhook untuk memakai integrasi kustom. Token hanya disimpan server dan tidak dikirim ke halaman publik.</p>
-              <div class="settings-grid">
-                <label class="payment-check-control"><input id="whatsapp-enabled" type="checkbox"> Aktifkan notifikasi WhatsApp</label>
-                <div><label for="whatsapp-provider">Penyedia gateway</label><select id="whatsapp-provider"><option value="fonnte">Fonnte</option><option value="webhook">Webhook kustom</option></select></div>
-                <div class="wide" id="whatsapp-webhook-url-field"><label for="whatsapp-webhook-url">URL webhook (HTTPS)</label><input id="whatsapp-webhook-url" type="url" placeholder="https://domain-anda.example/webhook" autocomplete="url"></div>
-                <div class="wide"><label id="whatsapp-token-label" for="whatsapp-webhook-token">Token API Fonnte</label><input id="whatsapp-webhook-token" type="password" maxlength="1000" placeholder="Tempel token API Fonnte" autocomplete="new-password"><p id="whatsapp-token-status" class="helper">Token disimpan di server. Kosongkan untuk mempertahankan token tersimpan.</p></div>
-                <label class="payment-check-control"><input id="whatsapp-clear-token" type="checkbox"> Hapus token tersimpan</label>
-                <fieldset class="wide">
-                  <legend>Notifikasi otomatis</legend>
-                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="registration.created"> Pendaftaran berhasil dan data login portal (nomor pendaftaran + PIN)</label>
-                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="selection.updated"> Hasil penetapan kelulusan</label>
-                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reenrollment.instructions"> Informasi daftar ulang dan biaya untuk siswa yang diterima</label>
-                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="review.updated"> Data atau dokumen perlu diperbaiki</label>
-                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="payment.reviewed"> Status bukti pembayaran diperbarui</label>
-                  <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reminder"> Pengingat pendaftaran atau daftar ulang</label>
-                </fieldset>
-                  <div class="wide">
-                    <label for="whatsapp-test-phone">Nomor WhatsApp tujuan tes</label>
-                    <div class="file-setting">
-                      <input id="whatsapp-test-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="081234567890">
-                      <button id="whatsapp-test-button" class="secondary" type="button" data-permission-menu="whatsapp" data-permission-action="edit">Kirim Pesan Tes</button>
-                    </div>
-                    <p class="helper">Tes memakai penyedia dan token yang sudah disimpan. Pada Fonnte, respons berhasil berarti pesan masuk antrean Fonnte.</p>
-                    <p id="whatsapp-test-status" class="status-line" role="status"></p>
-                  </div>
-                  <p class="wide">Fonnte mengirim melalui <code>https://api.fonnte.com/send</code>. Simpan token API dari dashboard Fonnte, aktifkan perangkat WhatsApp di akun, lalu gunakan tes. Pastikan pesan benar-benar diterima di WhatsApp tujuan.</p>
-                <p class="wide">Nomor tujuan dipilih berurutan: WhatsApp calon siswa, lalu ayah, lalu ibu bila nomor sebelumnya kosong. Webhook tidak menerima notifikasi bila tidak ada nomor tujuan.</p>
-                <p class="wide">Untuk webhook kustom, payload berisi <code>event</code>, <code>to</code>, <code>message</code>, dan <code>data</code>; token dikirim sebagai Bearer. Kegagalan pengiriman dicatat pada log server.</p>
-              </div>
-            </div>
             <h2 class="wide" id="master-documents" data-master-section="documents">Dokumen Sekolah</h2>
             <div class="wide master-group" data-master-section="documents">
               <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
@@ -1026,6 +994,43 @@
           <button id="save-settings-button" type="submit" style="margin-top:18px">Simpan Pengaturan</button>
         </form>
         <p id="settings-status" class="status-line" role="status"></p>
+      </section>
+
+      <section id="whatsapp-page" class="card section admin-page" hidden>
+        <div class="section-heading">
+          <div><h2>WhatsApp Gateway</h2><p>Kelola penyedia, token, dan notifikasi WhatsApp secara terpisah dari pengaturan Form Pendaftaran.</p></div>
+        </div>
+        <form id="whatsapp-settings-form" class="settings-grid">
+          <p class="wide">Pilih Fonnte untuk mengirim langsung lewat API, atau Webhook untuk memakai integrasi kustom. Token hanya disimpan server dan tidak dikirim ke halaman publik.</p>
+          <label class="payment-check-control"><input id="whatsapp-enabled" type="checkbox"> Aktifkan notifikasi WhatsApp</label>
+          <div><label for="whatsapp-provider">Penyedia gateway</label><select id="whatsapp-provider"><option value="fonnte">Fonnte</option><option value="webhook">Webhook kustom</option></select></div>
+          <div class="wide" id="whatsapp-webhook-url-field"><label for="whatsapp-webhook-url">URL webhook (HTTPS)</label><input id="whatsapp-webhook-url" type="url" placeholder="https://domain-anda.example/webhook" autocomplete="url"></div>
+          <div class="wide"><label id="whatsapp-token-label" for="whatsapp-webhook-token">Token API Fonnte</label><input id="whatsapp-webhook-token" type="password" maxlength="1000" placeholder="Tempel token API Fonnte" autocomplete="new-password"><p id="whatsapp-token-status" class="helper">Token disimpan di server. Kosongkan untuk mempertahankan token tersimpan.</p></div>
+          <label class="payment-check-control"><input id="whatsapp-clear-token" type="checkbox"> Hapus token tersimpan</label>
+          <fieldset class="wide">
+            <legend>Notifikasi otomatis</legend>
+            <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="registration.created"> Pendaftaran berhasil dan data login portal (nomor pendaftaran + PIN)</label>
+            <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="selection.updated"> Hasil penetapan kelulusan</label>
+            <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reenrollment.instructions"> Informasi daftar ulang dan biaya untuk siswa yang diterima</label>
+            <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="review.updated"> Data atau dokumen perlu diperbaiki</label>
+            <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="payment.reviewed"> Status bukti pembayaran diperbarui</label>
+            <label class="payment-check-control"><input type="checkbox" data-whatsapp-event="reminder"> Pengingat pendaftaran atau daftar ulang</label>
+          </fieldset>
+          <div class="wide">
+            <label for="whatsapp-test-phone">Nomor WhatsApp tujuan tes</label>
+            <div class="file-setting">
+              <input id="whatsapp-test-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="081234567890">
+              <button id="whatsapp-test-button" class="secondary" type="button" data-permission-menu="whatsapp" data-permission-action="edit">Kirim Pesan Tes</button>
+            </div>
+            <p class="helper">Tes memakai penyedia dan token yang sudah disimpan. Pada Fonnte, respons berhasil berarti pesan masuk antrean Fonnte.</p>
+            <p id="whatsapp-test-status" class="status-line" role="status"></p>
+          </div>
+          <p class="wide">Fonnte mengirim melalui <code>https://api.fonnte.com/send</code>. Simpan token API dari dashboard Fonnte, aktifkan perangkat WhatsApp di akun, lalu gunakan tes. Pastikan pesan benar-benar diterima di WhatsApp tujuan.</p>
+          <p class="wide">Nomor tujuan dipilih berurutan: WhatsApp calon siswa, lalu ayah, lalu ibu bila nomor sebelumnya kosong. Webhook tidak menerima notifikasi bila tidak ada nomor tujuan.</p>
+          <p class="wide">Untuk webhook kustom, payload berisi <code>event</code>, <code>to</code>, <code>message</code>, dan <code>data</code>; token dikirim sebagai Bearer. Kegagalan pengiriman dicatat pada log server.</p>
+          <button id="save-whatsapp-settings-button" type="submit">Simpan Pengaturan Gateway</button>
+        </form>
+        <p id="whatsapp-settings-status" class="status-line" role="status"></p>
       </section>
 
       <section id="accounts-page" class="card section admin-page" hidden>
@@ -1694,6 +1699,7 @@
       if (pageId === 'activity-page') return 'activityLog';
       if (pageId === 'backups-page' || pageId === 'file-manager-page') return 'ownerOnly';
       if (pageId === 'accounts-page') return 'accounts';
+      if (pageId === 'whatsapp-page') return 'whatsapp';
       if (pageId === 'master-page') return anchorId === 'contactPersons' ? 'form' : anchorId || 'form';
       return '';
     }
@@ -1723,6 +1729,7 @@
     };
 
     function adminPagePath(pageId, anchorId) {
+      if (pageId === 'whatsapp-page') return '/admin/master-data/' + adminMasterSlugs.whatsapp;
       if (pageId === 'master-page') {
         return '/admin/master-data/' + (adminMasterSlugs[anchorId] ? adminMasterSlugs[anchorId] : adminMasterSlugs.form);
       }
@@ -1738,6 +1745,7 @@
       const masterEntry = Object.keys(adminMasterSlugs).find(function (anchorId) {
         return path === '/admin/master-data/' + adminMasterSlugs[anchorId];
       });
+      if (masterEntry === 'whatsapp') return { pageId: 'whatsapp-page' };
       if (masterEntry) return { pageId: 'master-page', anchorId: masterEntry };
       if (path === '/admin' || path === '/admin.html') return { pageId: 'dashboard-page' };
       return null;
@@ -1785,7 +1793,8 @@
         if (available) setAdminPage(available, undefined, false);
         else {
           const masterMenu = masterMenus.find(function (menu) { return canAdmin(menu, 'view'); });
-          if (masterMenu) setAdminPage('master-page', masterMenu, false);
+          if (masterMenu === 'whatsapp') setAdminPage('whatsapp-page', undefined, false);
+          else if (masterMenu) setAdminPage('master-page', masterMenu, false);
           else if (canAdmin('accounts', 'view')) setAdminPage('accounts-page', undefined, false);
         }
       }
@@ -1836,6 +1845,15 @@
             : document.querySelector('[data-master-section="' + sectionKey + '"]');
           if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 0);
+      } else if (pageId === 'whatsapp-page') {
+        const whatsappPage = document.getElementById('whatsapp-page');
+        applyMasterControlPermissions('whatsapp', whatsappPage);
+        const saveButton = document.getElementById('save-whatsapp-settings-button');
+        saveButton.hidden = !canAdmin('whatsapp', 'edit');
+        saveButton.disabled = !canAdmin('whatsapp', 'edit');
+        document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'true');
+        document.getElementById('master-submenu').hidden = false;
+        document.getElementById('master-nav-toggle').classList.add('active');
       } else {
         document.getElementById('master-nav-toggle').setAttribute('aria-expanded', 'false');
         document.getElementById('master-nav-toggle').classList.remove('active');
@@ -3080,6 +3098,7 @@
         document.querySelectorAll('[data-master-section]').forEach(function (section) {
           applyMasterControlPermissions(section.dataset.masterSection, section);
         });
+        applyMasterControlPermissions('whatsapp', document.getElementById('whatsapp-page'));
       }
     }
 
@@ -5833,15 +5852,6 @@
               spreadsheetId: document.getElementById('google-spreadsheet-id').value.trim(),
               driveFolderId: document.getElementById('google-drive-folder-id').value.trim()
             },
-            whatsappGateway: {
-              enabled: document.getElementById('whatsapp-enabled').checked,
-              provider: document.getElementById('whatsapp-provider').value,
-              webhookUrl: document.getElementById('whatsapp-webhook-url').value.trim(),
-              webhookToken: document.getElementById('whatsapp-webhook-token').value,
-              clearWebhookToken: document.getElementById('whatsapp-clear-token').checked,
-              events: Array.from(document.querySelectorAll('[data-whatsapp-event]:checked'))
-                .map(function (checkbox) { return checkbox.dataset.whatsappEvent; })
-            },
             paymentSettings: {
               bankEnabled: document.getElementById('bank-enabled').checked,
               bankName: document.getElementById('bank-name').value.trim(),
@@ -5860,6 +5870,36 @@
         setStatus('settings-status', 'Pengaturan berhasil disimpan.', 'success');
       } catch (error) {
         setStatus('settings-status', error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('whatsapp-settings-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('save-whatsapp-settings-button');
+      button.disabled = true;
+      setStatus('whatsapp-settings-status', 'Menyimpan pengaturan WhatsApp Gateway...', '');
+      try {
+        const config = await api('/api/admin/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            whatsappGateway: {
+              enabled: document.getElementById('whatsapp-enabled').checked,
+              provider: document.getElementById('whatsapp-provider').value,
+              webhookUrl: document.getElementById('whatsapp-webhook-url').value.trim(),
+              webhookToken: document.getElementById('whatsapp-webhook-token').value,
+              clearWebhookToken: document.getElementById('whatsapp-clear-token').checked,
+              events: Array.from(document.querySelectorAll('[data-whatsapp-event]:checked'))
+                .map(function (checkbox) { return checkbox.dataset.whatsappEvent; })
+            }
+          })
+        });
+        showConfig(config);
+        setStatus('whatsapp-settings-status', 'Pengaturan WhatsApp Gateway berhasil disimpan.', 'success');
+      } catch (error) {
+        setStatus('whatsapp-settings-status', error.message || 'Pengaturan WhatsApp Gateway gagal disimpan.', 'error');
       } finally {
         button.disabled = false;
       }

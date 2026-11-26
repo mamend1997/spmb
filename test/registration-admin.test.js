@@ -35,6 +35,16 @@ test('applicant registration date includes local registration time', function ()
   assert.match(adminHtml, /new Intl\.DateTimeFormat\('id-ID', \{[\s\S]*hour: '2-digit',[\s\S]*minute: '2-digit',[\s\S]*timeZone: 'Asia\/Jakarta'/);
 });
 
+test('WhatsApp Gateway uses a separate settings page from the registration form', function () {
+  const settingsForm = adminHtml.match(/<form id="settings-form">([\s\S]*?)<\/form>/);
+  assert.ok(settingsForm);
+  assert.doesNotMatch(settingsForm[1], /whatsappGateway|whatsapp-enabled/);
+  assert.match(adminHtml, /data-page-target="whatsapp-page" data-permission-menu="whatsapp"/);
+  assert.match(adminHtml, /<section id="whatsapp-page" class="card section admin-page"/);
+  assert.match(adminHtml, /<form id="whatsapp-settings-form" class="settings-grid">/);
+  assert.match(adminHtml, /function adminPageFromPath\(pathname\)[\s\S]*?masterEntry === 'whatsapp'\) return \{ pageId: 'whatsapp-page' \}/);
+});
+
 test('school letterhead supports a reusable image and five-line manual design', function () {
   assert.match(adminHtml, /id="registration-letterhead-file"/);
   assert.match(adminHtml, /data-asset="registrationLetterhead"/);
