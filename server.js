@@ -2201,6 +2201,24 @@ async function validateWebhookDestination(webhookUrl) {
   }
 }
 
+async function readWebhookResponseDetails(response) {
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const chunks = [];
+  const maxBytes = 2048;
+  let totalBytes = 0;
+  while (totalBytes < maxBytes) {
+    const result = await reader.read();
+    if (result.done) break;
+    const chunk = Buffer.from(result.value).subarray(0, maxBytes - totalBytes);
+    chunks.push(chunk);
+    totalBytes += chunk.length;
+    if (chunk.length < result.value.byteLength) break;
+  }
+  if (totalBytes >= maxBytes) await reader.cancel();
+  return Buffer.concat(chunks).toString('utf8').trim();
+}
+
 function getWhatsAppRecipient(applicant) {
   return [applicant.student_phone, applicant.father_phone, applicant.mother_phone]
     .map(normalizeWhatsAppPhone)
@@ -2265,8 +2283,19 @@ async function postWhatsAppWebhook(gateway, eventName, recipient, message, data)
   } finally {
     clearTimeout(timeout);
   }
+  if (!response.ok) {
+    const responseDetails = await readWebhookResponseDetails(response);
+    let message = responseDetails;
+    try {
+      const result = JSON.parse(responseDetails);
+      message = String(result.message || result.error || result.detail || responseDetails);
+    } catch (error) {
+      message = responseDetails;
+    }
+    throw new Error('Webhook merespons HTTP ' + response.status +
+      (message ? ': ' + message.slice(0, 300) : '.'));
+  }
   if (response.body) await response.body.cancel();
-  if (!response.ok) throw new Error('Webhook merespons HTTP ' + response.status + '.');
   return response.status;
 }
 
