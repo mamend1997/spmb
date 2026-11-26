@@ -63,6 +63,9 @@ test('admin print packet contains one card page followed by the biodata summary 
   assert.match(adminHtml, /id="print-summary-signature-name"/);
   assert.match(adminHtml, /break-after: page; page-break-after: always/);
   assert.match(adminHtml, /position: static !important; inset: auto !important/);
+  assert.match(adminHtml, /print-card-heading h2 \{ font-size: 20pt; line-height: 1\.2; \}/);
+  assert.match(adminHtml, /print-card-grid strong \{ font-size: 14pt; line-height: 1\.35; \}/);
+  assert.match(adminHtml, /print-card-number strong \{ font-size: 24pt; \}/);
   assert.match(serverJs, /registrationLetterheadUrl: config\.registrationLetterheadUrl/);
   assert.match(serverJs, /academic_year: applicant\.academic_year/);
 });
