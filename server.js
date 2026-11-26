@@ -4651,6 +4651,7 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
     const result = {
       id: applicant.id,
       registration_number: applicant.registration_number,
+      academic_year: applicant.academic_year,
       wave: applicant.wave,
       registration_path: applicant.registration_path,
       major: applicant.major,
@@ -4763,6 +4764,8 @@ app.get('/api/admin/applications', requireAdmin, requireAnyPermission([['dashboa
     archived: filter.archiveScope,
     canViewApplications: canViewApplications,
     reviewConfig: isViewer ? null : {
+      academicYear: config.academicYear,
+      registrationLetterheadUrl: config.registrationLetterheadUrl,
       formFields: config.formFields,
       documentRequirements: config.documentRequirements,
       classes: config.classes,

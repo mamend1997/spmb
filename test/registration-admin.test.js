@@ -38,3 +38,31 @@ test('form-field editor groups additions and ordering by the same four student s
   assert.match(indexHtml, /const fieldParents = \{\};[\s\S]*?\[1, 2, 3, 4\]/);
   assert.match(indexHtml, /rows\.filter\(function \(entry\) \{ return entry\.step === stepNumber; \}\)[\s\S]*?appendChild\(entry\.row\)/);
 });
+
+test('admin print packet contains one card page followed by the biodata summary and signature', function () {
+  assert.match(adminHtml, /id="print-applicant-summary"/);
+  assert.match(adminHtml, /id="print-summary-letterhead-image"/);
+  assert.match(adminHtml, /id="print-summary-groups"/);
+  assert.match(adminHtml, /id="print-summary-signature-name"/);
+  assert.match(adminHtml, /break-after: page; page-break-after: always/);
+  assert.match(adminHtml, /position: static !important; inset: auto !important/);
+  assert.match(serverJs, /registrationLetterheadUrl: config\.registrationLetterheadUrl/);
+  assert.match(serverJs, /academic_year: applicant\.academic_year/);
+});
+
+test('authorized admins can open the applicant edit form from the list and detail page', function () {
+  assert.match(adminHtml, /Koreksi Data/);
+  assert.match(adminHtml, /Koreksi data pendaftar[\s\S]*?openEditDialog\(applicant\)/);
+  assert.match(adminHtml, /detail-edit-button[\s\S]*?openEditDialog\(reviewingApplicant\)/);
+  assert.match(adminHtml, /method: 'PUT'[\s\S]*?JSON\.stringify\(payload\)/);
+  assert.match(serverJs, /app\.put\('\/api\/admin\/applications\/:registrationNumber', requireAdmin, requirePermission\('applications', 'edit'\)/);
+});
+
+test('student photo upload is part of step four rather than step two', function () {
+  const stepTwo = indexHtml.match(/<section id="form-step-2"[\s\S]*?<\/section>/);
+  const stepFour = indexHtml.match(/<section id="form-step-4"[\s\S]*?<\/section>/);
+  assert.ok(stepTwo);
+  assert.ok(stepFour);
+  assert.doesNotMatch(stepTwo[0], /id="studentPhoto"/);
+  assert.match(stepFour[0], /id="studentPhoto" data-upload-key="studentPhoto"/);
+});

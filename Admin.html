@@ -302,11 +302,28 @@
     #print-applicant-card .print-card-photo, #print-applicant-card .print-card-photo-empty { width: 120px; height: 160px; border: 1px solid #94a3b8; border-radius: 8px; object-fit: cover; }
     #print-applicant-card .print-card-photo-empty { display: grid; place-items: center; padding: 8px; color: #64748b; background: #f8fafc; font-size: 11px; text-align: center; }
     #print-applicant-card .print-card-photo[hidden], #print-applicant-card .print-card-photo-empty[hidden] { display: none !important; }
+    #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; }
+    #print-applicant-summary .print-summary-letterhead { margin-bottom: 14px; text-align: center; }
+    #print-applicant-summary .print-summary-letterhead img { display: block; width: 100%; max-height: 44mm; object-fit: contain; }
+    #print-applicant-summary .print-summary-letterhead-fallback { padding-bottom: 8px; border-bottom: 2px solid #172033; font-weight: 700; }
+    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 4px 6px; vertical-align: top; }
+    #print-applicant-summary .print-summary-table td:first-child { width: 34%; font-weight: 700; }
+    #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: avoid; page-break-inside: avoid; }
+    #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 11px; }
+    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 12mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 11px; }
+    #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
     @media print {
-      @page { size: A4; margin: 14mm; }
+      @page { size: A4; margin: 12mm; }
+      html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
       body * { visibility: hidden !important; }
+      body > :not(#print-applicant-card) { display: none !important; }
       #print-applicant-card, #print-applicant-card * { visibility: visible !important; }
-      #print-applicant-card { display: block !important; position: fixed; inset: 14mm; width: auto; }
+      #print-applicant-card { display: block !important; position: static !important; inset: auto !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      #print-applicant-card .print-card-shell { break-after: page; page-break-after: always; }
+      #print-applicant-summary { display: block !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      #print-applicant-summary .print-summary-letterhead img[hidden],
+      #print-applicant-summary .print-summary-letterhead-fallback[hidden] { display: none !important; }
     }
     .status-line { min-height: 22px; margin: 10px 0 0; font-size: 13px; }
     .status-line.error { color: #b42318; }
@@ -963,7 +980,8 @@
             <button id="detail-selection-button" type="button">Penetapan Kelulusan</button>
             <button id="detail-class-button" type="button" class="secondary" hidden>Plotting Kelas</button>
             <button id="detail-reset-pin-button" class="reset-pin-button" type="button">Reset PIN</button>
-            <button id="detail-print-button" class="secondary" type="button">Cetak Kartu</button>
+            <button id="detail-print-button" class="secondary" type="button">Cetak Kartu &amp; Biodata</button>
+            <button id="detail-edit-button" class="secondary" type="button">Koreksi Data</button>
           </div>
         </header>
         <section class="card detail-hero">
@@ -1316,6 +1334,25 @@
       </div>
       <p class="muted" style="margin-top:20px">Kartu ini digunakan sebagai identitas pendaftaran. Simpan nomor pendaftaran untuk keperluan informasi SPMB.</p>
     </div>
+    <section id="print-applicant-summary">
+      <div class="print-summary-letterhead">
+        <img id="print-summary-letterhead-image" alt="Kop sekolah" hidden>
+        <div id="print-summary-letterhead-fallback" class="print-summary-letterhead-fallback" hidden>
+          SMK PGRI CIKONENG
+        </div>
+      </div>
+      <header style="text-align:center">
+        <h2>BIODATA MURID BARU</h2>
+        <p>Nomor Pendaftaran: <strong id="print-summary-registration-number"></strong></p>
+        <p>Tanggal Pendaftaran: <strong id="print-summary-registration-date"></strong></p>
+      </header>
+      <div id="print-summary-groups"></div>
+      <div class="print-summary-signature">
+        <p id="print-summary-print-date"></p>
+        <p style="margin-top:8px">Calon Murid Baru,</p>
+        <p id="print-summary-signature-name" class="print-summary-signature-name"></p>
+      </div>
+    </section>
   </section>
 
   <dialog id="profile-dialog">
@@ -3226,13 +3263,16 @@
           actions.appendChild(createIconAction('Lihat dan verifikasi', '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/><path d="m17 18 1.5 1.5L22 16"/>', function () {
             showApplicantDetail(applicant);
           }, true));
+          actions.appendChild(createIconAction('Koreksi data pendaftar', '<path d="m16 4 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/><path d="M12 20h8"/>', function () {
+            openEditDialog(applicant);
+          }));
           const selectionAction = createIconAction('Penetapan kelulusan', '<path d="m5 12 4 4L19 6"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/>', function () {
             reviewingApplicant = applicant;
             openReviewDialog(applicant, 'selection');
           });
           selectionAction.classList.add('action-selection');
           actions.appendChild(selectionAction);
-          const printAction = createIconAction('Cetak kartu', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
+          const printAction = createIconAction('Cetak kartu dan ringkasan biodata', '<path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7zM17 11h.01"/>', function () {
             printApplicantCard(applicant);
           });
           printAction.classList.add('action-print');
@@ -3762,6 +3802,7 @@
       document.getElementById('detail-selection-button').hidden = readOnly;
       document.getElementById('detail-reset-pin-button').hidden = readOnly;
       document.getElementById('detail-print-button').hidden = readOnly;
+      document.getElementById('detail-edit-button').hidden = readOnly;
       document.querySelector('.detail-record-layout').hidden = readOnly;
       document.getElementById('detail-documents-section').hidden = readOnly;
       document.querySelector('.detail-payment-card').hidden = readOnly;
@@ -4391,47 +4432,154 @@
       }
     }
 
-    function printApplicantCard(applicant) {
+    function formatApplicantPrintDate(value) {
+      if (!value) return '—';
+      const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+      const date = dateOnly
+        ? new Date(dateOnly[1] + '-' + dateOnly[2] + '-' + dateOnly[3] + 'T12:00:00+07:00')
+        : new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta'
+      }).format(date);
+    }
+
+    function waitForApplicantPrintImage(image) {
+      if (image.hidden || !image.getAttribute('src') || image.complete) return Promise.resolve();
+      return new Promise(function (resolve) {
+        image.addEventListener('load', resolve, { once: true });
+        image.addEventListener('error', resolve, { once: true });
+      });
+    }
+
+    function renderApplicantPrintSummary(applicant) {
       const values = {
-        'print-academic-year': siteConfig.academicYear || '',
-        'print-registration-number': applicant.registration_number,
-        'print-student-name': applicant.student_name,
-        'print-student-nisn': applicant.nisn || '—',
-        'print-wave': applicant.wave || '—',
-        'print-path': applicant.registration_path || '—',
-        'print-major': applicant.major || '—',
-        'print-school': applicant.school_origin || '—'
+        'print-summary-registration-number': applicant.registration_number,
+        'print-summary-registration-date': formatApplicantPrintDate(applicant.created_at),
+        'print-summary-signature-name': applicant.student_name || '—',
+        'print-summary-print-date': 'Cikoneng, ' + formatApplicantPrintDate(new Date().toISOString())
       };
       Object.keys(values).forEach(function (id) {
-        document.getElementById(id).textContent = values[id];
+        document.getElementById(id).textContent = values[id] || '—';
       });
-      const photoFile = (applicant.files || []).find(function (file) { return file.key === 'studentPhoto'; });
-      const photo = document.getElementById('print-applicant-photo');
-      const photoPlaceholder = document.getElementById('print-applicant-photo-empty');
-      let printStarted = false;
-      const startPrint = function () {
-        if (printStarted) return;
-        printStarted = true;
-        window.print();
-      };
 
-      photo.onload = startPrint;
-      photo.onerror = function () {
-        photo.hidden = true;
-        photoPlaceholder.hidden = false;
-        startPrint();
-      };
-      if (photoFile && photoFile.url) {
-        photo.hidden = false;
-        photoPlaceholder.hidden = true;
-        photo.alt = 'Foto ' + applicant.student_name;
-        photo.src = photoFile.url;
-        if (photo.complete && photo.naturalWidth > 0) startPrint();
-      } else {
-        photo.removeAttribute('src');
-        photo.hidden = true;
-        photoPlaceholder.hidden = false;
-        startPrint();
+      const fields = (adminReviewConfig && adminReviewConfig.formFields || []).filter(function (field) {
+        return field.active;
+      }).slice().sort(function (a, b) {
+        return Number(a.step) - Number(b.step) || Number(a.order) - Number(b.order);
+      });
+      const groupNames = ['Pendaftaran', 'Data Siswa', 'Asal Sekolah', 'Data Orang Tua/Wali'];
+      const groups = new Map(groupNames.map(function (name) { return [name, []]; }));
+      fields.forEach(function (field) {
+        const groupName = ['wave', 'registrationPath', 'major'].includes(field.key)
+          ? 'Pendaftaran'
+          : field.key === 'schoolOrigin'
+            ? 'Asal Sekolah'
+            : Number(field.step) === 3 || /^(father|mother)/.test(field.key)
+              ? 'Data Orang Tua/Wali'
+              : 'Data Siswa';
+        groups.get(groupName).push({ field: field, value: applicantValue(applicant, field) });
+      });
+
+      const container = document.getElementById('print-summary-groups');
+      container.replaceChildren();
+      groupNames.forEach(function (groupName) {
+        const rows = groups.get(groupName);
+        if (!rows.length) return;
+        const section = document.createElement('section');
+        section.className = 'print-summary-section';
+        const heading = document.createElement('h3');
+        heading.textContent = groupName.toLocaleUpperCase('id-ID');
+        const table = document.createElement('table');
+        table.className = 'print-summary-table';
+        const body = document.createElement('tbody');
+        rows.forEach(function (rowData) {
+          const row = document.createElement('tr');
+          const label = document.createElement('td');
+          label.textContent = rowData.field.label;
+          const value = document.createElement('td');
+          value.textContent = rowData.field.type === 'date'
+            ? formatApplicantPrintDate(rowData.value)
+            : rowData.value || '—';
+          row.append(label, value);
+          body.appendChild(row);
+        });
+        table.appendChild(body);
+        section.append(heading, table);
+        container.appendChild(section);
+      });
+    }
+
+    async function printApplicantCard(applicant) {
+      try {
+        const sensitive = await api('/api/admin/applications/' +
+          encodeURIComponent(applicant.registration_number) + '/sensitive-data');
+        applicant = Object.assign({}, applicant, sensitive.sensitiveData || {});
+        const config = adminReviewConfig || {};
+        const values = {
+          'print-academic-year': applicant.academic_year || config.academicYear || (siteConfig && siteConfig.academicYear) || '',
+          'print-registration-number': applicant.registration_number,
+          'print-student-name': applicant.student_name,
+          'print-student-nisn': applicant.nisn || '—',
+          'print-wave': applicant.wave || '—',
+          'print-path': applicant.registration_path || '—',
+          'print-major': applicant.major || '—',
+          'print-school': applicant.school_origin || '—'
+        };
+        Object.keys(values).forEach(function (id) {
+          document.getElementById(id).textContent = values[id];
+        });
+        renderApplicantPrintSummary(applicant);
+
+        const photoFile = (applicant.files || []).find(function (file) { return file.key === 'studentPhoto'; });
+        const photo = document.getElementById('print-applicant-photo');
+        const photoPlaceholder = document.getElementById('print-applicant-photo-empty');
+        photo.onload = null;
+        photo.onerror = null;
+        if (photoFile && photoFile.url) {
+          photo.hidden = false;
+          photoPlaceholder.hidden = true;
+          photo.alt = 'Foto ' + applicant.student_name;
+          photo.src = photoFile.url;
+        } else {
+          photo.removeAttribute('src');
+          photo.hidden = true;
+          photoPlaceholder.hidden = false;
+        }
+
+        const letterhead = document.getElementById('print-summary-letterhead-image');
+        const letterheadFallback = document.getElementById('print-summary-letterhead-fallback');
+        const letterheadUrl = config.registrationLetterheadUrl || (siteConfig && siteConfig.registrationLetterheadUrl) || '';
+        letterhead.onerror = null;
+        if (letterheadUrl) {
+          letterhead.hidden = false;
+          letterheadFallback.hidden = true;
+          letterhead.src = letterheadUrl;
+        } else {
+          letterhead.removeAttribute('src');
+          letterhead.hidden = true;
+          letterheadFallback.hidden = false;
+        }
+
+        await Promise.all([waitForApplicantPrintImage(photo), waitForApplicantPrintImage(letterhead)]);
+        if (photo.getAttribute('src') && !photo.naturalWidth) {
+          photo.hidden = true;
+          photoPlaceholder.hidden = false;
+        }
+        if (letterhead.getAttribute('src') && !letterhead.naturalWidth) {
+          letterhead.hidden = true;
+          letterheadFallback.hidden = false;
+        }
+        const previousTitle = document.title;
+        document.title = 'Pendaftaran SPMB - ' + applicant.registration_number;
+        window.print();
+        document.title = previousTitle;
+      } catch (error) {
+        const statusId = applicantDetailPage.hidden ? 'applications-status' : 'detail-status';
+        setStatus(statusId, error.message || 'Dokumen pendaftaran gagal disiapkan untuk dicetak.', 'error');
       }
     }
 
@@ -4625,7 +4773,9 @@
           encodeURIComponent(applicant.registration_number) + '/sensitive-data');
         applicant = Object.assign({}, applicant, result.sensitiveData || {});
       } catch (error) {
-        setStatus('edit-status', error.message || 'Data pendaftar gagal dimuat untuk diedit.', 'error');
+        const statusId = document.getElementById('applicant-detail-page').hidden
+          ? 'applications-status' : 'detail-status';
+        setStatus(statusId, error.message || 'Data pendaftar gagal dimuat untuk diedit.', 'error');
         return;
       }
       editingRegistrationNumber = applicant.registration_number;
@@ -5748,6 +5898,9 @@
     document.getElementById('close-portal-pin').addEventListener('click', function () { portalPinDialog.close(); });
     document.getElementById('detail-print-button').addEventListener('click', function () {
       if (reviewingApplicant) printApplicantCard(reviewingApplicant);
+    });
+    document.getElementById('detail-edit-button').addEventListener('click', function () {
+      if (reviewingApplicant) openEditDialog(reviewingApplicant);
     });
     document.getElementById('detail-verify-all').addEventListener('click', verifyAllApplicantData);
     document.getElementById('confirm-verification').addEventListener('click', confirmVerification);
