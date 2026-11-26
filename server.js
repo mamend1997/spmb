@@ -5559,6 +5559,9 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
   const registrationNumber = String(request.params.registrationNumber || '').toUpperCase();
   const existing = getApplicantByRegistration(registrationNumber);
   if (!existing) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
+  const newlyWrittenPaths = [];
+  const replacedFiles = [];
+  let failureStatus = 400;
   try {
     const updated = validateApplicantUpdate(request.body, existing, { includeCustomData: true });
     const duplicate = database.prepare(`
@@ -5567,6 +5570,21 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
     `).get(updated.nisn, updated.nisn, updated.studentNik, updated.studentNik, existing.id);
     if (duplicate) return response.status(409).json({ message: 'NISN atau NIK tersebut sudah dipakai pendaftar lain.' });
     const config = getConfig();
+    const uploads = request.body && request.body.uploads !== undefined ? request.body.uploads : {};
+    if (!uploads || typeof uploads !== 'object' || Array.isArray(uploads) || Object.keys(uploads).length > 40) {
+      throw new Error('Daftar unggahan berkas tidak valid.');
+    }
+    const applicableDocuments = config.documentRequirements.filter(function (document) {
+      return document.active && (!document.wave || document.wave === updated.wave) &&
+        (!document.registrationPath || document.registrationPath === updated.registrationPath);
+    });
+    const decodedUploads = Object.keys(uploads).map(function (key) {
+      if (!applicableDocuments.some(function (document) { return document.key === key; })) {
+        throw new Error('Jenis berkas tidak tersedia untuk gelombang dan jalur pendaftaran ini.');
+      }
+      const definition = getDocumentRequirement(key, config);
+      return { key: key, decoded: decodeUpload(uploads[key], key, definition) };
+    });
     const physicalDocumentKeys = sanitizePhysicalDocumentKeys(
       request.body && request.body.physicalDocumentKeys,
       existing
@@ -5591,6 +5609,11 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
     updatedApplicant.physical_documents_json = JSON.stringify(physicalDocumentKeys);
     const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
       .all(existing.id).map(function (file) { return file.field_key; }));
+    const now = new Date().toISOString();
+    decodedUploads.forEach(function (item) {
+      uploadedFiles.add(item.key);
+      reviews[item.key] = { status: 'pending', note: '', updatedAt: now };
+    });
     const documentStatus = calculateDocumentStatus(updatedApplicant, config, reviews, uploadedFiles);
     const updateValues = Object.assign({}, updated, {
       id: existing.id,
@@ -5598,29 +5621,76 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
       physicalDocumentsJson: JSON.stringify(physicalDocumentKeys),
       fieldReviewsJson: JSON.stringify(reviews),
       documentStatus: documentStatus,
-      updatedAt: new Date().toISOString()
+      updatedAt: now
     });
     delete updateValues.customData;
-    database.prepare(`
-      UPDATE applicants SET
-        wave = @wave, wave_fee = @waveFee, registration_path = @registrationPath, major = @major, student_name = @studentName,
-        school_origin = @schoolOrigin, nisn = @nisn, family_card_number = @familyCardNumber,
-        student_nik = @studentNik, gender = @gender, religion = @religion, birth_place = @birthPlace,
-        birth_date = @birthDate, email = @email, student_phone = @studentPhone,
-        father_nik = @fatherNik, father_name = @fatherName, father_education = @fatherEducation,
-        father_occupation = @fatherOccupation, father_income = @fatherIncome, father_phone = @fatherPhone,
-        mother_nik = @motherNik, mother_name = @motherName, mother_education = @motherEducation,
-        mother_occupation = @motherOccupation, mother_income = @motherIncome, mother_phone = @motherPhone,
-        address = @address, custom_data_json = @customDataJson, physical_documents_json = @physicalDocumentsJson,
-        field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
-        status_updated_at = @updatedAt
-      WHERE id = @id
-    `).run(updateValues);
-    queueSheetSync(existing.id);
+    failureStatus = 500;
+    const applicantDirectory = path.join(uploadDirectory, registrationNumber);
+    if (decodedUploads.length) fs.mkdirSync(applicantDirectory, { recursive: true, mode: 0o700 });
+    decodedUploads.forEach(function (item) {
+      const extension = item.decoded.type === 'application/pdf' ? '.pdf'
+        : item.decoded.type === 'image/png' ? '.png' : '.jpg';
+      item.storedName = item.key + '-' + crypto.randomBytes(12).toString('hex') + extension;
+      const filePath = path.join(applicantDirectory, item.storedName);
+      newlyWrittenPaths.push(filePath);
+      fs.writeFileSync(filePath, item.decoded.bytes, { mode: 0o600, flag: 'wx' });
+    });
+    withTransaction(function () {
+      database.prepare(`
+        UPDATE applicants SET
+          wave = @wave, wave_fee = @waveFee, registration_path = @registrationPath, major = @major, student_name = @studentName,
+          school_origin = @schoolOrigin, nisn = @nisn, family_card_number = @familyCardNumber,
+          student_nik = @studentNik, gender = @gender, religion = @religion, birth_place = @birthPlace,
+          birth_date = @birthDate, email = @email, student_phone = @studentPhone,
+          father_nik = @fatherNik, father_name = @fatherName, father_education = @fatherEducation,
+          father_occupation = @fatherOccupation, father_income = @fatherIncome, father_phone = @fatherPhone,
+          mother_nik = @motherNik, mother_name = @motherName, mother_education = @motherEducation,
+          mother_occupation = @motherOccupation, mother_income = @motherIncome, mother_phone = @motherPhone,
+          address = @address, custom_data_json = @customDataJson, physical_documents_json = @physicalDocumentsJson,
+          field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
+          status_updated_at = @updatedAt
+        WHERE id = @id
+      `).run(updateValues);
+      decodedUploads.forEach(function (item) {
+        const previous = database.prepare('SELECT stored_name FROM uploaded_files WHERE applicant_id = ? AND field_key = ?')
+          .get(existing.id, item.key);
+        if (previous) replacedFiles.push(previous.stored_name);
+        database.prepare(`
+          INSERT INTO uploaded_files (applicant_id, field_key, stored_name, original_name, mime_type, file_size, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(applicant_id, field_key) DO UPDATE SET
+            stored_name = excluded.stored_name,
+            original_name = excluded.original_name,
+            mime_type = excluded.mime_type,
+            file_size = excluded.file_size,
+            created_at = excluded.created_at
+        `).run(existing.id, item.key, item.storedName, item.decoded.originalName,
+          item.decoded.type, item.decoded.bytes.length, now);
+        queueDriveSync(existing.id, item.key);
+      });
+      queueSheetSync(existing.id);
+    });
+    replacedFiles.forEach(function (storedName) {
+      const previousPath = path.join(applicantDirectory, path.basename(storedName));
+      if (fs.existsSync(previousPath)) {
+        try { fs.unlinkSync(previousPath); } catch (cleanupError) {
+          console.error('Gagal menghapus berkas lama setelah penggantian:', cleanupError.message);
+        }
+      }
+    });
     setImmediate(syncQueuedApplications);
+    if (decodedUploads.length) setImmediate(syncQueuedDriveFiles);
     response.json({ status: 'success' });
   } catch (error) {
-    response.status(400).json({ message: error.message || 'Data pendaftar gagal diperbarui.' });
+    newlyWrittenPaths.forEach(function (filePath) {
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (cleanupError) {
+          console.error('Gagal membersihkan unggahan setelah edit pendaftar dibatalkan:', cleanupError.message);
+        }
+      }
+    });
+    response.status(error.status || failureStatus)
+      .json({ message: error.message || 'Data pendaftar gagal diperbarui.' });
   }
 });
 

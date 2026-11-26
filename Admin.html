@@ -173,9 +173,9 @@
     th { position: sticky; top: 0; background: #f8fafc; color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
     tr:last-child td { border-bottom: 0; }
     td select { min-width: 150px; font-size: 12px; }
-    .registration-number-edit { display: inline-grid; width: 30px; min-width: 30px; min-height: 30px; place-items: center; margin-top: 5px; padding: 0; border-radius: 8px; color: white; background: #2563eb; vertical-align: middle; }
+    .registration-number-edit { display: inline-grid; width: 20px; min-width: 20px; min-height: 20px; place-items: center; margin: 0 0 0 3px; padding: 0; border-radius: 6px; color: #fff !important; background: #2563eb; vertical-align: middle; }
     .registration-number-edit:hover { background: #1d4ed8; }
-    .registration-number-edit svg { width: 16px; height: 16px; }
+    .registration-number-edit svg { width: 13px; height: 13px; stroke: #fff; }
     .registration-number-editor { display: grid; min-width: 210px; gap: 6px; }
     .registration-number-editor-fields { display: flex; align-items: center; gap: 4px; color: #475467; }
     .registration-number-editor-fields input { min-width: 70px; min-height: 34px; padding: 6px; font-family: monospace; }
@@ -196,6 +196,8 @@
     .action-icon.action-danger { border-color: #dc2626; color: #fff; background: #dc2626; }
     .action-icon.action-danger:hover { border-color: #b91c1c; color: #fff; background: #b91c1c; }
     .action-icon svg { width: 17px; height: 17px; }
+    .action-icon.action-edit { border-color: #f97316; color: #fff; background: linear-gradient(135deg, #f97316, #f43f5e); }
+    .action-icon.action-edit:hover { border-color: #ea580c; color: #fff; background: linear-gradient(135deg, #ea580c, #e11d48); }
     .action-icon.action-primary { color: #c2410c; background: #fff7ed; }
     .action-icon.action-selection { border-color: #fde68a; color: #15803d; background: #fef3c7; }
     .action-icon.action-selection:hover { border-color: #fcd34d; color: #166534; background: #fde68a; }
@@ -337,8 +339,13 @@
     #print-applicant-summary .print-summary-signature-date { display: block; min-width: 90mm; white-space: nowrap; }
     #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
     .edit-documents { grid-column: 1 / -1; margin-top: 14px; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; }
-    .edit-document-option { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; color: #344054; font-size: 13px; }
-    .edit-document-option input { width: auto; min-height: auto; margin: 2px 0 0; }
+    .edit-document-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .edit-document-card { min-width: 0; padding: 12px; border: 1px solid #e4e9f0; border-radius: 10px; background: #fff; }
+    .edit-document-card > strong { display: block; margin-bottom: 6px; color: #344054; font-size: 13px; }
+    .edit-document-card input[type="file"] { width: 100%; min-width: 0; }
+    .edit-document-current { margin: 7px 0; overflow-wrap: anywhere; }
+    .edit-document-physical { display: flex !important; align-items: center; gap: 8px; margin: 10px 0 0 !important; cursor: pointer; }
+    .edit-document-physical input { width: 16px; min-height: 16px; margin: 0; accent-color: #ea580c; }
     @media print {
       @page { size: A4 portrait; margin: 12mm; }
       html, body { height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: white !important; }
@@ -441,7 +448,7 @@
       .metric { padding: 13px; }
       .metric strong { font-size: 21px; }
       .section { padding: 15px; }
-      .filters, .settings-grid, .edit-grid { grid-template-columns: 1fr; }
+      .filters, .settings-grid, .edit-grid, .edit-document-options { grid-template-columns: 1fr; }
       .filters #application-search { grid-column: auto; }
       .settings-grid .wide, .edit-grid .wide { grid-column: auto; }
       .wave-row { grid-template-columns: 1fr; }
@@ -1159,9 +1166,9 @@
       <form id="edit-form">
         <div id="edit-fields" class="edit-grid"></div>
         <fieldset id="edit-documents" class="edit-documents" hidden>
-          <legend>Berkas diterima secara fisik</legend>
-          <p class="helper">Centang berkas yang sudah diterima panitia dalam bentuk fisik. Status ini akan tercetak sebagai “Ada”.</p>
-          <div id="edit-document-options"></div>
+          <legend>Berkas pendukung</legend>
+          <p class="helper">Data tetap berstatus Menunggu Verifikasi sampai berkas diperiksa panitia. Panitia dapat mengunggah berkas atau mencentang jika berkas diterima secara fisik.</p>
+          <div id="edit-document-options" class="edit-document-options"></div>
         </fieldset>
         <p id="edit-status" class="status-line" role="status"></p>
         <div class="dialog-actions">
@@ -3444,9 +3451,11 @@
           actions.appendChild(createIconAction('Lihat dan verifikasi', '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/><path d="m17 18 1.5 1.5L22 16"/>', function () {
             showApplicantDetail(applicant);
           }, true));
-          actions.appendChild(createIconAction('Koreksi data pendaftar', '<path d="m16 4 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/><path d="M12 20h8"/>', function () {
+          const editApplicantAction = createIconAction('Koreksi data pendaftar', '<path d="m16 4 4 4M4 20l4-.8L19.2 8a2.1 2.1 0 0 0-3-3L5 16.2 4 20Z"/><path d="M12 20h8"/>', function () {
             openEditDialog(applicant);
-          }));
+          });
+          editApplicantAction.classList.add('action-edit');
+          actions.appendChild(editApplicantAction);
           const selectionAction = createIconAction('Penetapan kelulusan', '<path d="m5 12 4 4L19 6"/><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z"/>', function () {
             reviewingApplicant = applicant;
             openReviewDialog(applicant, 'selection');
@@ -5085,42 +5094,70 @@
           control.addEventListener('change', function () {
             const pathSelect = container.querySelector('[data-edit-field-key="registrationPath"]');
             if (pathSelect) updateEditRegistrationPaths(pathSelect, config, control.value, pathSelect.value);
+            renderEditDocuments(applicant, config);
           });
         }
         group.append(label, control);
         container.appendChild(group);
       });
-      renderEditPhysicalDocuments(applicant, config);
       const pathSelect = container.querySelector('[data-edit-field-key="registrationPath"]');
       if (pathSelect) {
         const waveSelect = container.querySelector('[data-edit-field-key="wave"]');
         updateEditRegistrationPaths(pathSelect, config, waveSelect ? waveSelect.value : applicant.wave,
           applicant.registration_path || '');
+        pathSelect.addEventListener('change', function () { renderEditDocuments(applicant, config); });
       }
+      renderEditDocuments(applicant, config);
     }
 
-    function renderEditPhysicalDocuments(applicant, config) {
+    function renderEditDocuments(applicant, config) {
       const section = document.getElementById('edit-documents');
       const container = document.getElementById('edit-document-options');
       const existingKeys = Array.isArray(applicant.physical_document_keys) ? applicant.physical_document_keys : [];
+      const currentWave = document.querySelector('#edit-fields [data-edit-field-key="wave"]');
+      const currentPath = document.querySelector('#edit-fields [data-edit-field-key="registrationPath"]');
       const documents = (config.documentRequirements || []).filter(function (item) {
-        return item.active && (!item.wave || item.wave === applicant.wave) &&
-          (!item.registrationPath || item.registrationPath === applicant.registration_path);
+        return item.active && (!item.wave || item.wave === (currentWave ? currentWave.value : applicant.wave)) &&
+          (!item.registrationPath || item.registrationPath === (currentPath ? currentPath.value : applicant.registration_path));
       }).slice().sort(function (a, b) { return Number(a.order) - Number(b.order); });
       section.dataset.existingKeys = JSON.stringify(existingKeys);
       section.hidden = documents.length === 0;
       container.replaceChildren();
       documents.forEach(function (item) {
-        const label = document.createElement('label');
-        label.className = 'edit-document-option';
+        const card = document.createElement('div');
+        card.className = 'edit-document-card';
+        const title = document.createElement('strong');
+        title.textContent = item.name + (item.required ? ' (wajib)' : ' (opsional)');
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = item.extensions.map(function (extension) { return '.' + extension; }).join(',');
+        input.dataset.editDocumentUpload = item.key;
+        input.dataset.maxKb = String(item.maxKB || 2048);
+        input.setAttribute('aria-label', item.name);
+        card.append(title, input);
+        const existingFile = (applicant.files || []).find(function (file) { return file.key === item.key; });
+        if (existingFile) {
+          const current = document.createElement('p');
+          current.className = 'helper edit-document-current';
+          const link = document.createElement('a');
+          link.href = existingFile.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Lihat berkas saat ini · ' + existingFile.name;
+          current.appendChild(link);
+          card.appendChild(current);
+        }
+        const physicalLabel = document.createElement('label');
+        physicalLabel.className = 'edit-document-physical';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.dataset.physicalDocumentKey = item.key;
         checkbox.checked = existingKeys.includes(item.key);
         const text = document.createElement('span');
-        text.textContent = item.name + (item.required ? ' (wajib)' : ' (opsional)');
-        label.append(checkbox, text);
-        container.appendChild(label);
+        text.textContent = 'Sudah diterima secara fisik';
+        physicalLabel.append(checkbox, text);
+        card.appendChild(physicalLabel);
+        container.appendChild(card);
       });
     }
 
@@ -5922,6 +5959,26 @@
       });
     }
 
+    async function serializeDocumentUpload(input) {
+      const file = input.files && input.files[0];
+      if (!file) return null;
+      const allowedExtensions = input.accept.split(',').map(function (extension) {
+        return extension.trim().replace(/^\./, '').toLowerCase();
+      });
+      const extension = file.name.split('.').pop().toLowerCase();
+      const maxBytes = Number(input.dataset.maxKb || 2048) * 1024;
+      if (!allowedExtensions.includes(extension) || file.size > maxBytes) {
+        throw new Error('Berkas ' + input.getAttribute('aria-label') + ' harus sesuai format yang diizinkan dan maksimal ' +
+          Math.round(maxBytes / 1024) + ' KB.');
+      }
+      return {
+        name: file.name,
+        contentType: file.type,
+        size: file.size,
+        base64: await readFileBase64(file)
+      };
+    }
+
     document.getElementById('add-wave-button').addEventListener('click', function () {
       const waves = getWaveRows();
       const paths = getRegistrationPathRows();
@@ -6019,7 +6076,7 @@
       event.preventDefault();
       const button = document.getElementById('save-edit-button');
       button.disabled = true;
-      const payload = { customData: {} };
+      const payload = { customData: {}, uploads: {} };
       const physicalDocuments = document.getElementById('edit-documents');
       const existingPhysicalKeys = JSON.parse(physicalDocuments.dataset.existingKeys || '[]');
       const visiblePhysicalKeys = Array.from(document.querySelectorAll('[data-physical-document-key]'))
@@ -6035,6 +6092,11 @@
         else payload[key] = control.value;
       });
       try {
+        const uploadInputs = Array.from(event.currentTarget.querySelectorAll('[data-edit-document-upload]'));
+        for (const input of uploadInputs) {
+          const upload = await serializeDocumentUpload(input);
+          if (upload) payload.uploads[input.dataset.editDocumentUpload] = upload;
+        }
         await api('/api/admin/applications/' + encodeURIComponent(editingRegistrationNumber), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -6083,23 +6145,8 @@
         });
         const uploadInputs = Array.from(form.querySelectorAll('[data-admin-registration-upload]'));
         for (const input of uploadInputs) {
-          const file = input.files && input.files[0];
-          if (!file) continue;
-          const allowedExtensions = input.accept.split(',').map(function (extension) {
-            return extension.trim().replace(/^\./, '').toLowerCase();
-          });
-          const extension = file.name.split('.').pop().toLowerCase();
-          const maxBytes = Number(input.dataset.maxKb || 2048) * 1024;
-          if (!allowedExtensions.includes(extension) || file.size > maxBytes) {
-            throw new Error('Berkas ' + input.getAttribute('aria-label') + ' harus sesuai format yang diizinkan dan maksimal ' +
-              Math.round(maxBytes / 1024) + ' KB.');
-          }
-          payload.uploads[input.dataset.adminRegistrationUpload] = {
-            name: file.name,
-            contentType: file.type,
-            size: file.size,
-            base64: await readFileBase64(file)
-          };
+          const upload = await serializeDocumentUpload(input);
+          if (upload) payload.uploads[input.dataset.adminRegistrationUpload] = upload;
         }
         const result = await api('/api/admin/applications', {
           method: 'POST',

@@ -149,6 +149,23 @@ test('admin can mark physically received documents and print them as present', f
   assert.match(adminHtml, /id="master-documents"[^>]*>Dokumen Sekolah/);
 });
 
+test('admin can upload replacement documents from the applicant edit form', function () {
+  assert.match(adminHtml, /function renderEditDocuments\(applicant, config\)/);
+  assert.match(adminHtml, /data-edit-document-upload/);
+  assert.match(adminHtml, /payload\.uploads\[input\.dataset\.editDocumentUpload\] = upload/);
+  assert.match(adminHtml, /Sudah diterima secara fisik/);
+  assert.match(serverJs, /const uploads = request\.body && request\.body\.uploads !== undefined \? request\.body\.uploads : \{\}/);
+  assert.match(serverJs, /decodeUpload\(uploads\[key\], key, definition\)/);
+  assert.match(serverJs, /ON CONFLICT\(applicant_id, field_key\) DO UPDATE SET[\s\S]*queueDriveSync\(existing\.id, item\.key\)/);
+  assert.match(serverJs, /reviews\[item\.key\] = \{ status: 'pending', note: '', updatedAt: now \}/);
+});
+
+test('edit icons use a white stroke and stay compact beside registration numbers', function () {
+  assert.match(adminHtml, /\.registration-number-edit \{[^}]*width: 20px;[^}]*color: #fff !important/);
+  assert.match(adminHtml, /\.registration-number-edit svg \{[^}]*stroke: #fff/);
+  assert.match(adminHtml, /\.action-icon\.action-edit \{[^}]*color: #fff/);
+});
+
 test('numeric form fields strip non-digit characters as the user types', function () {
   assert.match(indexHtml, /function bindDigitsOnlyInput\(control\)[\s\S]*?previousValue\.replace\(\/\\D\/g, ''\)/);
   assert.match(adminHtml, /function bindDigitsOnlyInput\(control\)[\s\S]*?previousValue\.replace\(\/\\D\/g, ''\)/);
