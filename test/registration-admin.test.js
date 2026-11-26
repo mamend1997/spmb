@@ -96,3 +96,8 @@ test('numeric form fields strip non-digit characters as the user types', functio
   assert.match(indexHtml, /function bindDigitsOnlyInput\(control\)[\s\S]*?previousValue\.replace\(\/\\D\/g, ''\)/);
   assert.match(adminHtml, /function bindDigitsOnlyInput\(control\)[\s\S]*?previousValue\.replace\(\/\\D\/g, ''\)/);
 });
+
+test('student WhatsApp field displays the +62 dialing prefix', function () {
+  assert.ok(indexHtml.includes('>+62</span><input class="field-control digit-field rounded-l-none" id="studentPhone"'));
+  assert.match(indexHtml, /id="studentPhone"[^>]*pattern="\[0-9\]\{10,14\}"/);
+});
