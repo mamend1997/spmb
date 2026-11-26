@@ -31,6 +31,10 @@ test('admin can mark documents physically received when adding an applicant with
   assert.match(serverJs, /options && options\.allowMissingDocuments === true\s*\? sanitizeApplicablePhysicalDocumentKeys/);
 });
 
+test('applicant registration date includes local registration time', function () {
+  assert.match(adminHtml, /new Intl\.DateTimeFormat\('id-ID', \{[\s\S]*hour: '2-digit',[\s\S]*minute: '2-digit',[\s\S]*timeZone: 'Asia\/Jakarta'/);
+});
+
 test('school letterhead supports a reusable image and five-line manual design', function () {
   assert.match(adminHtml, /id="registration-letterhead-file"/);
   assert.match(adminHtml, /data-asset="registrationLetterhead"/);
