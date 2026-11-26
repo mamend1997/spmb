@@ -320,7 +320,10 @@
         <h2 id="registration-waves-title">Gelombang Pendaftaran</h2>
         <p id="registration-promotion-summary"></p>
       </header>
-      <div id="registration-wave-list" class="wave-info-grid"></div>
+      <div class="wave-info-shell">
+        <div id="registration-wave-list" class="wave-info-grid"></div>
+        <div id="registration-wave-cta-container" class="wave-info-cta-container"></div>
+      </div>
     </section>
 
     <section id="timeline" class="timeline-section no-print" aria-labelledby="timeline-title">
@@ -1115,24 +1118,25 @@
             (parts.length > 1 ? ' (potongan digabung).' : '.');
           card.appendChild(promotion);
         }
-        const callToAction = document.createElement(isOpen ? 'a' : 'span');
-        callToAction.className = 'wave-info-cta' + (isOpen ? '' : ' is-closed');
-        if (isOpen) {
-          callToAction.href = '/pendaftaran';
-          callToAction.setAttribute('aria-label', 'Mulai pendaftaran untuk ' + wave.name);
-        } else {
-          callToAction.setAttribute('aria-disabled', 'true');
-        }
-        const callToActionText = document.createElement('span');
-        callToActionText.textContent = isOpen ? 'Daftar sekarang' : 'Pendaftaran ditutup';
-        const callToActionArrow = document.createElement('span');
-        callToActionArrow.className = 'wave-info-cta-arrow';
-        callToActionArrow.setAttribute('aria-hidden', 'true');
-        callToActionArrow.textContent = isOpen ? '→' : '✓';
-        callToAction.append(callToActionText, callToActionArrow);
-        card.appendChild(callToAction);
         container.appendChild(card);
       });
+      const hasOpenWave = waves.some(function (wave) { return wave.status === 'open'; });
+      const callToAction = document.createElement(hasOpenWave ? 'a' : 'span');
+      callToAction.className = 'wave-info-cta' + (hasOpenWave ? '' : ' is-closed');
+      if (hasOpenWave) {
+        callToAction.href = '/pendaftaran';
+        callToAction.setAttribute('aria-label', 'Pilih gelombang dan mulai pendaftaran');
+      } else {
+        callToAction.setAttribute('aria-disabled', 'true');
+      }
+      const callToActionText = document.createElement('span');
+      callToActionText.textContent = hasOpenWave ? 'Daftar sekarang' : 'Pendaftaran ditutup';
+      const callToActionArrow = document.createElement('span');
+      callToActionArrow.className = 'wave-info-cta-arrow';
+      callToActionArrow.setAttribute('aria-hidden', 'true');
+      callToActionArrow.textContent = hasOpenWave ? '→' : '✓';
+      callToAction.append(callToActionText, callToActionArrow);
+      document.getElementById('registration-wave-cta-container').replaceChildren(callToAction);
       document.getElementById('registration-waves-section').hidden = !waves.length;
       const promotion = config.reenrollmentPromotion || {};
       const summary = document.getElementById('registration-promotion-summary');

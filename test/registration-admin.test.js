@@ -76,6 +76,13 @@ test('reenrollment discounts and early-bird quota apply only to the first wave',
   assert.match(adminHtml, /reenrollmentDiscount\.disabled = !isFirstWave/);
 });
 
+test('public registration waves share one outer panel and one registration action', function () {
+  assert.match(indexHtml, /<div class="wave-info-shell">[\s\S]*?id="registration-wave-list"[\s\S]*?id="registration-wave-cta-container"/);
+  assert.match(indexHtml, /const hasOpenWave = waves\.some/);
+  assert.match(indexHtml, /registration-wave-cta-container'\)\.replaceChildren\(callToAction\)/);
+  assert.doesNotMatch(indexHtml, /card\.appendChild\(callToAction\)/);
+});
+
 test('public FAQ opens with reduced-motion-aware animation', function () {
   assert.match(indexHtml, /answerWrapper\.className = 'faq-answer'/);
   assert.match(indexHtml, /answerWrapper\.appendChild\(answer\)/);

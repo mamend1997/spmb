@@ -1045,6 +1045,16 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
   font-weight: 800;
 }
 
+.wave-info-shell {
+  padding: clamp(12px, 2.4vw, 22px);
+  border: 1px solid #e2e8f0;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #fff, #f8fbff);
+  box-shadow: 0 16px 42px rgb(23 37 84 / 7%);
+}
+
+.wave-info-cta-container { display: flex; margin-top: 16px; }
+
 .home-checklist,
 .program-info-card ul {
   display: grid;
@@ -1336,7 +1346,7 @@ dialog::backdrop { background: rgb(23 37 84 / 55%); backdrop-filter: blur(4px); 
 .wave-info-price-highlight strong { color: #c2410c; font-size: 22px; font-weight: 800; letter-spacing: -.025em; line-height: 1.2; }
 .wave-info-price-highlight small { color: #9a3412; font-size: 11px; font-weight: 700; }
 .wave-info-card .wave-info-promotion { margin: 13px 0 17px; padding: 11px 13px; border: 1px solid #ffedd5; border-radius: 13px; background: linear-gradient(110deg, #fff7ed, #fffaf5); color: #9a3412; font-size: 12px; font-weight: 750; line-height: 1.5; }
-.wave-info-cta { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; margin-top: auto; padding: 7px 8px 7px 17px; border: 1px solid transparent; border-radius: 999px; background: linear-gradient(105deg, #f97316, #f43f5e); box-shadow: 0 8px 18px rgb(249 115 22 / 20%); color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease; }
+.wave-info-cta { display: flex; width: 100%; box-sizing: border-box; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 7px 8px 7px 17px; border: 1px solid transparent; border-radius: 999px; background: linear-gradient(105deg, #f97316, #f43f5e); box-shadow: 0 8px 18px rgb(249 115 22 / 20%); color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; transition: transform .2s ease, box-shadow .2s ease; }
 .wave-info-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 22px rgb(249 115 22 / 25%); }
 .wave-info-cta:focus-visible { outline: 3px solid rgb(249 115 22 / 35%); outline-offset: 3px; }
 .wave-info-cta-arrow { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 50%; background: rgb(255 255 255 / 22%); font-size: 17px; line-height: 1; }
@@ -1601,6 +1611,7 @@ a[href]:hover {
   .timeline-track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .timeline-card { min-height: 175px; }
   .home-info-grid, .program-card-grid, .wave-info-grid { grid-template-columns: 1fr; }
+  .wave-info-shell { border-radius: 22px; }
   .location-card { grid-template-columns: 1fr; }
   .location-copy { padding: 8px; }
 }
