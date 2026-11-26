@@ -1374,24 +1374,28 @@
         const helper = row.querySelector('.helper');
         if (helper && field.helpText) helper.textContent = field.helpText;
       });
-      const rows = new Map();
+      const rows = [];
       fields.filter(function (field) { return field.active !== false; }).forEach(function (field) {
         const control = document.getElementById(field.key);
         const row = control && control.closest('.field-row');
-        if (row) rows.set(row, { step: field.step, order: field.order });
+        if (row) rows.push({ row: row, step: Number(field.step), order: Number(field.order) });
         else if (field.custom) {
           const customRow = document.querySelector('[data-custom-key="' + field.key + '"]');
-          if (customRow) rows.set(customRow, { step: field.step, order: field.order });
+          if (customRow) rows.push({ row: customRow, step: Number(field.step), order: Number(field.order) });
         }
       });
-      [1, 2, 3].forEach(function (stepNumber) {
+      const fieldParents = {};
+      [1, 2, 3, 4].forEach(function (stepNumber) {
         const step = document.getElementById('form-step-' + stepNumber);
-        const parent = step.querySelector('.field-row').parentElement;
-        Array.from(rows.entries()).filter(function (entry) {
-          return entry[1].step === stepNumber && entry[0].parentElement === parent;
-        }).sort(function (a, b) { return a[1].order - b[1].order; })
-          .forEach(function (entry) { parent.appendChild(entry[0]); });
-        parent.querySelectorAll('.file-input').forEach(function (input) { parent.appendChild(input.closest('.field-row')); });
+        fieldParents[stepNumber] = step.querySelector('.field-row').parentElement;
+      });
+      [1, 2, 3, 4].forEach(function (stepNumber) {
+        rows.filter(function (entry) { return entry.step === stepNumber; })
+          .sort(function (a, b) { return a.order - b.order; })
+          .forEach(function (entry) { fieldParents[stepNumber].appendChild(entry.row); });
+      });
+      fieldParents[4].querySelectorAll('.file-input').forEach(function (input) {
+        fieldParents[4].appendChild(input.closest('.field-row'));
       });
       renderRegistrationPaths();
       applyDocumentConfig();

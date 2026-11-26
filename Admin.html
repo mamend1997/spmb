@@ -102,6 +102,10 @@
     .payment-check-control input[type="checkbox"] { width: 1em; height: 1em; min-height: 1em; margin: 0; accent-color: #ea580c; }
     .field-config-row { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
     .field-config-row > * { min-width: 0; }
+    .form-field-step { margin-top: 16px; padding: 14px; border: 1px solid #e4e9f0; border-radius: 12px; background: #fbfcfe; }
+    .form-field-step > h3 { margin: 0; color: #344054; font-size: 15px; }
+    .form-field-step > p { margin: 4px 0 10px; color: #667085; font-size: 12px; }
+    .form-field-step-list { min-height: 12px; }
     .field-toggle-setting { display: flex; min-height: 62px; flex-direction: column; justify-content: flex-end; gap: 7px; }
     .field-control-caption { color: #475467; font-size: 12px; font-weight: 700; }
     .master-row label.field-switch { display: inline-flex; width: fit-content; min-height: 30px; align-items: center; gap: 8px; margin: 0 !important; color: #64748b; cursor: pointer; }
@@ -760,9 +764,8 @@
             </div>
             <div class="wide master-group" data-master-section="form">
               <h2 id="master-fields">Form Pendaftaran · Field</h2>
-              <p>Atur jenis, tahap, pilihan, status wajib, dan keaktifan field. Gunakan tombol panah untuk mengubah urutan.</p>
-              <div id="form-fields-list"></div>
-              <button id="add-form-field-button" class="secondary" type="button" style="margin-top:10px">Tambah Field</button>
+              <p>Field dikelompokkan seperti 4 tahap formulir siswa. Tambahkan field pada tahap yang sesuai; panah mengatur urutan di dalam setiap tahap.</p>
+              <div id="form-field-steps"></div>
             </div>
             <div class="wide master-group" data-master-section="timeline">
               <h2 id="master-timeline">Timeline Beranda</h2>
@@ -2210,9 +2213,38 @@
     }
 
     function renderFormFieldRows(fields) {
-      const list = document.getElementById('form-fields-list');
+      const list = document.getElementById('form-field-steps');
+      const stepContainers = {};
+      const stepDetails = [
+        ['Pilihan', 'Gelombang, jalur, dan program studi'],
+        ['Data siswa', 'Identitas dan asal sekolah calon siswa'],
+        ['Orang tua / wali', 'Data ayah, ibu, dan alamat'],
+        ['Berkas', 'Data tambahan yang tampil sebelum unggahan berkas']
+      ];
       list.replaceChildren();
-      fields.slice().sort(function (a, b) { return Number(a.order) - Number(b.order); }).forEach(function (field) {
+      stepDetails.forEach(function (detail, index) {
+        const stepNumber = index + 1;
+        const section = document.createElement('section');
+        section.className = 'form-field-step';
+        const heading = document.createElement('h3');
+        heading.textContent = 'Tahap ' + stepNumber + ' · ' + detail[0];
+        const description = document.createElement('p');
+        description.textContent = detail[1];
+        const stepList = document.createElement('div');
+        stepList.className = 'form-field-step-list';
+        stepList.dataset.formFieldStepContainer = String(stepNumber);
+        const addButton = document.createElement('button');
+        addButton.className = 'secondary';
+        addButton.type = 'button';
+        addButton.dataset.addFormFieldStep = String(stepNumber);
+        addButton.textContent = 'Tambah Field Tahap ' + stepNumber;
+        section.append(heading, description, stepList, addButton);
+        list.appendChild(section);
+        stepContainers[stepNumber] = stepList;
+      });
+      fields.slice().sort(function (a, b) {
+        return Number(a.step) - Number(b.step) || Number(a.order) - Number(b.order);
+      }).forEach(function (field) {
         const row = document.createElement('div');
         row.className = 'master-row field-config-row';
         row.dataset.formField = 'true';
@@ -2231,9 +2263,13 @@
         type.value = field.type;
         const step = document.createElement('select');
         step.dataset.fieldStep = 'true';
-        [['1', 'Tahap 1 · Pilihan'], ['2', 'Tahap 2 · Siswa'], ['3', 'Tahap 3 · Orang tua'], ['4', 'Tahap 4 · Lainnya']]
+        [['1', 'Tahap 1 · Pilihan'], ['2', 'Tahap 2 · Siswa'], ['3', 'Tahap 3 · Orang tua'], ['4', 'Tahap 4 · Berkas']]
           .forEach(function (item) { step.appendChild(makeOption(item[0], item[1])); });
         step.value = String(field.step);
+        step.addEventListener('change', function () {
+          stepContainers[Number(step.value)].appendChild(row);
+          updateFormFieldMoveButtons();
+        });
         const options = document.createElement('input');
         options.dataset.fieldOptions = 'true';
         options.maxLength = 1000;
@@ -2296,7 +2332,7 @@
           orderControls,
           remove
         );
-        list.appendChild(row);
+        stepContainers[Number(field.step)].appendChild(row);
       });
       updateFormFieldMoveButtons();
     }
@@ -2434,25 +2470,31 @@
 
     function updateFormFieldMoveButtons() {
       const rows = Array.from(document.querySelectorAll('[data-form-field]'));
-      rows.forEach(function (row, index) {
+      rows.forEach(function (row) {
+        const stepRows = Array.from(row.parentElement.querySelectorAll('[data-form-field]'));
+        const index = stepRows.indexOf(row);
         row.querySelector('[data-move-up]').disabled = index === 0;
-        row.querySelector('[data-move-down]').disabled = index === rows.length - 1;
+        row.querySelector('[data-move-down]').disabled = index === stepRows.length - 1;
       });
     }
 
     function getFormFieldRows() {
-      return Array.from(document.querySelectorAll('[data-form-field]')).map(function (row, index) {
+      const stepOrders = {};
+      return Array.from(document.querySelectorAll('[data-form-field]')).map(function (row) {
+        const step = Number(row.querySelector('[data-field-step]').value);
+        stepOrders[step] = (stepOrders[step] || 0) + 1;
         return {
           key: row.dataset.formFieldKey,
           label: row.querySelector('[data-field-label]').value.trim(),
           type: row.querySelector('[data-field-type]').value,
-          step: Number(row.querySelector('[data-field-step]').value),
-          order: index + 1,
+          step: step,
+          order: stepOrders[step],
           options: row.querySelector('[data-field-options]').value.split(',').map(function (value) { return value.trim(); }).filter(Boolean),
           placeholder: row.querySelector('[data-field-placeholder]').value.trim(),
           helpText: row.querySelector('[data-field-help]').value.trim(),
           required: row.querySelector('[data-field-required]').checked,
-          active: row.querySelector('[data-field-active]').checked
+          active: row.querySelector('[data-field-active]').checked,
+          custom: row.dataset.isCustom === 'true'
         };
       });
     }
@@ -2622,7 +2664,7 @@
         1: 'Data Pendaftaran',
         2: 'Data Siswa dan Asal Sekolah',
         3: 'Data Orang Tua/Wali',
-        4: 'Data Tambahan'
+        4: 'Berkas'
       };
       const fieldLimits = {
         studentName: 120, schoolOrigin: 120, nisn: 10, familyCardNumber: 16, studentNik: 16,
@@ -5420,22 +5462,28 @@
       const questions = document.querySelectorAll('[data-faq-question]');
       questions[questions.length - 1].focus();
     });
-    document.getElementById('add-form-field-button').addEventListener('click', function () {
+    document.getElementById('form-field-steps').addEventListener('click', function (event) {
+      const addButton = event.target.closest('[data-add-form-field-step]');
+      if (!addButton) return;
       const fields = getFormFieldRows();
       if (fields.length >= 100) return setStatus('settings-status', 'Maksimal 100 field formulir.', 'error');
-      const key = 'customField' + Date.now();
+      const step = Number(addButton.dataset.addFormFieldStep);
+      let key = 'customField' + Date.now();
+      while (fields.some(function (field) { return field.key === key; })) key += 'x';
       fields.push({
         key: key,
         label: 'Field tambahan',
         type: 'text',
-        step: 2,
+        step: step,
         required: false,
         active: true,
-        order: fields.length + 1,
+        order: fields.filter(function (field) { return Number(field.step) === step; }).length + 1,
         options: [],
         custom: true
       });
       renderFormFieldRows(fields);
+      const newLabel = document.querySelector('[data-form-field-key="' + key + '"] [data-field-label]');
+      if (newLabel) newLabel.focus();
     });
     document.getElementById('add-document-button').addEventListener('click', function () {
       const documents = getDocumentRows();

@@ -4,6 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const adminHtml = fs.readFileSync(path.join(__dirname, '..', 'Admin.html'), 'utf8');
+const indexHtml = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const serverJs = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
 test('admin can add applicants through the edit-protected registration flow', function () {
@@ -26,4 +27,14 @@ test('school letterhead can be uploaded and is included in public registration c
   assert.match(adminHtml, /data-asset="registrationLetterhead"/);
   assert.match(serverJs, /registrationLetterheadUrl: String\(input\.registrationLetterheadUrl \|\| ''\)\.trim\(\)/);
   assert.match(serverJs, /registrationLetterhead: \{ key: 'registrationLetterheadUrl'/);
+});
+
+test('form-field editor groups additions and ordering by the same four student steps', function () {
+  assert.match(adminHtml, /id="form-field-steps"/);
+  assert.match(adminHtml, /Tambah Field Tahap ' \+ stepNumber/);
+  assert.match(adminHtml, /dataset\.formFieldStepContainer/);
+  assert.match(adminHtml, /\['Berkas', 'Data tambahan yang tampil sebelum unggahan berkas'\]/);
+  assert.match(adminHtml, /stepOrders\[step\] = \(stepOrders\[step\] \|\| 0\) \+ 1/);
+  assert.match(indexHtml, /const fieldParents = \{\};[\s\S]*?\[1, 2, 3, 4\]/);
+  assert.match(indexHtml, /rows\.filter\(function \(entry\) \{ return entry\.step === stepNumber; \}\)[\s\S]*?appendChild\(entry\.row\)/);
 });
