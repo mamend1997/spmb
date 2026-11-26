@@ -73,3 +73,26 @@ test('numeric custom fields with choices render as dropdowns and reject nonnumer
   assert.ok(serverJs.includes('return !/^\\d+$/.test(option);'));
   assert.ok(serverJs.includes("field.type === 'number' && !/^\\d+$/.test(value)"));
 });
+
+test('new and edited applicants use every active configured field, including custom data', function () {
+  assert.match(adminHtml, /function renderAdminRegistrationFields\(\)[\s\S]*?siteConfig\.formFields \|\| \[\]\)\.filter\(function \(field\) \{ return field\.active; \}\)/);
+  assert.match(adminHtml, /function buildEditForm\(applicant\)[\s\S]*?config\.formFields \|\| \[\]\)\.filter\(function \(field\) \{ return field\.active; \}\)/);
+  assert.match(adminHtml, /dataset\.editFieldCustom[\s\S]*?payload\.customData\[key\] = control\.value/);
+  assert.match(serverJs, /validateApplicantUpdate\(request\.body, existing, \{ includeCustomData: true \}\)/);
+  assert.match(serverJs, /custom_data_json = @customDataJson/);
+});
+
+test('student and admin biodata print use 12-point text and expose the school letterhead setting', function () {
+  assert.match(adminHtml, /#print-applicant-summary \{[^}]*font-size: 12pt/);
+  assert.match(adminHtml, /#print-applicant-summary \.print-summary-table \{[^}]*font-size: 12pt/);
+  assert.match(adminHtml, /#print-applicant-summary p \{ font-size: 12pt; \}/);
+  assert.match(indexHtml, /#print-biodata \{ font-size: 12pt; \}/);
+  assert.match(indexHtml, /#print-biodata \.biodata-table \{[^}]*font-size: 12pt/);
+  assert.match(adminHtml, /Kop sekolah untuk formulir dan biodata/);
+  assert.match(adminHtml, /id="master-documents"[^>]*>Dokumen Sekolah/);
+});
+
+test('numeric form fields strip non-digit characters as the user types', function () {
+  assert.match(indexHtml, /function bindDigitsOnlyInput\(control\)[\s\S]*?previousValue\.replace\(\/\\D\/g, ''\)/);
+  assert.match(adminHtml, /function bindDigitsOnlyInput\(control\)[\s\S]*?previousValue\.replace\(\/\\D\/g, ''\)/);
+});

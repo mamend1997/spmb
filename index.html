@@ -66,9 +66,11 @@
       .section-banner { margin-left: 1rem !important; margin-right: 1rem !important; }
       .step-item { align-items: flex-start; padding: .55rem; }
     }
+      #print-biodata { font-size: 12pt; }
+      #print-biodata p { font-size: 12pt; }
       #print-biodata .biodata-section { margin-top: 18px; break-inside: avoid; }
-      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 13px; font-weight: 800; }
-      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      #print-biodata .biodata-section h3 { margin: 0 0 6px; border-bottom: 1px solid #64748b; padding-bottom: 4px; font-size: 12pt; font-weight: 800; }
+      #print-biodata .biodata-table { width: 100%; border-collapse: collapse; font-size: 12pt; }
       #print-biodata .biodata-table td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: top; }
       #print-biodata .biodata-table td:first-child { width: 34%; font-weight: 700; }
     @media print {
@@ -1401,6 +1403,20 @@
       applyDocumentConfig();
     }
 
+    function bindDigitsOnlyInput(control) {
+      control.inputMode = 'numeric';
+      control.pattern = '[0-9]*';
+      control.addEventListener('input', function () {
+        const previousValue = control.value;
+        const cursorPosition = control.selectionStart;
+        const cleanedValue = previousValue.replace(/\D/g, '');
+        if (cleanedValue === previousValue) return;
+        const cleanedCursorPosition = previousValue.slice(0, cursorPosition).replace(/\D/g, '').length;
+        control.value = cleanedValue;
+        control.setSelectionRange(cleanedCursorPosition, cleanedCursorPosition);
+      });
+    }
+
     function createCustomFieldRow(field) {
       const row = document.createElement('div');
       row.className = 'field-row custom-form-field';
@@ -1428,7 +1444,8 @@
       } else {
         control = document.createElement('input');
         control.type = ['number', 'tel'].includes(field.type) ? 'text' : field.type;
-        if (field.type === 'number' || field.type === 'tel') control.inputMode = 'numeric';
+        if (field.type === 'number') bindDigitsOnlyInput(control);
+        else if (field.type === 'tel') control.inputMode = 'numeric';
       }
       control.id = 'custom-' + field.key;
       control.name = field.key;

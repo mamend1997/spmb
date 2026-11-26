@@ -302,16 +302,17 @@
     #print-applicant-card .print-card-photo, #print-applicant-card .print-card-photo-empty { width: 120px; height: 160px; border: 1px solid #94a3b8; border-radius: 8px; object-fit: cover; }
     #print-applicant-card .print-card-photo-empty { display: grid; place-items: center; padding: 8px; color: #64748b; background: #f8fafc; font-size: 11px; text-align: center; }
     #print-applicant-card .print-card-photo[hidden], #print-applicant-card .print-card-photo-empty[hidden] { display: none !important; }
-    #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; }
+    #print-applicant-summary { display: none; color: #172033; font-family: Arial, sans-serif; font-size: 12pt; }
+    #print-applicant-summary p { font-size: 12pt; }
     #print-applicant-summary .print-summary-letterhead { margin-bottom: 14px; text-align: center; }
     #print-applicant-summary .print-summary-letterhead img { display: block; width: 100%; max-height: 44mm; object-fit: contain; }
     #print-applicant-summary .print-summary-letterhead-fallback { padding-bottom: 8px; border-bottom: 2px solid #172033; font-weight: 700; }
-    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    #print-applicant-summary .print-summary-table { width: 100%; border-collapse: collapse; font-size: 12pt; }
     #print-applicant-summary .print-summary-table td { border: 1px solid #94a3b8; padding: 4px 6px; vertical-align: top; }
     #print-applicant-summary .print-summary-table td:first-child { width: 34%; font-weight: 700; }
     #print-applicant-summary .print-summary-section { margin-top: 12px; break-inside: avoid; page-break-inside: avoid; }
-    #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 11px; }
-    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 12mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 11px; }
+    #print-applicant-summary .print-summary-section h3 { margin: 0 0 5px; border-bottom: 1px solid #475569; padding-bottom: 3px; font-size: 12pt; }
+    #print-applicant-summary .print-summary-signature { width: 65mm; margin: 12mm 0 0 auto; text-align: center; break-inside: avoid; page-break-inside: avoid; font-size: 12pt; }
     #print-applicant-summary .print-summary-signature-name { margin-top: 20mm; border-top: 1px solid #334155; padding-top: 4px; font-weight: 700; }
     @media print {
       @page { size: A4; margin: 12mm; }
@@ -867,7 +868,7 @@
               <p>Kelola dokumen yang ditampilkan pada halaman Dokumen publik, seperti formulir offline dan informasi beasiswa.</p>
               <div class="settings-grid">
                 <div class="wide">
-                  <label for="registration-letterhead-file">Kop formulir pendaftaran (PNG/JPG, maksimal 5 MB)</label>
+                  <label for="registration-letterhead-file">Kop sekolah untuk formulir dan biodata (PNG/JPG, maksimal 5 MB)</label>
                   <div class="file-setting">
                     <input id="registration-letterhead-file" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg">
                     <button type="button" class="secondary upload-button" data-asset="registrationLetterhead">Unggah Kop Sekolah</button>
@@ -1427,36 +1428,6 @@
       'MANAJEMEN PERKANTORAN DAN LAYANAN BISNIS (MPLB)',
       'AKUNTANSI DAN KEUANGAN LEMBAGA (AKL)',
       'BISNIS DIGITAL'
-    ];
-    const religions = ['Islam', 'Kristen Protestan', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
-    const educationLevels = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/SMK/Sederajat', 'D1/D2/D3', 'S1/D4', 'S2', 'S3', 'Tidak Sekolah'];
-    const editFields = [
-      { key: 'wave', label: 'Gelombang', kind: 'wave' },
-      { key: 'major', label: 'Program Studi', kind: 'program' },
-      { key: 'studentName', label: 'Nama Lengkap Siswa', required: true },
-      { key: 'schoolOrigin', label: 'Asal Sekolah', required: true },
-      { key: 'nisn', label: 'NISN', required: true, pattern: '[0-9]{10}', maxLength: 10 },
-      { key: 'studentNik', label: 'NIK Siswa', required: true, pattern: '[0-9]{16}', maxLength: 16 },
-      { key: 'familyCardNumber', label: 'Nomor KK', required: true, pattern: '[0-9]{16}', maxLength: 16 },
-      { key: 'gender', label: 'Jenis Kelamin', kind: 'gender' },
-      { key: 'religion', label: 'Agama', kind: 'religion' },
-      { key: 'birthPlace', label: 'Tempat Lahir', required: true },
-      { key: 'birthDate', label: 'Tanggal Lahir', kind: 'date' },
-      { key: 'email', label: 'Email', kind: 'email', required: true },
-      { key: 'studentPhone', label: 'WhatsApp Siswa', optional: true },
-      { key: 'fatherName', label: 'Nama Ayah', required: true },
-      { key: 'fatherNik', label: 'NIK Ayah', required: true, pattern: '[0-9]{16}', maxLength: 16 },
-      { key: 'fatherEducation', label: 'Pendidikan Ayah', kind: 'education' },
-      { key: 'fatherOccupation', label: 'Pekerjaan Ayah', required: true },
-      { key: 'fatherIncome', label: 'Penghasilan Ayah', required: true },
-      { key: 'fatherPhone', label: 'WhatsApp Ayah (+62)', required: true },
-      { key: 'motherName', label: 'Nama Ibu', required: true },
-      { key: 'motherNik', label: 'NIK Ibu', required: true, pattern: '[0-9]{16}', maxLength: 16 },
-      { key: 'motherEducation', label: 'Pendidikan Ibu', kind: 'education' },
-      { key: 'motherOccupation', label: 'Pekerjaan Ibu', required: true },
-      { key: 'motherIncome', label: 'Penghasilan Ibu', required: true },
-      { key: 'motherPhone', label: 'WhatsApp Ibu (+62)', required: true },
-      { key: 'address', label: 'Alamat Lengkap', kind: 'textarea', required: true, wide: true }
     ];
     let siteConfig = null;
     let applicants = [];
@@ -2693,6 +2664,20 @@
       });
     }
 
+    function bindDigitsOnlyInput(control) {
+      control.inputMode = 'numeric';
+      control.pattern = '[0-9]*';
+      control.addEventListener('input', function () {
+        const previousValue = control.value;
+        const cursorPosition = control.selectionStart;
+        const cleanedValue = previousValue.replace(/\D/g, '');
+        if (cleanedValue === previousValue) return;
+        const cleanedCursorPosition = previousValue.slice(0, cursorPosition).replace(/\D/g, '').length;
+        control.value = cleanedValue;
+        control.setSelectionRange(cleanedCursorPosition, cleanedCursorPosition);
+      });
+    }
+
     function renderAdminRegistrationFields() {
       const container = document.getElementById('admin-registration-fields');
       const fields = (siteConfig.formFields || []).filter(function (field) { return field.active; })
@@ -2728,7 +2713,7 @@
               : document.createElement('input');
           if (control.tagName === 'INPUT') {
             control.type = ['email', 'tel', 'date'].includes(field.type) ? field.type : 'text';
-            if (field.type === 'number') control.inputMode = 'numeric';
+            if (field.type === 'number') bindDigitsOnlyInput(control);
           }
           if (control.tagName !== 'SELECT') control.maxLength = field.custom ? 2000 : (fieldLimits[field.key] || 200);
           control.dataset.adminRegistrationKey = field.key;
@@ -4726,45 +4711,104 @@
       loadApplications();
     }
 
-    function buildEditForm() {
+    function editFieldOptions(field, config, waveName) {
+      if (field.key === 'wave') {
+        return (config.registrationWaves || []).map(function (wave) { return wave.name; });
+      }
+      if (field.key === 'registrationPath') {
+        return (config.registrationPaths || []).filter(function (path) {
+          return path.active && (!path.wave || path.wave === waveName);
+        }).map(function (path) { return path.name; });
+      }
+      if (field.key === 'major' && (!field.options || !field.options.length)) {
+        return config.programs && config.programs.length ? config.programs : programs;
+      }
+      return field.options || [];
+    }
+
+    function updateEditRegistrationPaths(select, config, waveName, currentValue) {
+      const availablePaths = (config.registrationPaths || []).filter(function (path) {
+        return path.active && (!path.wave || path.wave === waveName);
+      }).map(function (path) { return path.name; });
+      select.replaceChildren(makeOption('', 'Pilih Jalur Pendaftaran...'));
+      availablePaths.forEach(function (path) { select.appendChild(makeOption(path, path)); });
+      if (currentValue && !availablePaths.includes(currentValue) &&
+          (config.registrationPaths || []).some(function (path) {
+            return path.name === currentValue && (!path.wave || path.wave === waveName);
+          })) {
+        select.appendChild(makeOption(currentValue, currentValue + ' (tersimpan)'));
+      }
+      select.value = availablePaths.includes(currentValue) ||
+        Array.from(select.options).some(function (option) { return option.value === currentValue; })
+        ? currentValue : '';
+    }
+
+    function buildEditForm(applicant) {
       const container = document.getElementById('edit-fields');
       container.replaceChildren();
       const config = siteConfig || adminReviewConfig || {};
-      editFields.forEach(function (field) {
-        const configuredField = (config.formFields || []).find(function (item) { return item.key === field.key; });
+      const fields = (config.formFields || []).filter(function (field) { return field.active; })
+        .slice().sort(function (a, b) { return Number(a.step) - Number(b.step) || Number(a.order) - Number(b.order); });
+      const fieldLimits = {
+        studentName: 120, schoolOrigin: 120, nisn: 10, familyCardNumber: 16, studentNik: 16,
+        gender: 20, religion: 40, birthPlace: 100, birthDate: 10, email: 254, studentPhone: 20,
+        fatherNik: 16, fatherName: 120, fatherEducation: 40, fatherOccupation: 100, fatherIncome: 80,
+        fatherPhone: 20, motherNik: 16, motherName: 120, motherEducation: 40, motherOccupation: 100,
+        motherIncome: 80, motherPhone: 20, address: 500
+      };
+      fields.forEach(function (field) {
         const group = document.createElement('div');
-        if (field.wide) group.className = 'wide';
+        if (field.type === 'textarea' || field.key === 'address') group.className = 'wide';
         const label = document.createElement('label');
         label.htmlFor = 'edit-' + field.key;
-        label.textContent = (configuredField ? configuredField.label : field.label) +
-          (configuredField ? (configuredField.required ? ' *' : ' (opsional)') : (field.optional ? ' (opsional)' : ''));
+        label.textContent = field.label + (field.required ? ' *' : ' (opsional)');
         let control;
-        if (field.kind === 'textarea') {
+        if (field.type === 'textarea') {
           control = document.createElement('textarea');
           control.rows = 3;
-        } else if (['wave', 'program', 'gender', 'religion', 'education'].includes(field.kind)) {
+        } else if (field.type === 'select' || (field.type === 'number' && field.options.length > 0)) {
           control = document.createElement('select');
-          const values = field.kind === 'wave'
-            ? (config.registrationWaves || []).map(function (wave) { return wave.name; })
-            : field.kind === 'program'
-              ? ((configuredField && configuredField.options.length) ? configuredField.options
-                : (siteConfig && siteConfig.programs && siteConfig.programs.length ? siteConfig.programs : programs))
-              : field.kind === 'gender' ? ['Laki-laki', 'Perempuan']
-                : field.kind === 'religion' ? religions : educationLevels;
-          values.forEach(function (value) { control.appendChild(makeOption(value, value)); });
+          control.appendChild(makeOption('', field.placeholder || 'Pilih ' + field.label + '...'));
+          editFieldOptions(field, config, applicant.wave).forEach(function (value) {
+            control.appendChild(makeOption(value, value));
+          });
+          const currentValue = applicantValue(applicant, field);
+          if (currentValue && !Array.from(control.options).some(function (option) { return option.value === currentValue; })) {
+            const allowedCurrentPath = field.key !== 'registrationPath' ||
+              (config.registrationPaths || []).some(function (path) {
+                return path.name === currentValue && (!path.wave || path.wave === applicant.wave);
+              });
+            if (allowedCurrentPath) control.appendChild(makeOption(currentValue, currentValue + ' (tersimpan)'));
+          }
         } else {
           control = document.createElement('input');
-          control.type = field.kind || 'text';
+          control.type = ['email', 'date', 'tel'].includes(field.type) ? field.type : 'text';
+          if (field.type === 'number') bindDigitsOnlyInput(control);
+          else if (field.type === 'tel') control.inputMode = 'numeric';
         }
         control.id = label.htmlFor;
-        control.name = field.key;
-        control.required = configuredField ? configuredField.required : field.required !== false && !field.optional;
-        control.disabled = Boolean(configuredField && !configuredField.active);
+        control.dataset.editFieldKey = field.key;
+        control.dataset.editFieldCustom = String(Boolean(field.custom));
+        control.required = field.required === true;
+        control.placeholder = field.placeholder || '';
+        if (control.tagName !== 'SELECT') control.maxLength = field.custom ? 2000 : (fieldLimits[field.key] || 200);
         if (field.pattern) control.pattern = field.pattern;
-        if (field.maxLength) control.maxLength = field.maxLength;
+        control.value = applicantValue(applicant, field);
+        if (field.key === 'wave') {
+          control.addEventListener('change', function () {
+            const pathSelect = container.querySelector('[data-edit-field-key="registrationPath"]');
+            if (pathSelect) updateEditRegistrationPaths(pathSelect, config, control.value, pathSelect.value);
+          });
+        }
         group.append(label, control);
         container.appendChild(group);
       });
+      const pathSelect = container.querySelector('[data-edit-field-key="registrationPath"]');
+      if (pathSelect) {
+        const waveSelect = container.querySelector('[data-edit-field-key="wave"]');
+        updateEditRegistrationPaths(pathSelect, config, waveSelect ? waveSelect.value : applicant.wave,
+          applicant.registration_path || '');
+      }
     }
 
     async function openEditDialog(applicant) {
@@ -4780,26 +4824,7 @@
       }
       editingRegistrationNumber = applicant.registration_number;
       document.getElementById('edit-registration-number').textContent = applicant.registration_number;
-      buildEditForm();
-      const values = {
-        wave: applicant.wave, major: applicant.major, studentName: applicant.student_name,
-        schoolOrigin: applicant.school_origin, nisn: applicant.nisn, studentNik: applicant.student_nik,
-        familyCardNumber: applicant.family_card_number, gender: applicant.gender, religion: applicant.religion,
-        birthPlace: applicant.birth_place, birthDate: applicant.birth_date, email: applicant.email,
-        studentPhone: applicant.student_phone, fatherNik: applicant.father_nik, fatherName: applicant.father_name,
-        fatherEducation: applicant.father_education, fatherOccupation: applicant.father_occupation,
-        fatherIncome: applicant.father_income, fatherPhone: applicant.father_phone, motherNik: applicant.mother_nik,
-        motherName: applicant.mother_name, motherEducation: applicant.mother_education,
-        motherOccupation: applicant.mother_occupation, motherIncome: applicant.mother_income,
-        motherPhone: applicant.mother_phone, address: applicant.address
-      };
-      editFields.forEach(function (field) {
-        const control = document.getElementById('edit-' + field.key);
-        if (field.kind === 'wave' && !Array.from(control.options).some(function (option) { return option.value === values.wave; })) {
-          control.appendChild(makeOption(values.wave, values.wave + ' (gelombang lama)'));
-        }
-        control.value = values[field.key] || '';
-      });
+      buildEditForm(applicant);
       setStatus('edit-status', '', '');
       editDialog.showModal();
     }
@@ -5672,7 +5697,12 @@
       event.preventDefault();
       const button = document.getElementById('save-edit-button');
       button.disabled = true;
-      const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+      const payload = { customData: {} };
+      event.currentTarget.querySelectorAll('[data-edit-field-key]').forEach(function (control) {
+        const key = control.dataset.editFieldKey;
+        if (control.dataset.editFieldCustom === 'true') payload.customData[key] = control.value;
+        else payload[key] = control.value;
+      });
       try {
         await api('/api/admin/applications/' + encodeURIComponent(editingRegistrationNumber), {
           method: 'PUT',

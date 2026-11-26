@@ -2016,7 +2016,7 @@ function configuredFieldValue(payload, field, maxLength, fallback) {
   if (!field.active) return fallback || '';
   if (!value && field.required) throw new Error('Data ' + field.label + ' wajib diisi.');
   if (value.length > maxLength) throw new Error('Data ' + field.label + ' terlalu panjang.');
-  if (value && field.options.length && !field.options.includes(value)) {
+  if (value && field.options.length && !field.options.includes(value) && value !== String(fallback || '')) {
     throw new Error('Pilihan ' + field.label + ' tidak valid.');
   }
   if (value && field.pattern) {
@@ -2393,7 +2393,7 @@ function isValidBirthDate(value) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function validateApplicantUpdate(input, existing) {
+function validateApplicantUpdate(input, existing, options) {
   if (!input || typeof input !== 'object') throw new Error('Data pendaftar tidak valid.');
   const config = getConfig();
   const waveField = getConfiguredField(config, 'wave');
@@ -2442,7 +2442,9 @@ function validateApplicantUpdate(input, existing) {
     motherPhone: normalizeIndonesianPhone(value('motherPhone', 20)),
     address: value('address', 500)
   };
-  if (result.major && !majorOptions.includes(result.major)) throw new Error('Program studi tidak valid.');
+  if (result.major && !majorOptions.includes(result.major) && result.major !== existing.major) {
+    throw new Error('Program studi tidak valid.');
+  }
   const lengths = { nisn: 10, familyCardNumber: 16, studentNik: 16, fatherNik: 16, motherNik: 16 };
   Object.keys(lengths).forEach(function (key) {
     if (result[key] && !new RegExp('^\\d{' + lengths[key] + '}$').test(result[key])) {
@@ -2458,8 +2460,32 @@ function validateApplicantUpdate(input, existing) {
   Object.keys(defaultOptions).forEach(function (key) {
     const field = getConfiguredField(config, key);
     const options = field.options.length ? field.options : defaultOptions[key];
-    if (result[key] && !options.includes(result[key])) throw new Error('Pilihan ' + field.label + ' tidak valid.');
+    const column = key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
+    if (result[key] && !options.includes(result[key]) && result[key] !== existing[column]) {
+      throw new Error('Pilihan ' + field.label + ' tidak valid.');
+    }
   });
+  const customData = JSON.parse(existing.custom_data_json || '{}');
+  const submittedCustomData = input.customData && typeof input.customData === 'object' ? input.customData : {};
+  if (options && options.includeCustomData) {
+    config.formFields.filter(function (field) { return field.custom && field.active; }).forEach(function (field) {
+      const hasSubmittedValue = Object.prototype.hasOwnProperty.call(submittedCustomData, field.key);
+      const raw = hasSubmittedValue ? submittedCustomData[field.key] : customData[field.key];
+      const fieldValue = typeof raw === 'string' ? raw.trim() : raw == null ? '' : String(raw).trim();
+      if (!fieldValue && field.required) throw new Error('Data ' + field.label + ' wajib diisi.');
+      if (fieldValue.length > 2000) throw new Error('Data ' + field.label + ' terlalu panjang.');
+      if (fieldValue && field.type === 'number' && !/^\d+$/.test(fieldValue) &&
+          fieldValue !== String(customData[field.key] || '')) {
+        throw new Error('Data ' + field.label + ' hanya boleh berisi angka.');
+      }
+      if (fieldValue && field.options.length && !field.options.includes(fieldValue) &&
+          fieldValue !== String(customData[field.key] || '')) {
+        throw new Error('Pilihan ' + field.label + ' tidak valid.');
+      }
+      customData[field.key] = fieldValue;
+    });
+  }
+  result.customData = customData;
   if (result.birthDate && !isValidBirthDate(result.birthDate)) throw new Error('Tanggal lahir tidak valid.');
   if (result.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(result.email)) throw new Error('Format email tidak valid.');
   if (result.studentPhone && !/^\d{10,14}$/.test(result.studentPhone)) {
@@ -5427,7 +5453,7 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
   const existing = getApplicantByRegistration(registrationNumber);
   if (!existing) return response.status(404).json({ message: 'Nomor pendaftaran tidak ditemukan.' });
   try {
-    const updated = validateApplicantUpdate(request.body, existing);
+    const updated = validateApplicantUpdate(request.body, existing, { includeCustomData: true });
     const duplicate = database.prepare(`
       SELECT id FROM applicants
       WHERE ((? <> '' AND nisn = ?) OR (? <> '' AND student_nik = ?)) AND id <> ?
@@ -5435,20 +5461,33 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
     if (duplicate) return response.status(409).json({ message: 'NISN atau NIK tersebut sudah dipakai pendaftar lain.' });
     const config = getConfig();
     const reviews = JSON.parse(existing.field_reviews_json || '{}');
-    config.formFields.filter(function (field) { return field.active && !field.custom; }).forEach(function (field) {
-      const column = field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
-      const previousValue = existing[column] == null ? '' : String(existing[column]);
-      const nextValue = updated[field.key] == null ? '' : String(updated[field.key]);
+    const existingCustomData = JSON.parse(existing.custom_data_json || '{}');
+    config.formFields.filter(function (field) { return field.active; }).forEach(function (field) {
+      const previousValue = field.custom
+        ? String(existingCustomData[field.key] || '')
+        : String(existing[field.key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); })] || '');
+      const nextValue = field.custom
+        ? String(updated.customData[field.key] || '')
+        : String(updated[field.key] == null ? '' : updated[field.key]);
       if (previousValue !== nextValue) delete reviews[field.key];
     });
     const updatedApplicant = Object.assign({}, existing);
-    Object.keys(updated).forEach(function (key) {
+    Object.keys(updated).filter(function (key) { return key !== 'customData'; }).forEach(function (key) {
       const column = key.replace(/[A-Z]/g, function (letter) { return '_' + letter.toLowerCase(); });
       updatedApplicant[column] = updated[key];
     });
+    updatedApplicant.custom_data_json = JSON.stringify(updated.customData);
     const uploadedFiles = new Set(database.prepare('SELECT field_key FROM uploaded_files WHERE applicant_id = ?')
       .all(existing.id).map(function (file) { return file.field_key; }));
     const documentStatus = calculateDocumentStatus(updatedApplicant, config, reviews, uploadedFiles);
+    const updateValues = Object.assign({}, updated, {
+      id: existing.id,
+      customDataJson: JSON.stringify(updated.customData),
+      fieldReviewsJson: JSON.stringify(reviews),
+      documentStatus: documentStatus,
+      updatedAt: new Date().toISOString()
+    });
+    delete updateValues.customData;
     database.prepare(`
       UPDATE applicants SET
         wave = @wave, wave_fee = @waveFee, registration_path = @registrationPath, major = @major, student_name = @studentName,
@@ -5459,15 +5498,10 @@ app.put('/api/admin/applications/:registrationNumber', requireAdmin, requirePerm
         father_occupation = @fatherOccupation, father_income = @fatherIncome, father_phone = @fatherPhone,
         mother_nik = @motherNik, mother_name = @motherName, mother_education = @motherEducation,
         mother_occupation = @motherOccupation, mother_income = @motherIncome, mother_phone = @motherPhone,
-        address = @address, field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
+        address = @address, custom_data_json = @customDataJson, field_reviews_json = @fieldReviewsJson, document_status = @documentStatus,
         status_updated_at = @updatedAt
       WHERE id = @id
-    `).run(Object.assign({}, updated, {
-      id: existing.id,
-      fieldReviewsJson: JSON.stringify(reviews),
-      documentStatus: documentStatus,
-      updatedAt: new Date().toISOString()
-    }));
+    `).run(updateValues);
     queueSheetSync(existing.id);
     setImmediate(syncQueuedApplications);
     response.json({ status: 'success' });
